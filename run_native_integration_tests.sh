@@ -4,7 +4,7 @@
 #
 # ¡Keep it MacOS/Ubuntu compatible!
 
-# Fail immediately in case of errors and/or unset variables
+# Fail immediately in case of any errors and/or unset variables
 set -eu -o pipefail
 
 # Use an already set JAVA_HOME, or infer it from java.home system property.

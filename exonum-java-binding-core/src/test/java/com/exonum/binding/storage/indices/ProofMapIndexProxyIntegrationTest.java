@@ -30,6 +30,7 @@ import com.exonum.binding.test.Bytes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -40,6 +41,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -79,6 +81,11 @@ public class ProofMapIndexProxyIntegrationTest
 
   private static final HashCode EMPTY_MAP_ROOT_HASH = HashCode.fromBytes(
       new byte[DEFAULT_HASH_SIZE_BYTES]);
+
+  @BeforeClass
+  public static void waitBeforeTest() throws Exception {
+    Thread.sleep(Duration.ofSeconds(16).toMillis());
+  }
 
   @Test
   public void containsKey() throws Exception {

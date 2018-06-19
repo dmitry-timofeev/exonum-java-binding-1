@@ -18,6 +18,7 @@ package com.exonum.binding.cryptocurrency;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.exonum.binding.crypto.PublicKey;
 import com.exonum.binding.hash.HashCode;
 import com.exonum.binding.messages.InternalServerError;
 import com.exonum.binding.messages.InvalidTransactionException;
@@ -28,6 +29,7 @@ import com.exonum.binding.service.Schema;
 import com.exonum.binding.service.TransactionConverter;
 import com.exonum.binding.storage.database.Fork;
 import com.exonum.binding.storage.database.View;
+import com.exonum.binding.storage.indices.MapIndex;
 import com.google.inject.Inject;
 import io.vertx.ext.web.Router;
 import java.util.Optional;
@@ -64,11 +66,31 @@ public final class CryptocurrencyServiceImpl extends AbstractService
 
   @Override
   @SuppressWarnings("ConstantConditions")
-  public HashCode submitTransaction(Transaction tx)
-      throws InvalidTransactionException, InternalServerError {
+  public HashCode submitTransaction(Transaction tx) {
     checkBlockchainInitialized();
-    node.submitTransaction(tx);
-    return tx.hash();
+    try {
+      node.submitTransaction(tx);
+      return tx.hash();
+    } catch (InvalidTransactionException | InternalServerError e) {
+      throw new RuntimeException("Propagated transaction submission exception", e);
+    }
+  }
+
+  @Override
+  @SuppressWarnings("ConstantConditions")
+  public Optional<Wallet> getValue(PublicKey walletId) {
+    checkBlockchainInitialized();
+
+    return node.withSnapshot((view) -> {
+      CryptocurrencySchema schema = new CryptocurrencySchema(view);
+      MapIndex<PublicKey, Wallet> wallets = schema.wallets();
+      if (!wallets.containsKey(walletId)) {
+        return Optional.empty();
+      }
+
+      Wallet value = wallets.get(walletId);
+      return Optional.of(new Wallet(value.getBalance()));
+    });
   }
 
   private void checkBlockchainInitialized() {

@@ -11,6 +11,7 @@ set -eu -o pipefail
 
 # todo: skip ErrorProne checks?
 mvn -Dcheckstyle.skip=true \
+  -Drust.compiler.version="${RUST_VERSION:-1.26.2}" \
   clean \
   clover:setup \
   install

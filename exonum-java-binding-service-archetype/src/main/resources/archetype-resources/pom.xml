@@ -13,10 +13,10 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.compiler.source>8</java.compiler.source>
         <java.compiler.target>8</java.compiler.target>
-        <gson.version>2.8.2</gson.version>
+        <gson.version>2.8.5</gson.version>
         <junit.version>4.12</junit.version>
-        <mockito-core.version>2.8.47</mockito-core.version>
-        <exonum-bom.version>1.0.0</exonum-bom.version>
+        <mockito-core.version>2.19.1</mockito-core.version>
+        <exonum-bom.version>0.2</exonum-bom.version>
     </properties>
 
     <dependencyManagement>
@@ -36,26 +36,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.6.2</version>
+                <version>3.7.0</version>
                 <configuration>
-                    <compilerId>javac-with-errorprone</compilerId>
                     <showWarnings>true</showWarnings>
-                    <forceJavacCompilerUse>true</forceJavacCompilerUse>
                     <source>${java.compiler.source}</source>
                     <target>${java.compiler.target}</target>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.codehaus.plexus</groupId>
-                        <artifactId>plexus-compiler-javac-errorprone</artifactId>
-                        <version>2.8.2</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.google.errorprone</groupId>
-                        <artifactId>error_prone_core</artifactId>
-                        <version>2.0.21</version>
-                    </dependency>
-                </dependencies>
             </plugin>
 
             <plugin>
@@ -63,6 +49,8 @@
                 <version>2.21.0</version>
                 <configuration>
                     <argLine>
+                        <!-- TODO: Replace with a path to the libjava_bindings.so to enable
+                             integration tests that require a native library. -->
                         -Djava.library.path=${project.basedir}/exonum-java-binding-core/rust/target/debug
                     </argLine>
                 </configuration>
@@ -74,13 +62,11 @@
         <dependency>
             <groupId>com.exonum.binding</groupId>
             <artifactId>exonum-java-binding-core</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

@@ -1,6 +1,20 @@
+// Copyright 2018 The Exonum Team
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use std::any::TypeId;
-use std::sync::RwLock;
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use utils::Handle;
 
@@ -47,7 +61,8 @@ fn add_handle_impl<T: 'static>(handle: Handle, ownership: HandleOwnershipType) {
             .expect("Unable to obtain write-lock")
             .insert(handle, HandleInfo::new(TypeId::of::<T>(), ownership))
             .is_none(),
-        "Trying to add the same handle for the second time: {:X}, handle"
+        "Trying to add the same handle for the second time: {:X}",
+        handle
     )
 }
 
@@ -74,27 +89,22 @@ fn check_handle_impl<T: 'static>(handle: Handle, ownership: Option<HandleOwnersh
     match HANDLES_MAP
         .read()
         .expect("Unable to obtain read-lock")
-        .get(&handle) {
+        .get(&handle)
+    {
         Some(info) => {
             let actual_object_type = TypeId::of::<T>();
             assert_eq!(
-                info.object_type,
-                actual_object_type,
+                info.object_type, actual_object_type,
                 "Wrong type id for '{:X}' handle",
                 handle
             );
 
-            match ownership {
-                Some(val) => {
-                    assert_eq!(
-                        val,
-                        info.ownership,
-                        "Error: '{:X}' handle should be {:?}",
-                        handle,
-                        info.ownership
-                    );
-                }
-                None => (),
+            if let Some(val) = ownership {
+                assert_eq!(
+                    val, info.ownership,
+                    "Error: '{:X}' handle should be {:?}",
+                    handle, info.ownership
+                );
             }
         }
         None => panic!("Invalid handle value: '{:X}'", handle),
@@ -157,8 +167,8 @@ pub fn known_handles() -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::i64;
     use super::*;
+    use std::i64;
 
     enum T {}
     const INVALID_HANDLE: Handle = i64::MAX;

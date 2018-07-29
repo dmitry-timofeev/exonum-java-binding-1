@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 The Exonum Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.exonum.binding.proxy;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -41,7 +57,7 @@ public final class Cleaner implements AutoCloseable {
   private static final int TOO_MANY_CLEAN_ACTIONS_LOG_THRESHOLD = 1000;
   private static final int TOO_MANY_CLEAN_ACTIONS_LOG_FREQUENCY = 100;
 
-  private final Deque<CleanAction> registeredCleanActions;
+  private final Deque<CleanAction<?>> registeredCleanActions;
   private final String description;
   private boolean closed;
 
@@ -77,7 +93,7 @@ public final class Cleaner implements AutoCloseable {
    *
    * @throws IllegalStateException if it’s attempted to add a clean action to a closed context
    */
-  public void add(CleanAction cleanAction) {
+  public void add(CleanAction<?> cleanAction) {
     if (closed) {
       // To avoid possible leaks, perform the clean action before throwing IllegalStateException.
       Throwable cleanActionError = null;
@@ -118,9 +134,13 @@ public final class Cleaner implements AutoCloseable {
     }
   }
 
-  private static Object getActionType(CleanAction<Object> a) {
-    Optional<Object> rt = a.resourceType();
-    return rt.orElse("Unknown");
+  private static Object getActionType(CleanAction<?> a) {
+    Optional<?> rt = a.resourceType();
+    if (rt.isPresent()) {
+      return rt.get();
+    } else {
+      return "Unknown";
+    }
   }
 
   /**

@@ -6,6 +6,8 @@ import java.util.List;
  * An unchecked map proof.
  * It's used to get a checked map proof.
  * Example usage:
+ * // Review: this code is not accurate, compareWithRootHash
+ *    does not seem to be a valid call
  * <pre><code>
  * byte[] key = "The key for which I want a proved value";
  * HashCode expectedRootHash = // get a known root hash from block proof //

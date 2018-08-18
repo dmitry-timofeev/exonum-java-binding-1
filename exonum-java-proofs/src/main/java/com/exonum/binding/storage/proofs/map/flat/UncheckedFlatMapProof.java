@@ -7,9 +7,7 @@ import com.exonum.binding.hash.HashCode;
 import com.exonum.binding.hash.HashFunction;
 import com.exonum.binding.hash.Hashing;
 import com.exonum.binding.storage.proofs.map.DbKey;
-
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,6 +26,13 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
 
   private final List<MapProofEntry> proofList;
 
+  // Review: I did the same mistake — an array does not override equals and hashCode,
+  // therefore, cannot be reliably used in a hash set. If we need to
+  // have a set of byte[], then we probably have to add a ByteString class.
+  // I’d add a ByteString interface with the minimum required methods and static factory methods +
+  // ArrayByteString implementing that interface — this way it will be easier to replace it.
+  // We may use the protobuf version: https://github.com/google/protobuf/blob/master/java/core/src/main/java/com/google/protobuf/ByteString.java
+  // or https://github.com/kbolino/ByteString/blob/master/src/main/java/com/kbolino/libraries/bytestring/ByteString.java
   private final Set<byte[]> requestedKeys;
 
   UncheckedFlatMapProof(List<MapProofEntry> proofList, Set<byte[]> requestedKeys) {
@@ -35,6 +40,8 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
     this.requestedKeys = requestedKeys;
   }
 
+  // Review: The unchecked map proof does not have to carry the requested keys — it is the
+  // caller of the map validator who supplies them.
   @SuppressWarnings("unused") // Native API
   static UncheckedFlatMapProof fromUnsorted(MapProofEntry[] proofList, byte[][] requestedKeys) {
     List<MapProofEntry> mapProofEntries = Arrays.asList(proofList);

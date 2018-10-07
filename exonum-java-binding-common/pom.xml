@@ -149,6 +149,19 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
       </plugin>
+
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>1.4.3</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>0.7</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
     <extensions>
       <!-- Use an extension that sets the OS classifier, required to locate

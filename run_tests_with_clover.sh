@@ -9,15 +9,21 @@
 # Fail immediately in case of any errors and/or unset variables
 set -eu -o pipefail
 
+# Import necessary environment variables (see the tests_profile header comment for details).
+source tests_profile
+
 # todo: skip ErrorProne checks?
 mvn -Dcheckstyle.skip=true \
-  -Drust.compiler.version="${RUST_VERSION:-1.26.2}" \
+  -Dspotbugs.skip=true \
+  -Drust.compiler.version="${RUST_COMPILER_VERSION:-1.26.2}" \
   clean \
   clover:setup \
   install
 
-# Run native integration tests that require a JVM.
+# Run native integration tests that require a JVM and module
+# with fake service implementation.
 ./run_native_integration_tests.sh --skip-compile
+./run_ejb_app_tests.sh
 
 # Generate a coverage report
 mvn clover:aggregate clover:clover

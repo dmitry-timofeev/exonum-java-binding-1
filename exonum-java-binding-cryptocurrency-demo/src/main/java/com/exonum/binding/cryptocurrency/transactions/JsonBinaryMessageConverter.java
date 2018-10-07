@@ -18,16 +18,15 @@ package com.exonum.binding.cryptocurrency.transactions;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.exonum.binding.crypto.PublicKey;
+import com.exonum.binding.common.crypto.PublicKey;
+import com.exonum.binding.common.message.BinaryMessage;
+import com.exonum.binding.common.message.Message;
 import com.exonum.binding.cryptocurrency.CryptocurrencyService;
-import com.exonum.binding.messages.BinaryMessage;
-import com.exonum.binding.messages.Message;
 import com.google.common.io.BaseEncoding;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.google.protobuf.ByteString;
 import java.lang.reflect.Type;
-import java.nio.ByteBuffer;
 
 /**
  * A class converting JSON messages into binary messages.
@@ -64,7 +63,7 @@ public final class JsonBinaryMessageConverter {
             GSON.fromJson(messageJson, messageType);
 
         CreateWalletTxData txParameters = message.getBody();
-        byte[] binaryBody = TxMessagesProtos.CreateWalletTx.newBuilder()
+        byte[] binaryBody = TxMessageProtos.CreateWalletTx.newBuilder()
             .setOwnerPublicKey(publicKeyToProtoBytes(txParameters.ownerPublicKey))
             .setInitialBalance(txParameters.initialBalance)
             .build()
@@ -78,7 +77,7 @@ public final class JsonBinaryMessageConverter {
         TransactionJsonMessage<TransferTxData> message = GSON.fromJson(messageJson, messageType);
 
         TransferTxData txParameters = message.getBody();
-        byte[] binaryBody = TxMessagesProtos.TransferTx.newBuilder()
+        byte[] binaryBody = TxMessageProtos.TransferTx.newBuilder()
             .setSeed(txParameters.seed)
             .setFromWallet(publicKeyToProtoBytes(txParameters.senderId))
             .setToWallet(publicKeyToProtoBytes(txParameters.recipientId))
@@ -100,7 +99,7 @@ public final class JsonBinaryMessageConverter {
         .setMessageType(message.getMessageId())
         .setServiceId(message.getServiceId())
         .setVersion(message.getProtocolVersion())
-        .setBody(ByteBuffer.wrap(binaryBody))
+        .setBody(binaryBody)
         .setSignature(decodeHex(message.getSignature()))
         .buildRaw();
   }

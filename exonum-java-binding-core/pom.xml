@@ -27,11 +27,22 @@
     <rust.itSubCrate>integration_tests</rust.itSubCrate>
     <build.nativeLibPath>${project.basedir}/rust/target/debug</build.nativeLibPath>
     <auto-value.version>1.6.2</auto-value.version>
-    <kalium.version>0.8.0</kalium.version>
     <javax-annotation-api.version>1.3.2</javax-annotation-api.version>
+    <!-- Disable ITs that run during 'verify' phase as most of them require the native library. -->
+    <skipITs>${project.skipJavaITs}</skipITs>
   </properties>
 
   <build>
+    <extensions>
+      <!-- Use an extension that sets the OS classifier, required to locate
+           the correct protoc executable -->
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.6.0</version>
+      </extension>
+    </extensions>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -52,7 +63,7 @@
         <version>1.6.0</version>
         <!-- A configuration shared across multiple executions -->
         <configuration>
-          <executable>${project.basedir}/rust/cargo.sh</executable>
+          <executable>cargo</executable>
           <workingDirectory>${project.basedir}/rust/</workingDirectory>
         </configuration>
         <executions>
@@ -133,6 +144,22 @@
       </plugin>
 
       <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-compile</goal>
+            </goals>
+            <configuration>
+              <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <configuration>
@@ -148,7 +175,10 @@
           <excludes>
             <exclude>**/*IntegrationTest.java</exclude>
           </excludes>
-          <argLine>${java.vm.assertionFlag}</argLine>
+          <argLine>
+            ${jacoco.args}
+            ${java.vm.assertionFlag}
+          </argLine>
         </configuration>
       </plugin>
 
@@ -159,7 +189,8 @@
           <includes>
             <include>**/*IntegrationTest.java</include>
           </includes>
-          <argLine>-Djava.library.path=${build.nativeLibPath}
+          <argLine>${jacoco.it.args}
+                   -Djava.library.path=${build.nativeLibPath}
                    -Xcheck:jni
                    ${java.vm.assertionFlag}
                    -Xss1500k
@@ -167,6 +198,7 @@
         </configuration>
         <executions>
           <execution>
+            <id>integration-test</id>
             <goals>
               <goal>integration-test</goal>
               <goal>verify</goal>
@@ -245,8 +277,8 @@
   <dependencies>
     <dependency>
       <groupId>com.exonum.binding</groupId>
-      <artifactId>exonum-java-proofs</artifactId>
-      <version>0.2</version>
+      <artifactId>exonum-java-binding-common</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <dependency>
@@ -277,6 +309,11 @@
     </dependency>
 
     <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.auto.value</groupId>
       <artifactId>auto-value-annotations</artifactId>
       <version>${auto-value.version}</version>
@@ -295,6 +332,12 @@
       <artifactId>javax.annotation-api</artifactId>
       <version>${javax-annotation-api.version}</version>
       <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -333,7 +376,7 @@
     <dependency>
       <groupId>com.exonum.binding</groupId>
       <artifactId>exonum-java-testing</artifactId>
-      <version>0.2</version>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
 
@@ -351,15 +394,10 @@
     </dependency>
 
     <dependency>
-      <groupId>org.abstractj.kalium</groupId>
-      <artifactId>kalium</artifactId>
-      <version>${kalium.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>nl.jqno.equalsverifier</groupId>
       <artifactId>equalsverifier</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
 </project>

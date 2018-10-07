@@ -17,31 +17,27 @@
 package com.exonum.binding.cryptocurrency.transactions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.exonum.binding.messages.BinaryMessage;
-import com.exonum.binding.messages.Message;
+import com.exonum.binding.common.message.BinaryMessage;
+import com.exonum.binding.common.message.Message;
 import com.exonum.binding.test.Bytes;
 import com.google.common.io.BaseEncoding;
 import com.google.gson.JsonParseException;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
-public class JsonBinaryMessageConverterTest {
+class JsonBinaryMessageConverterTest {
 
   private static final byte[] SIGNATURE = Bytes.createPrefixed(Bytes.bytes(0xAB),
       Message.SIGNATURE_SIZE);
   private static final String SIGNATURE_HEX = BaseEncoding.base16().lowerCase().encode(SIGNATURE);
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   private final JsonBinaryMessageConverter converter = new JsonBinaryMessageConverter();
 
   @Test
-  public void convertCreateWalletMessage() throws InvalidProtocolBufferException {
+  void convertCreateWalletMessage() throws InvalidProtocolBufferException {
     String json = "{ "
         + "\"protocol_version\": 0, "
         + "\"service_id\": 42, "
@@ -62,7 +58,7 @@ public class JsonBinaryMessageConverterTest {
     assertThat(message.getSignature()).inHexadecimal()
         .isEqualTo(SIGNATURE);
 
-    TxMessagesProtos.CreateWalletTx txData = TxMessagesProtos.CreateWalletTx.parseFrom(
+    TxMessageProtos.CreateWalletTx txData = TxMessageProtos.CreateWalletTx.parseFrom(
         message.getBody());
 
     assertThat(txData.getOwnerPublicKey())
@@ -71,7 +67,7 @@ public class JsonBinaryMessageConverterTest {
   }
 
   @Test
-  public void convertTransferMessage() throws InvalidProtocolBufferException {
+  void convertTransferMessage() throws InvalidProtocolBufferException {
     String json = "{ "
         + "\"protocol_version\": 0, "
         + "\"service_id\": 42, "
@@ -94,7 +90,7 @@ public class JsonBinaryMessageConverterTest {
     assertThat(message.getSignature()).inHexadecimal()
         .isEqualTo(SIGNATURE);
 
-    TxMessagesProtos.TransferTx txData = TxMessagesProtos.TransferTx.parseFrom(
+    TxMessageProtos.TransferTx txData = TxMessageProtos.TransferTx.parseFrom(
         message.getBody());
 
     assertThat(txData.getSeed()).isEqualTo(1);
@@ -106,23 +102,21 @@ public class JsonBinaryMessageConverterTest {
   }
 
   @Test
-  public void convertIllegalJson() {
+  void convertIllegalJson() {
     String json = "{ fooBar";
 
-    expectedException.expect(JsonParseException.class);
-    converter.toMessage(json);
+    assertThrows(JsonParseException.class, () -> converter.toMessage(json));
   }
 
   @Test
-  public void convertNotMessage() {
+  void convertNotMessage() {
     String json = "{ \"foo\": \"bar\" }";
 
-    expectedException.expect(IllegalArgumentException.class);
-    converter.toMessage(json);
+    assertThrows(IllegalArgumentException.class, () -> converter.toMessage(json));
   }
 
   @Test
-  public void convertUnknownServiceId() {
+  void convertUnknownServiceId() {
     // Transaction of unknown service disguised as "create wallet" message.
     String json = "{ "
         + "\"protocol_version\": 0, "
@@ -135,12 +129,11 @@ public class JsonBinaryMessageConverterTest {
         + "\"signature\": \"" + SIGNATURE_HEX + "\""
         + " }";
 
-    expectedException.expect(IllegalArgumentException.class);
-    converter.toMessage(json);
+    assertThrows(IllegalArgumentException.class, () -> converter.toMessage(json));
   }
 
   @Test
-  public void convertUnknownMessage() {
+  void convertUnknownMessage() {
     String json = "{ "
         + "\"protocol_version\": 0, "
         + "\"service_id\": 42, "
@@ -151,7 +144,6 @@ public class JsonBinaryMessageConverterTest {
         + "\"signature\": \"" + SIGNATURE_HEX + "\""
         + " }";
 
-    expectedException.expect(IllegalArgumentException.class);
-    converter.toMessage(json);
+    assertThrows(IllegalArgumentException.class, () -> converter.toMessage(json));
   }
 }

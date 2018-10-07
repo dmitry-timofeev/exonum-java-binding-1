@@ -271,6 +271,12 @@
            <groupId>org.openclover</groupId>
            <artifactId>clover-maven-plugin</artifactId>
            <version>4.3.1</version>
+           <configuration>
+             <excludes>
+               <!-- Do not instrument HashingTest: still takes 20 minutes to run HashingTest :-( -->
+               <exclude>**/*HashingTest.java</exclude>
+             </excludes>
+           </configuration>
          </plugin>
        </plugins>
      </pluginManagement>

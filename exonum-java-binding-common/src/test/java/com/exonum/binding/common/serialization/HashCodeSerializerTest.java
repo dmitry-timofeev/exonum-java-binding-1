@@ -49,7 +49,8 @@ class HashCodeSerializerTest {
   private static Stream<HashCode> testHashes() {
     // Hash codes of zeros of various length
     Stream<HashCode> zeroHashCodes = IntStream.of(1, 2, 16, 32)
-        .mapToObj(byte[]::new)
+        // FIXME: clover can't work with byte[]::new
+        .mapToObj(size -> new byte[size])
         .map(HashCode::fromBytes);
 
     // Non-zero 32-byte SHA-256 hash codes

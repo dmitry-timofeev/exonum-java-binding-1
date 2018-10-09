@@ -42,6 +42,9 @@ final class SerializationUtils {
    * @throws IllegalArgumentException thrown if any bytes in the tail exist
    */
   static void checkNoTailLeft(byte[] array, int pos) {
+    // Review: probably, checkArrayLength would have been enough, but us we provide extra
+    // information, the expected size (which `pos` actually is) must be included in
+    // the error message.
     checkArgument(pos == array.length, "Expected no tail left in the array, but was %s",
         Arrays.toString(copyOfRange(array, pos, array.length)));
   }

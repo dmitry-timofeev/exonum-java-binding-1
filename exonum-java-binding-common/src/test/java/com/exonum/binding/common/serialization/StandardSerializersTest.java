@@ -36,6 +36,7 @@ class StandardSerializersTest {
         .flatMap(value -> IntStream.of(-value, value - 1, value, value + 1));
   }
 
+  // Review: The ones used as method sources must not be private — that breaks IDEA.
   private static LongStream longValues() {
     return LongStream.range(0, 64)
         .map(value -> 1L << value)
@@ -71,6 +72,7 @@ class StandardSerializersTest {
         Bytes.bytes(0x80, 0x81, 0x82, 0x83),
         Bytes.bytes(0x80, 0x81, 0x82, 0x83, 0x84),
         Bytes.bytes(0x80, 0x81, 0x82, 0x83, 0x84, 0x85),
+        // Review: values for longs (probably doesn't make sense to add them to 32-bit)?
 
         // # Correct first bytes, but unexpected "tail":
         Bytes.bytes(0x01, 0x02), // A single byte varint + tail.
@@ -79,6 +81,7 @@ class StandardSerializersTest {
         Bytes.bytes(0x80, 0x81, 0x02, 0x83, 0x84), // A valid 3 byte varint + 2-byte tail
         Bytes.bytes(0x80, 0x81, 0x82, 0x03, 0x84), // A valid 4 byte varint, 5th byte is invalid
         Bytes.bytes(0x80, 0x81, 0x82, 0x83, 0x04, 0x01) // Valid 5 byte varint, 6th byte is invalid
+        // Review: values for longs (probably doesn't make sense to add them to 32-bit)?
     );
   }
 }

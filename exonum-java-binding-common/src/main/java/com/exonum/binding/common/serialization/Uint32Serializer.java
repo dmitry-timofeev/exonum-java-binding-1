@@ -77,6 +77,7 @@ enum Uint32Serializer implements Serializer<Integer> {
         if (y < 0) {
           throw new IllegalArgumentException(
               "Serialized value has wrong format " + Arrays.toString(serializedValue));
+          // Review: "Serialized value has wrong format, the last (5th) byte has MSB set."
         }
       }
       checkNoTailLeft(serializedValue, pos);

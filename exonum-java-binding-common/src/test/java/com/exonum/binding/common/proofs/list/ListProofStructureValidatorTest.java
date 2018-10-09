@@ -171,7 +171,6 @@ class ListProofStructureValidatorTest {
             leafOf(V1),
             new ListProofHashNode(H1)
         ),
-        // Review: "A branch with both children being hashes is not correct"
         new ListProofBranch(
             new ListProofHashNode(H2), // <-- left leaf is hash node
             new ListProofHashNode(H3)  // <-- right leaf is hash node

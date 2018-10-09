@@ -114,7 +114,6 @@ public final class ListProofStructureValidator implements ListProofVisitor {
     return branchDepth + 1;
   }
 
-  // Review: This documentation comment is incorrect.
   /**
    * Performs list proof structure checks and assigns proofStatus based on results of this checks.
    */
@@ -192,7 +191,6 @@ public final class ListProofStructureValidator implements ListProofVisitor {
    * @return true if branch contains only hash nodes.
    */
   private boolean hashNodesLimitExceeded(List<NodeInfo> branches) {
-    // Review: Extract in a methods.
     return branches.stream()
         .anyMatch(this::invalidBranch);
   }

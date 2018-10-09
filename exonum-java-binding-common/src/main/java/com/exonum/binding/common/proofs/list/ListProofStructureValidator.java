@@ -21,29 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// Review: The fact that this validator requires two operations in client code to check the proof
-// seems error-prone (and there is evidence of that in the patches).
-// At least, I'd document how it is supposed to be used:
-//   - A new instance must be instantiated for each proof we check
-//   - accept
-//   - check
-//   - getStatus …
-//
-// At most, I'd make the *constructor*
-// perform all the needed checks, so that the client code can look like
-// ```
-// ListProofNode proof = ...
-// Validator v = new ListProofStructureValidator(proof);
-// if (v.isValid()) {
-//
-// }
-// instead of
-// ListProofNode proof = ...
-// Validator v = new ListProofStructureValidator(proof);
-// v.accept(proof);
-// if (v.check(proof)) { // getStatus is not allowed here!
-//
-// }
 /**
  * A validator that checks list proofs internal structure.
  */

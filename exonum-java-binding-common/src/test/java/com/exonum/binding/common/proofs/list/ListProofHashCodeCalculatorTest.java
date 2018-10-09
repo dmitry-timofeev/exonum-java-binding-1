@@ -139,6 +139,8 @@ class ListProofHashCodeCalculatorTest {
         ),
         new ListProofBranch(
             leafOf(V3),
+            // Review: It makes it a 4 element tree, not three. There must be null,
+            // indicating that there is no more elements.
             new ListProofHashNode(H1)
         )
     );

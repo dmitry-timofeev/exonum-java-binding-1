@@ -178,8 +178,10 @@ class ListProofStructureValidatorTest {
     ListProofBranch root = new ListProofBranch(
         new ListProofBranch(
             leafOf(V1),
+            // Review: The comment is not correct (it's a right node, and the branch is OK)
             new ListProofHashNode(H1) // <-- left leaf is hash node
         ),
+        // Review: "A branch with both children being hashes is not correct"
         new ListProofBranch(
             new ListProofHashNode(H2), // <-- left leaf is hash node
             new ListProofHashNode(H3)  // <-- right leaf is hash node
@@ -195,10 +197,15 @@ class ListProofStructureValidatorTest {
   @Test
   void visit_UnbalancedBranchHasOnlyHashNode() {
     ListProofBranch root = new ListProofBranch(
+        // Review: Please swap the branches, otherwise it is incorrect for several reasons:
+        // first is that right child is null in a branch that is not right-most;
+        // second is that it has only a hash node.
         new ListProofBranch(
             new ListProofHashNode(H1), // <-- left leaf is hash node
             null                 // <-- no right leaf
         ),
+        // Review: I'd keep the comments that *indicate* an incorrect structure. In this case,
+        // probably sth like `new ListProofBranch( // Has a single hash node as a child.`
         new ListProofBranch(
             leafOf(V1),                // <-- left leaf is element node
             new ListProofHashNode(H2)  // <-- right leaf is hash node

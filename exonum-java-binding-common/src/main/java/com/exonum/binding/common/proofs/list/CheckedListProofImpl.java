@@ -23,6 +23,9 @@ import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.proofs.common.ProofStatus;
 import java.util.NavigableMap;
 
+/*
+Review: "A checked list proof includes …"
+ */
 /**
  * Checked List Proof which includes list proof verification results.
  */

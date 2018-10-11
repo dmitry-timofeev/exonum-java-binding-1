@@ -17,9 +17,13 @@
 package com.exonum.binding.common.proofs.list;
 
 /**
+ * Review: A proof that some elements exist in a proof list.
+ * You must verify its structure and root hash before accessing the elements.
+ *
  * An unchecked list proof.
  * It's used to get a checked list proof.
  * Example usage:
+ * Review: This example is not correct.
  * <pre><code>
  * byte[] key = "The key for which I want a proved value".getBytes();
  * HashCode expectedRootHash = // get a known root hash from block proof //

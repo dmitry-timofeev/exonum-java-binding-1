@@ -41,6 +41,7 @@ class UncheckedListProofAdapterTest {
     ListProofNode right = new ListProofHashNode(H1);
     ListProofBranch root = new ListProofBranch(left, right);
 
+    // Review: I'd use `createUncheckedProof`
     UncheckedListProofAdapter<String> uncheckedProof = getUncheckedProof(root);
 
     CheckedListProof checkedProof = uncheckedProof.check();

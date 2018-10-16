@@ -28,8 +28,8 @@ public class UncheckedListProofAdapter<E> implements UncheckedListProof {
   /*
 Review: I believe we can now hide the structure validator and root hash calculator
 inside the package and use this class outside:
-  - As the return value of `ProofList`
-  - As the thing we use in the client code (e.g., proof matchers).
+  - [ ] As the return value of `ProofList`
+  - [x] As the thing we use in the client code (e.g., proof matchers).
    */
   private final ListProofStructureValidator listProofStructureValidator;
 

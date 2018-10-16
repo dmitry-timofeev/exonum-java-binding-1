@@ -108,7 +108,15 @@ public final class ProxyDestructor implements CleanAction<Class<?>> {
   public Optional<Class<?>> resourceType() {
     return Optional.of(proxyClass);
   }
+/*
+Review:
+Please remove nativeHandle — it doesn't override toString + it is zeroed once closed;
+and `cleanFunction` — it is usually a lambda, which `#toString` representation is not
+informative.
 
+I'd keep `proxyClass` and `destroyed`, but consider if we shall make `NativeHandle` keep
+the original value of the handle to improve debugability :thinking:
+ */
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)

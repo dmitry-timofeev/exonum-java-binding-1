@@ -42,6 +42,9 @@ public class CheckedListProofImpl<E> implements CheckedListProof {
    * @param elements proof elements collection
    * @param proofStatus a status of proof verification
    */
+  /*
+Review: As this class is public, I'd allow its instantiation.
+   */
   CheckedListProofImpl(HashCode calculatedRootHash,
       NavigableMap<Long, E> elements, ListProofStatus proofStatus) {
     this.calculatedRootHash = checkNotNull(calculatedRootHash);

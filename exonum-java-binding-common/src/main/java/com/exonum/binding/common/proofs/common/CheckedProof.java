@@ -18,6 +18,11 @@ package com.exonum.binding.common.proofs.common;
 
 import com.exonum.binding.common.hash.HashCode;
 
+/*
+Review: Please specify what that interface represents:
+A checked proof is a result of proof verification operation.
+If it is valid, the proof contents may be accessed.
+ */
 /**
  * Common interface for CheckedProof operations.
  */
@@ -34,7 +39,11 @@ public interface CheckedProof {
    * @throws IllegalStateException if the proof is not valid
    */
   HashCode getRootHash();
-
+/*
+Review: Not _list_ proof.
+Also, please use "valid" as there is no such constant in ProofStatus,
+but specify that if it is not valid, one can use getProofStatus to learn why.
+ */
   /**
    * Returns true if List Proof status is VALID {@link ProofStatus}, false otherwise.
    */

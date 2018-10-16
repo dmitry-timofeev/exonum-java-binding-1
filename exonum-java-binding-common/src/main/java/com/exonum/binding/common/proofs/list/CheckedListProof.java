@@ -37,27 +37,19 @@ import java.util.NavigableMap;
  * }
  * </code></pre>
  */
-/*
-Review: I'd extract a CheckedProof interface with methods
-```
-+ isValid() -> boolean # Valid is defined as structurally valid
-+ getRootHash() -> HashCode
-+ getStatus() -> ProofStatus # Or getVerificationStatus
-*/
 public interface CheckedListProof<E> extends CheckedProof {
   // Review: Get all list elements. There might be several consecutive ranges.
   /**
    * Get all leaf entries of this proof.
    * @throws IllegalStateException if the proof is not valid
    */
-  // Review: The type must be parameterized (not raw).
   NavigableMap<Long, E> getElements();
 
   /**
    * Returns the status of this proof: whether it is structurally valid.
    */
-  // Review: I think this interface misses #isValid method — that can be used
-  // to check if it is valid in a single operation (and that communicates better
-  // that the proof *can* be invalid.
+  /*
+Review: Missing @Override
+   */
   ListProofStatus getProofStatus();
 }

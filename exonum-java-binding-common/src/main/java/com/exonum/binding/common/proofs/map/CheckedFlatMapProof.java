@@ -120,6 +120,9 @@ public class CheckedFlatMapProof implements CheckedMapProof {
     return status;
   }
 
+  /*
+Review: There are at least two usages of `getProofStatus` that will benefit from this method.
+   */
   @Override
   public boolean isValid() {
     return status == MapProofStatus.CORRECT;

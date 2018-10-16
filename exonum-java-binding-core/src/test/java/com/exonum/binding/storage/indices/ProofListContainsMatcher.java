@@ -94,6 +94,10 @@ class ProofListContainsMatcher extends TypeSafeMatcher<ProofListIndexProxy<Strin
     }
   }
 
+  /*
+Review: this name is misleading: we check a proof, not create one.
+However, why ProofList#getProof returns a ListProofNode, and not an UncheckedListProof?
+   */
   private CheckedListProof newCheckedListProof(ListProofNode listProof) {
     return new UncheckedListProofAdapter<>(listProof, StandardSerializers.string()).check();
   }

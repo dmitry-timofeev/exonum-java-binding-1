@@ -49,7 +49,6 @@ final class ListProofUtils {
     return StandardSerializers.string().toBytes(element);
   }
 
-  // Review: Why these methods are added but unused?
   /**
    * Generates right leaning proof tree of specified depth.
    */

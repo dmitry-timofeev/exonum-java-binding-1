@@ -68,6 +68,9 @@ public interface CheckedMapProof extends CheckedProof {
   /**
    * Returns the status of this proof: whether it is structurally valid.
    */
+  /*
+Review: Missing override
+   */
   MapProofStatus getProofStatus();
 
   /**

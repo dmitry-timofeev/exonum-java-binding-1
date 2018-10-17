@@ -150,9 +150,7 @@ public final class DbKey implements Comparable<DbKey> {
   public static DbKey newLeafKey(ByteString key) {
     return newLeafKey(key.toByteArray());
   }
-/*
-Review: Please reorder in call order.
- */
+
   /**
    * Given key as a byte array, returns new leaf DbKey.
    */

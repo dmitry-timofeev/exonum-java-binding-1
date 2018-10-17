@@ -179,9 +179,7 @@ final class ListProofStructureValidator implements ListProofVisitor {
     return children.stream()
         .allMatch(nodeType -> (nodeType == NodeType.HASHNODE) || (nodeType == NodeType.NONE));
   }
-/*
-Review: Non-interface methods — package private.
- */
+
   /**
    * Returns proof status.
    */

@@ -20,11 +20,6 @@ import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.proofs.list.CheckedListProof;
 import com.exonum.binding.common.proofs.map.CheckedMapProof;
 
-/*
-Review: Please specify what that interface represents:
-A checked proof is a result of proof verification operation.
-If it is valid, the proof contents may be accessed.
- */
 /**
  * A checked proof is a result of proof verification operation.
  * If it is valid, the proof contents may be accessed. See {@link CheckedListProof}

@@ -110,9 +110,7 @@ final class ListProofRootHashCalculator<E> implements ListProofVisitor {
     branch.getRight().ifPresent((right) -> right.accept(this));
     return Optional.ofNullable(calculatedRootHash);
   }
-  /*
-Review: non-interface methods must also be package-private.
-   */
+
   /**
    * Returns a collection of list entries: index-element pairs, ordered by indices.
    */

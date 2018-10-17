@@ -17,10 +17,8 @@
 package com.exonum.binding.common.proofs.list;
 
 /**
- * Review: A proof that some elements exist in a proof list.
- * You must verify its structure and root hash before accessing the elements.
- *
- * Interface is used to get a checked list proof.
+ * A proof that some elements exist in a proof list. You must
+ * {@link #check} its structure and root hash before accessing the elements.
  */
 public interface UncheckedListProof {
 

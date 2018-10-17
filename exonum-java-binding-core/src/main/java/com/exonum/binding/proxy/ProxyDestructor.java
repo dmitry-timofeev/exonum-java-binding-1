@@ -120,8 +120,6 @@ the original value of the handle to improve debugability :thinking:
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(this)
-        .add("nativeHandle", nativeHandle)
-        .add("cleanFunction", cleanFunction)
         .add("proxyClass", proxyClass)
         .add("destroyed", destroyed)
         .toString();

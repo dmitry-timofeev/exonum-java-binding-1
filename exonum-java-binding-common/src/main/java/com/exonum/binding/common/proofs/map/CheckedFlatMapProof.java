@@ -135,7 +135,7 @@ Review: There are at least two usages of `getProofStatus` that will benefit from
   }
 
   private void checkValid() {
-    checkState(status == MapProofStatus.CORRECT, "Proof is not valid: %s", status);
+    checkState(isValid(), "Proof is not valid: %s", status);
   }
 
   private void checkThatKeyIsRequested(byte[] key) {

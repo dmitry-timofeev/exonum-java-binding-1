@@ -185,14 +185,14 @@ Review: Non-interface methods — package private.
   /**
    * Returns proof status.
    */
-  public ListProofStatus getProofStatus() {
+  ListProofStatus getProofStatus() {
     return proofStatus;
   }
 
   /**
    * Returns true if proof status is VALID, false otherwise.
    */
-  public boolean isValid() {
+  boolean isValid() {
     return proofStatus == ListProofStatus.VALID;
   }
 

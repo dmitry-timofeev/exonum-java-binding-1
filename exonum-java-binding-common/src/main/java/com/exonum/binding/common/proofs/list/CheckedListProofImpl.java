@@ -23,10 +23,18 @@ import com.exonum.binding.common.hash.HashCode;
 import java.util.NavigableMap;
 
 /*
-Review: "A checked list proof includes …"
+Review: linkplain
  */
 /**
- * A checked list proof which includes list proof verification results.
+ * A checked list proof includes list proof verification results.
+ *
+ * <p>If it is correct {@link #isValid()} you may access:
+ * <ul>
+ *   <li>a calculated Merkle root hash
+ *   <li>proof elements
+ * </ul>
+ * If the proof is not valid, you may get the verification status using getStatus
+ * {@link #getProofStatus()}
  */
 public class CheckedListProofImpl<E> implements CheckedListProof {
 
@@ -42,10 +50,7 @@ public class CheckedListProofImpl<E> implements CheckedListProof {
    * @param elements proof elements collection
    * @param proofStatus a status of proof verification
    */
-  /*
-Review: As this class is public, I'd allow its instantiation.
-   */
-  CheckedListProofImpl(HashCode calculatedRootHash,
+  public CheckedListProofImpl(HashCode calculatedRootHash,
       NavigableMap<Long, E> elements, ListProofStatus proofStatus) {
     this.calculatedRootHash = checkNotNull(calculatedRootHash);
     this.elements = checkNotNull(elements);
@@ -75,6 +80,6 @@ Review: As this class is public, I'd allow its instantiation.
   }
 
   private void checkValid() {
-    checkState(proofStatus == ListProofStatus.VALID, "Proof is not valid: %s", proofStatus);
+    checkState(isValid(), "Proof is not valid: %s", proofStatus);
   }
 }

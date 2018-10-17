@@ -38,9 +38,8 @@ import java.util.NavigableMap;
  * </code></pre>
  */
 public interface CheckedListProof<E> extends CheckedProof {
-  // Review: Get all list elements. There might be several consecutive ranges.
   /**
-   * Get all leaf entries of this proof.
+   * Get all list elements. There might be several consecutive ranges.
    * @throws IllegalStateException if the proof is not valid
    */
   NavigableMap<Long, E> getElements();
@@ -48,8 +47,6 @@ public interface CheckedListProof<E> extends CheckedProof {
   /**
    * Returns the status of this proof: whether it is structurally valid.
    */
-  /*
-Review: Missing @Override
-   */
+  @Override
   ListProofStatus getProofStatus();
 }

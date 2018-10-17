@@ -17,6 +17,8 @@
 package com.exonum.binding.common.proofs.common;
 
 import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.common.proofs.list.CheckedListProof;
+import com.exonum.binding.common.proofs.map.CheckedMapProof;
 
 /*
 Review: Please specify what that interface represents:
@@ -24,7 +26,9 @@ A checked proof is a result of proof verification operation.
 If it is valid, the proof contents may be accessed.
  */
 /**
- * Common interface for CheckedProof operations.
+ * A checked proof is a result of proof verification operation.
+ * If it is valid, the proof contents may be accessed. See {@link CheckedListProof}
+ * and {@link CheckedMapProof} for available contents description.
  */
 public interface CheckedProof {
 
@@ -45,7 +49,8 @@ Also, please use "valid" as there is no such constant in ProofStatus,
 but specify that if it is not valid, one can use getProofStatus to learn why.
  */
   /**
-   * Returns true if List Proof status is VALID {@link ProofStatus}, false otherwise.
+   * Returns true if Proof status is valid {@link ProofStatus}, false otherwise.
+   * Details about Proof validity could be obtained through {@link #getProofStatus()}.
    */
   boolean isValid();
 }

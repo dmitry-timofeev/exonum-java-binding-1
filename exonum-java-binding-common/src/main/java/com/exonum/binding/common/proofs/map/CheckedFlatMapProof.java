@@ -47,6 +47,9 @@ public class CheckedFlatMapProof implements CheckedMapProof {
       Set<ByteString> missingKeys) {
     this.status = checkNotNull(status);
     this.rootHash = checkNotNull(rootHash);
+    /*
+Review: an implicit check here is OK.
+     */
     // TODO: checkNotNull(entries). Move to another method?
     this.entries = entries.stream()
         .collect(Collectors.toMap(MapEntry::getKey, MapEntry::getValue));

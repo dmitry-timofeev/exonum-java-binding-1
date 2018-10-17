@@ -145,20 +145,20 @@ public final class DbKey implements Comparable<DbKey> {
   }
 
   /**
-   * Given key as a byte array, returns new leaf DbKey.
+   * Given key as a ByteString, returns new leaf DbKey.
    */
-  public static DbKey newLeafKey(byte[] keySlice) {
-    checkArgument(keySlice.length == KEY_SIZE);
-    return new DbKey(Type.LEAF, keySlice, KEY_SIZE_BITS);
+  public static DbKey newLeafKey(ByteString key) {
+    return newLeafKey(key.toByteArray());
   }
 /*
 Review: Please reorder in call order.
  */
   /**
-   * Given key as a ByteString, returns new leaf DbKey.
+   * Given key as a byte array, returns new leaf DbKey.
    */
-  public static DbKey newLeafKey(ByteString key) {
-    return newLeafKey(key.toByteArray());
+  public static DbKey newLeafKey(byte[] keySlice) {
+    checkArgument(keySlice.length == KEY_SIZE);
+    return new DbKey(Type.LEAF, keySlice, KEY_SIZE_BITS);
   }
 
   /**

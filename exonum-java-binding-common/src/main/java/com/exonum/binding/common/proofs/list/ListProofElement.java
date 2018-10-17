@@ -36,10 +36,6 @@ public final class ListProofElement implements ListProof {
    * @param element an element of the list
    * @throws NullPointerException if the element is null
    */
-  /*
-Review: No, we shall not.
-   */
-  // TODO: create ByteString in native
   @SuppressWarnings("unused")  // Native API
   ListProofElement(byte[] element) {
     this.element = ByteString.copyFrom(element);
@@ -51,11 +47,7 @@ Review: No, we shall not.
    * @param element an element of the list
    * @throws NullPointerException if the element is null
    */
-  /*
-Review: It must be public as the type is public, otherwise, there is no way to instantiate
-it outside of the package.
-   */
-  ListProofElement(ByteString element) {
+  public ListProofElement(ByteString element) {
     this.element = checkNotNull(element);
   }
 

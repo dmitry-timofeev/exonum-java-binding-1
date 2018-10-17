@@ -107,7 +107,9 @@ public class CheckedMapProofMatcherTest {
     assertThat(d.toString(), equalTo("was an invalid proof, status=<"
         + MapProofStatus.DUPLICATE_PATH + ">"));
   }
-
+/*
+Review: as it's the only type, can name `toByteString` + `static`
+ */
   private ByteString hashcodeToByteString(HashCode hashCode) {
     return ByteString.copyFrom(hashCode.asBytes());
   }

@@ -94,6 +94,17 @@ public class CheckedFlatMapProof implements CheckedMapProof {
   public boolean containsKey(ByteString key) {
     checkValid();
     checkThatKeyIsRequested(key);
+    /*
+Review: This code suggest our structure is not good enough yet.
+We shall probably have
+```
+Map<ByteString, ByteString> entries;
+
++ containsKey(key : ByteString) -> boolean
++ getEntries() -> Map<ByteString, ByteString> // or Set<Map.Entry<ByteString, ByteString>>?
+// I think the former is better, with a proper documentation warning
+```
+      */
     return entries.stream().anyMatch(entry -> entry.getKey().equals(key));
   }
 
@@ -107,6 +118,7 @@ public class CheckedFlatMapProof implements CheckedMapProof {
   public ByteString get(ByteString key) {
     checkValid();
     checkThatKeyIsRequested(key);
+    // Review: same as above, must be entries.get(key);
     return entries
         .stream()
         .filter(entry -> entry.getKey().equals(key))
@@ -131,6 +143,10 @@ public class CheckedFlatMapProof implements CheckedMapProof {
   }
 
   private void checkThatKeyIsRequested(ByteString key) {
+    /*
+Review:
+entries.containsKey(key) || missingKeys.contains(key)
+     */
     Stream.concat(
         entries.stream().map(MapEntry::getKey),
         missingKeys.stream())

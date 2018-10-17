@@ -36,6 +36,9 @@ public final class ListProofElement implements ListProof {
    * @param element an element of the list
    * @throws NullPointerException if the element is null
    */
+  /*
+Review: No, we shall not.
+   */
   // TODO: create ByteString in native
   @SuppressWarnings("unused")  // Native API
   ListProofElement(byte[] element) {
@@ -47,6 +50,10 @@ public final class ListProofElement implements ListProof {
    *
    * @param element an element of the list
    * @throws NullPointerException if the element is null
+   */
+  /*
+Review: It must be public as the type is public, otherwise, there is no way to instantiate
+it outside of the package.
    */
   ListProofElement(ByteString element) {
     this.element = checkNotNull(element);
@@ -67,7 +74,14 @@ public final class ListProofElement implements ListProof {
   public static Funnel<ListProofElement> funnel() {
     return ElementFunnel.INSTANCE;
   }
+/*
+Review: I'd perhaps keep a funnel here as it abstracts how this element is hashed,
+however, there is less sense than there used to be: previously it allowed to avoid
+a copy incurred when accessing the element from the outside
+(getElement() -> element.clone() vs this.element).
 
+Note to self: keep byte[] here?
+ */
   enum ElementFunnel implements Funnel<ListProofElement> {
     INSTANCE {
       @Override

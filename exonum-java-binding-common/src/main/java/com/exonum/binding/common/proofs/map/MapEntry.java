@@ -68,6 +68,10 @@ public class MapEntry {
     return key.equals(that.key) && value.equals(that.value);
   }
 
+  /*
+Review: Objects.hashCode(key, value)?
+And add an EqualsVerifier test, please :-)
+   */
   @Override
   public int hashCode() {
     return key.hashCode() ^ value.hashCode();

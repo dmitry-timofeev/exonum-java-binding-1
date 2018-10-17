@@ -57,6 +57,9 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
     this.proof = proof;
     this.entries = entries;
     // TODO: create ByteString in native
+/*
+Review: no, native interface is supposed to be convenient for native code and efficient.
+ */
     this.missingKeys = missingKeys.stream()
         .map(ByteString::copyFrom)
         .collect(Collectors.toList());

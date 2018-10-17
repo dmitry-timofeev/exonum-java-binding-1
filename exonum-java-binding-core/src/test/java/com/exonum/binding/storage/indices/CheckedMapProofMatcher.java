@@ -35,7 +35,18 @@ class CheckedMapProofMatcher extends TypeSafeMatcher<CheckedMapProof> {
   private static final BaseEncoding HEX_ENCODING = BaseEncoding.base16().lowerCase();
 
   private final List<MapTestEntry> entries;
+/*
+Review: Shan't we store expectedMissingKeys & expectedEntries instead of entries?
+It is used in describeTo only, and the description will also benefit from separated
+entries and missing keys.
 
+However, there is a question of types. It probably makes sense to keep them in
+human-readable format (HashCodes and Strings):
+```
+expectedMissingKeys: List<HashCode> (or ordered set)
+expectedEntries: MapEntry<HashCode, String>
+```
+ */
   private final Matcher<Set<ByteString>> missingKeysMatcher;
   private final Matcher<Set<MapEntry>> presentEntriesMatcher;
 

@@ -177,7 +177,9 @@ public interface HashFunction {
    * perform better than its longhand equivalent, but should not perform worse.
    */
   HashCode hashBytes(byte[] input);
-
+/*
+Review: `@code` is not correct
+ */
   /**
    * Shortcut for {@code newHasher().putBytes(input.toByteArray).hash()}. The implementation
    * <i>might</i> perform better than its longhand equivalent, but should not perform worse.

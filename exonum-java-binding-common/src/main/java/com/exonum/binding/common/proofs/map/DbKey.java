@@ -151,7 +151,9 @@ public final class DbKey implements Comparable<DbKey> {
     checkArgument(keySlice.length == KEY_SIZE);
     return new DbKey(Type.LEAF, keySlice, KEY_SIZE_BITS);
   }
-
+/*
+Review: Please reorder in call order.
+ */
   /**
    * Given key as a ByteString, returns new leaf DbKey.
    */

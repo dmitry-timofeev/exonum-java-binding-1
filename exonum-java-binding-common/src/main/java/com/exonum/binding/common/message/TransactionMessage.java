@@ -41,31 +41,57 @@ public interface TransactionMessage {
   int AUTHOR_PUBLIC_KEY_SIZE = 32;
   int SIGNATURE_SIZE = 64;
 
+  /*
+Review: Here and elsewhere, I'd suggest to not capitalize the individual words that comprise
+the interface name, because they refer not to the interface, but to the thing it represents.
+I.e., "Returns a public key of the author of the transaction message".
+
+Also, if I remember correctly, `’s` to specify possession is used with people or organizations.
+   */
   /**
    * Returns a public key of the Transaction Message's author.
    */
   PublicKey getAuthor();
 
+  /*
+Review:
+```
+   * Returns the identifier of the service this message belongs to,
+   * or zero if this message is an internal Exonum message.
+```
+   */
   /**
    * Returns service id of the Transaction Message.
    */
   short getServiceId();
 
+  /*
+Review: What is transaction id? How is that useful to anyone? Please give these javadocs some love.
+   */
   /**
    * Returns transaction id of the Transaction Message.
    */
   short getTransactionId();
 
+  /*
+Review: What is payload?
+   */
   /**
    * Returns payload of the Transaction Message.
    */
   byte[] getPayload();
 
+/*
+Review: A hash of what exactly?
+ */
   /**
    * Returns Transaction Message hash.
    */
   HashCode hash();
 
+/*
+Review: A signature of what? Is the format specified?
+ */
   /**
    * Returns Transaction Message signature.
    */
@@ -76,6 +102,9 @@ public interface TransactionMessage {
    */
   byte[] toBytes();
 
+  /*
+  Review: Creates a new builder of the transaction message?
+   */
   /**
    * Returns the Builder for the Transaction Message.
    */
@@ -83,6 +112,9 @@ public interface TransactionMessage {
     return new Builder();
   }
 
+  /*
+Review: I wonder if we shall validate the format somehow on instantiation (in BTM) :thinking:
+   */
   /**
    * Creates Transaction Message from the given bytes array.
    */
@@ -136,6 +168,9 @@ public interface TransactionMessage {
       return this;
     }
 
+/*
+Review: Doc: Where do keys end up? Will it eat my secret key?
+ */
     /**
      * Signs and creates an instance of the transaction message.
      *
@@ -143,6 +178,10 @@ public interface TransactionMessage {
      * @throws IllegalArgumentException if public key has wrong size
      */
     public TransactionMessage sign(KeyPair keys, CryptoFunction crypto) {
+      /*
+Review: Something like `checkRequiredFieldSet(field: Object, fieldName: String)` so that clients
+do not get plain NPEs, but, say, IllegalStateException with message that explains things?
+       */
       checkNotNull(serviceId);
       checkNotNull(transactionId);
       checkNotNull(payload);

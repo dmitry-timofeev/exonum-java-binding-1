@@ -33,6 +33,16 @@ public final class BinaryTransactionMessage implements TransactionMessage {
 
   private BinaryTransactionMessage(ByteBuffer rawTransaction) {
     this.rawTransaction = rawTransaction.duplicate().order(ByteOrder.LITTLE_ENDIAN);
+    /*
+Review: It's not OK to do with a ByteBuffer *unless* you make it a precondition
+that a buffer has zero position **and** enforce that. But that limits the applicability
+of this class.
+
+Therefore, I'd recommend an alternative that is to slice a buffer:
+```java
+this.rawTransaction = rawTransaction.slice().order(…);
+```
+     */
     this.rawTransaction.position(0);
   }
 
@@ -63,6 +73,25 @@ public final class BinaryTransactionMessage implements TransactionMessage {
 
   @Override
   public HashCode hash() {
+    /*
+Review: That is broken:
+1. ByteBuffer#array won't work for readonly array
+2. ByteBuffer#array won't work for direct BB
+3. When it will, it will return **the whole** array, i.e., not between `bb.position()` and `bb.limit()`.
+
+Please add regression tests for these cases.
+
+I think this will work:
+```java
+    Hashing.sha256().newHasher()
+        .putBytes(rawTransaction.duplicate())
+        .hash();
+```
+
+Please note that `BB.duplicate()` **does not** duplicate the underlying byte storage,
+it duplicates the wrapper around that storage — BB, so that it can have independent
+marks from the original object.
+     */
     return defaultHashFunction().hashBytes(rawTransaction.array());
   }
 
@@ -77,12 +106,18 @@ public final class BinaryTransactionMessage implements TransactionMessage {
 
   @Override
   public byte[] toBytes() {
+    /*
+Review: This is broken for the same reasons as above, + `duplicate` here does not do anything.
+     */
     return rawTransaction.duplicate().array();
   }
 
   public static BinaryTransactionMessage fromBuffer(ByteBuffer buffer) {
     return new BinaryTransactionMessage(buffer);
   }
+  /*
+Review: delegating +fromBytes(byte[])?
+   */
 
   @Override
   public boolean equals(Object o) {

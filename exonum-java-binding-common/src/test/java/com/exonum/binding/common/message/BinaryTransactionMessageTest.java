@@ -20,6 +20,10 @@ package com.exonum.binding.common.message;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
+/*
+Review: Given the number of methods, I believe that's not enough to confirm it works
+and ensure it does not break.
+ */
 class BinaryTransactionMessageTest {
 
   @Test

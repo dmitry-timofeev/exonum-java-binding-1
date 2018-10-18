@@ -32,10 +32,23 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class TransactionMessageTest {
+/*
+Review: Shan't we prefer a mock of cryptofunction to verify the behaviour of the builder?
+```java
+var message = builder.build()
 
+verify(cryptoFunction).sign(/* slice that must be signed /*)
+
+assertThat(message.getSignature(), equalTo(expectedSignature));
+```
+ */
   private static final CryptoFunction CRYPTO = CryptoFunctions.ed25519();
   private static final KeyPair KEYS = CRYPTO.generateKeyPair();
 
+  /*
+Review: I'd apply a test matrix reduction technique that each class of values shall
+appear at least once
+   */
   @Test
   void noProperlyFilledMessagesTest() {
     short serviceId = 1;
@@ -90,6 +103,12 @@ class TransactionMessageTest {
   void roundTripTest(TransactionMessage message) {
     byte[] bytes = message.toBytes();
     TransactionMessage actualMessage = TransactionMessage.fromBytes(bytes);
+    /*
+Review: It's OK to have this test that basically verifies that `ByteBuffer#equals` and our `equals`
+work correctly, but it is not enough to verify that BinaryTransactionMessage properly takes out
+parts of message and converts them to proper objects. Each method that parses (on the fly!)
+a transaction buffer must be tested in BinaryTransactionMessageTest.
+     */
     assertThat(actualMessage, is(message));
   }
 

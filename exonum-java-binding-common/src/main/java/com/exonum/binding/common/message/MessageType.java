@@ -20,6 +20,9 @@ package com.exonum.binding.common.message;
 /**
  * Message types used in Exonum framework.
  */
+/*
+Review: I wonder why this is needed :-)
+ */
 public enum MessageType {
   TRANSACTION(0x00, 0x00),
   STATUS(0x00, 0x01),

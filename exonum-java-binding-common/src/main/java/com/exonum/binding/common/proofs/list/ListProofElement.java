@@ -66,7 +66,7 @@ public final class ListProofElement implements ListProof {
     return ElementFunnel.INSTANCE;
   }
 /*
-Review: I'd perhaps keep a funnel here as it abstracts how this element is hashed,
+Review:  (addressed for now)  I'd perhaps keep a funnel here as it abstracts how this element is hashed,
 however, there is less sense than there used to be: previously it allowed to avoid
 a copy incurred when accessing the element from the outside
 (getElement() -> element.clone() vs this.element).

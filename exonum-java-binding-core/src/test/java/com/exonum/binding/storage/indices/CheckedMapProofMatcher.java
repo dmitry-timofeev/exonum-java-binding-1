@@ -38,7 +38,7 @@ class CheckedMapProofMatcher extends TypeSafeMatcher<CheckedMapProof> {
 
   private final List<MapTestEntry> entries;
 /*
-Review: Shan't we store expectedMissingKeys & expectedEntries instead of entries?
+Review:  (addressed for now)  Shan't we store expectedMissingKeys & expectedEntries instead of entries?
 It is used in describeTo only, and the description will also benefit from separated
 entries and missing keys.
 

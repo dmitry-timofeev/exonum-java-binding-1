@@ -106,7 +106,7 @@ Review: an implicit check here is OK.
     checkValid();
     checkThatKeyIsRequested(key);
     /*
-Review: This code suggest our structure is not good enough yet.
+Review: (addressed for now) This code suggest our structure is not good enough yet.
 We shall probably have
 ```
 Map<ByteString, ByteString> entries;

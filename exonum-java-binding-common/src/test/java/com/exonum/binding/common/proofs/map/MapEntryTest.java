@@ -16,6 +16,7 @@
 
 package com.exonum.binding.common.proofs.map;
 
+import com.google.common.testing.NullPointerTester;
 import com.google.protobuf.ByteString;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
@@ -30,6 +31,12 @@ Review: ?
   `.withPrefabValues(ByteString.class, ByteString.copyFromUtf8("a"), ByteString.copyFromUtf8("b")))`
 3. [ ] The constructor probably has to check for nulls: com.exonum.binding.common.proofs.map.MapEntry.MapEntry(com.google.protobuf.ByteString, com.google.protobuf.ByteString)
    */
+  @Test
+  void constructorRejectsNulls() {
+    new NullPointerTester()
+        .testAllPublicConstructors(MapEntry.class);
+  }
+
   @Test
   void verifyEquals() {
     EqualsVerifier.forClass(MapEntry.class)

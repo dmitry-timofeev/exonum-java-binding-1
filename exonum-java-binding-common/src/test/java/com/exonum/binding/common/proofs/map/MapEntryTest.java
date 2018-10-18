@@ -16,6 +16,7 @@
 
 package com.exonum.binding.common.proofs.map;
 
+import com.google.protobuf.ByteString;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
@@ -24,15 +25,16 @@ class MapEntryTest {
   // TODO: this test fails
   /*
 Review: ?
-1. equals throws NPE in case of null fields. May be fixed with Objects.equals(a, b)
-2. This configuration might lack prefab values
+1. x equals throws NPE in case of null fields. May be fixed with Objects.equals(a, b)
+2. x This configuration might lack prefab values
   `.withPrefabValues(ByteString.class, ByteString.copyFromUtf8("a"), ByteString.copyFromUtf8("b")))`
-3.The constructor probably has to check for nulls: com.exonum.binding.common.proofs.map.MapEntry.MapEntry(com.google.protobuf.ByteString, com.google.protobuf.ByteString)
+3. [ ] The constructor probably has to check for nulls: com.exonum.binding.common.proofs.map.MapEntry.MapEntry(com.google.protobuf.ByteString, com.google.protobuf.ByteString)
    */
   @Test
   void verifyEquals() {
-    EqualsVerifier
-        .forClass(MapEntry.class)
+    EqualsVerifier.forClass(MapEntry.class)
+        .withPrefabValues(
+            ByteString.class, ByteString.copyFromUtf8("a"), ByteString.copyFromUtf8("b"))
         .verify();
   }
 

@@ -18,6 +18,8 @@ package com.exonum.binding.common.proofs.map;
 
 import static com.exonum.binding.common.hash.Funnels.hashCodeFunnel;
 import static com.exonum.binding.common.proofs.DbKeyFunnel.dbKeyFunnel;
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toList;
 
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.hash.HashFunction;
@@ -28,13 +30,11 @@ import com.google.protobuf.ByteString;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -58,7 +58,7 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
     this.entries = entries;
     this.missingKeys = missingKeys.stream()
         .map(ByteString::copyFrom)
-        .collect(Collectors.toList());
+        .collect(toList());
   }
 
   @SuppressWarnings("unused") // Native API
@@ -148,8 +148,7 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
   }
 
   private CheckedMapProof checkEmptyProof() {
-    return CheckedFlatMapProof.correct(
-        getEmptyProofListHash(), Collections.emptySet(), toSet(missingKeys));
+    return CheckedFlatMapProof.correct(getEmptyProofListHash(), emptySet(), toSet(missingKeys));
   }
 
   private boolean isSingletonProof() {

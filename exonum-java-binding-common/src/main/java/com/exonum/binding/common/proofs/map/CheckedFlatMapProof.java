@@ -20,12 +20,13 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 import com.exonum.binding.common.hash.HashCode;
 import com.google.protobuf.ByteString;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * A checked flat map proof, which does not include any intermediate nodes.
@@ -47,12 +48,13 @@ public class CheckedFlatMapProof implements CheckedMapProof {
       Set<ByteString> missingKeys) {
     this.status = checkNotNull(status);
     this.rootHash = checkNotNull(rootHash);
+    checkArgument(entries != null, "Entries shouldn't be null");
     /*
 Review: an implicit check here is OK.
      */
     // TODO: checkNotNull(entries). Move to another method?
     this.entries = entries.stream()
-        .collect(Collectors.toMap(MapEntry::getKey, MapEntry::getValue));
+        .collect(toMap(MapEntry::getKey, MapEntry::getValue));
     this.missingKeys = checkNotNull(missingKeys);
   }
 
@@ -90,7 +92,7 @@ Review: an implicit check here is OK.
     return entries.entrySet()
         .stream()
         .map(e -> new MapEntry(e.getKey(), e.getValue()))
-        .collect(Collectors.toSet());
+        .collect(toSet());
   }
 
   @Override
@@ -146,8 +148,7 @@ Map<ByteString, ByteString> entries;
   }
 
   private void checkThatKeyIsRequested(ByteString key) {
-    // Review: Include key in the message
     checkArgument(entries.containsKey(key) || missingKeys.contains(key),
-        "Key that wasn't among requested keys was checked");
+        "Key (%s) that wasn't among requested keys was checked", key);
   }
 }

@@ -23,14 +23,6 @@ import org.junit.jupiter.api.Test;
 
 class MapEntryTest {
 
-  // TODO: this test fails
-  /*
-Review: ?
-1. x equals throws NPE in case of null fields. May be fixed with Objects.equals(a, b)
-2. x This configuration might lack prefab values
-  `.withPrefabValues(ByteString.class, ByteString.copyFromUtf8("a"), ByteString.copyFromUtf8("b")))`
-3. [ ] The constructor probably has to check for nulls: com.exonum.binding.common.proofs.map.MapEntry.MapEntry(com.google.protobuf.ByteString, com.google.protobuf.ByteString)
-   */
   @Test
   void constructorRejectsNulls() {
     new NullPointerTester()

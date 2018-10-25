@@ -109,14 +109,14 @@ Review: A signature of what? Is the format specified?
    */
   byte[] toBytes();
 
-  /*
-  Review: Creates a new builder of the transaction message?
-   */
   /**
    * Returns the transaction message size in bytes.
    */
   int size();
 
+  /*
+  Review: Creates a new builder of the transaction message?
+   */
   /**
    * Create a new builder for the transaction message.
    */
@@ -138,6 +138,9 @@ Review: I wonder if we shall validate the format somehow on instantiation (in BT
    * Creates the transaction message from the given bytes buffer.
    */
   static TransactionMessage fromBuffer(ByteBuffer buffer) {
+    /*
+Review: This is broken.
+     */
     return new BinaryTransactionMessage(buffer.array());
   }
 
@@ -176,6 +179,9 @@ Review: I wonder if we shall validate the format somehow on instantiation (in BT
      * Sets payload to the transaction message.
      */
     public Builder payload(ByteBuffer payload) {
+      /*
+Review: order is irrelevant here.
+       */
       this.payload = payload.duplicate().order(ByteOrder.LITTLE_ENDIAN);
       return this;
     }
@@ -202,6 +208,10 @@ do not get plain NPEs, but, say, IllegalStateException with message that explain
       PublicKey authorPublicKey = keys.getPublicKey();
       checkArgument(authorPublicKey.size() == AUTHOR_PUBLIC_KEY_SIZE);
 
+      /*
+Review: This code is incorrect: payload.limit() is not the number of bytes that would
+be transferred in ByteBuffer#put(ByteBuffer).
+       */
       ByteBuffer buffer = ByteBuffer
           .allocate(MIN_MESSAGE_SIZE + payload.limit())
           .order(ByteOrder.LITTLE_ENDIAN);

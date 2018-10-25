@@ -48,11 +48,20 @@ Therefore, I'd recommend an alternative that is to slice a buffer:
 this.rawTransaction = rawTransaction.slice().order(…);
 ```
      */
+/*
+Review: Why we don't work with ByteBuffers, requiring a copy of byte array, or, if ByteBuffer
+if given, two copies?
+ */
   }
 
   @Override
   public PublicKey getAuthor() {
     byte[] key = new byte[AUTHOR_PUBLIC_KEY_SIZE];
+    /*
+Review: Why use relative operations, that involve two steps and modify the bytebuffer
+marks instead of absolute, that used to be here?
+
+     */
     rawTransaction.position(AUTHOR_PUBLIC_KEY_OFFSET);
     rawTransaction.get(key);
     return PublicKey.fromBytes(key);

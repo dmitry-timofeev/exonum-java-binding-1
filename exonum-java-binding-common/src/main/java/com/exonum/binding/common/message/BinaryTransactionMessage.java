@@ -56,6 +56,8 @@ public final class BinaryTransactionMessage implements TransactionMessage {
 Review: Why use relative operations, that involve two steps and modify the bytebuffer
 marks instead of absolute, that used to be here?
 
+OK, one can use, but hashing is broken — add a test please.
+
      */
     rawTransaction.position(AUTHOR_PUBLIC_KEY_OFFSET);
     rawTransaction.get(key);
@@ -101,6 +103,11 @@ I think this will work:
 Please note that `BB.duplicate()` **does not** duplicate the underlying byte storage,
 it duplicates the wrapper around that storage — BB, so that it can have independent
 marks from the original object.
+     */
+
+    /*
+Review: it is broken as the code that gets byte arrays modifies position of the original buffer.
+Please add a test for that.
      */
     return sha256().newHasher()
         .putBytes(rawTransaction.duplicate())

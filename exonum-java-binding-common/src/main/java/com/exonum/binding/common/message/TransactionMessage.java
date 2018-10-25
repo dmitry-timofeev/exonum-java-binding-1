@@ -52,25 +52,16 @@ public interface TransactionMessage {
    */
   short getServiceId();
 
-  /*
-Review: Returns the transaction type identifier which is unique within the service.
-   */
   /**
    * Returns the transaction type identifier which is unique within the service.
    */
   short getTransactionId();
 
-  /*
-Review: Returns the payload containing the serialized transaction parameters.
-   */
   /**
    * Returns the payload containing the serialized transaction parameters.
    */
   byte[] getPayload();
 
-/*
-Review: Returns the SHA-256 hash of the binary message representation.
- */
   /**
    * Returns the SHA-256 hash of the binary message representation.
    */
@@ -97,9 +88,6 @@ Review: Returns the SHA-256 hash of the binary message representation.
    */
   int size();
 
-  /*
-  Review: Creates a new builder of the transaction message?
-   */
   /**
    * Creates a new builder for the transaction message.
    */

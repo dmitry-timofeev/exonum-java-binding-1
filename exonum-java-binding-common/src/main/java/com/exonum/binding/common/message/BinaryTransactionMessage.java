@@ -29,29 +29,24 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
- * Binary implementation of the {@link TransactionMessage} class.
+ * Binary implementation of the {@link TransactionMessage} class. Immutable by design.
  */
 public final class BinaryTransactionMessage implements TransactionMessage {
+
   private final ByteBuffer rawTransaction;
 
   BinaryTransactionMessage(byte[] bytes) {
-    checkArgument(MIN_MESSAGE_SIZE <= bytes.length,
-        "Expected an array of size at least %s, but was %s", MIN_MESSAGE_SIZE, bytes.length);
-    this.rawTransaction = ByteBuffer.wrap(copyOf(bytes, bytes.length)).order(LITTLE_ENDIAN);
-    /*
-Review: It's not OK to do with a ByteBuffer *unless* you make it a precondition
-that a buffer has zero position **and** enforce that. But that limits the applicability
-of this class.
+    this(ByteBuffer.wrap(bytes));
+  }
 
-Therefore, I'd recommend an alternative that is to slice a buffer:
-```java
-this.rawTransaction = rawTransaction.slice().order(…);
-```
-     */
-/*
-Review: Why we don't work with ByteBuffers, requiring a copy of byte array, or, if ByteBuffer
-if given, two copies?
- */
+  BinaryTransactionMessage(ByteBuffer buffer) {
+    ByteBuffer slice = buffer.slice();
+    checkArgument(MIN_MESSAGE_SIZE <= slice.limit(),
+        "Transaction message requires at least %s bytes space, but was %s",
+        MIN_MESSAGE_SIZE, slice.limit());
+
+    this.rawTransaction = ByteBuffer.allocate(slice.limit()).order(LITTLE_ENDIAN);
+    this.rawTransaction.put(slice);
   }
 
   @Override

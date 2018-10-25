@@ -56,7 +56,7 @@ public interface TransactionMessage {
 Review: Returns the transaction type identifier which is unique within the service.
    */
   /**
-   * Returns transaction identifier which is unique within the service.
+   * Returns the transaction type identifier which is unique within the service.
    */
   short getTransactionId();
 
@@ -64,7 +64,7 @@ Review: Returns the transaction type identifier which is unique within the servi
 Review: Returns the payload containing the serialized transaction parameters.
    */
   /**
-   * Returns the transaction message body.
+   * Returns the payload containing the serialized transaction parameters.
    */
   byte[] getPayload();
 
@@ -72,7 +72,7 @@ Review: Returns the payload containing the serialized transaction parameters.
 Review: Returns the SHA-256 hash of the binary message representation.
  */
   /**
-   * Returns the transaction message hash.
+   * Returns the SHA-256 hash of the binary message representation.
    */
   HashCode hash();
 
@@ -101,7 +101,7 @@ Review: Returns the SHA-256 hash of the binary message representation.
   Review: Creates a new builder of the transaction message?
    */
   /**
-   * Create a new builder for the transaction message.
+   * Creates a new builder for the transaction message.
    */
   static Builder builder() {
     return new Builder();
@@ -118,10 +118,7 @@ Review: Returns the SHA-256 hash of the binary message representation.
    * Creates the transaction message from the given bytes buffer.
    */
   static TransactionMessage fromBuffer(ByteBuffer buffer) {
-    /*
-Review: This is broken.
-     */
-    return new BinaryTransactionMessage(buffer.array());
+    return new BinaryTransactionMessage(buffer);
   }
 
   /**

@@ -42,32 +42,18 @@ public interface TransactionMessage {
   int SIGNATURE_SIZE = 64;
   int MIN_MESSAGE_SIZE = PAYLOAD_OFFSET + SIGNATURE_SIZE;
 
-  /*
-Review: Here and elsewhere, I'd suggest to not capitalize the individual words that comprise
-the interface name, because they refer not to the interface, but to the thing it represents.
-I.e., "Returns a public key of the author of the transaction message".
-
-Also, if I remember correctly, `’s` to specify possession is used with people or organizations.
-   */
   /**
    * Returns a public key of the author of the transaction message.
    */
   PublicKey getAuthor();
 
-  /*
-Review:
-```
-   * Returns the identifier of the service this message belongs to,
-   * or zero if this message is an internal Exonum message.
-```
-   */
   /**
    * Returns the identifier of the service this message belongs to.
    */
   short getServiceId();
 
   /*
-Review: What is transaction id? How is that useful to anyone? Please give these javadocs some love.
+Review: Returns the transaction type identifier which is unique within the service.
    */
   /**
    * Returns transaction identifier which is unique within the service.
@@ -75,7 +61,7 @@ Review: What is transaction id? How is that useful to anyone? Please give these 
   short getTransactionId();
 
   /*
-Review: What is payload?
+Review: Returns the payload containing the serialized transaction parameters.
    */
   /**
    * Returns the transaction message body.
@@ -83,16 +69,13 @@ Review: What is payload?
   byte[] getPayload();
 
 /*
-Review: A hash of what exactly?
+Review: Returns the SHA-256 hash of the binary message representation.
  */
   /**
    * Returns the transaction message hash.
    */
   HashCode hash();
 
-/*
-Review: A signature of what? Is the format specified?
- */
   /**
    * Returns the <a href="https://ed25519.cr.yp.to/">Ed25519</a> signature
    * over this binary message.
@@ -124,9 +107,6 @@ Review: A signature of what? Is the format specified?
     return new Builder();
   }
 
-  /*
-Review: I wonder if we shall validate the format somehow on instantiation (in BTM) :thinking:
-   */
   /**
    * Creates the transaction message from the given bytes array.
    */
@@ -180,15 +160,12 @@ Review: This is broken.
      */
     public Builder payload(ByteBuffer payload) {
       /*
-Review: order is irrelevant here.
+Review: Order is irrelevant here — it is just some bytes.
        */
       this.payload = payload.duplicate().order(ByteOrder.LITTLE_ENDIAN);
       return this;
     }
 
-/*
-Review: Doc: Where do keys end up? Will it eat my secret key?
- */
     /**
      * Signs the message, creating a new signed binary transaction message.
      *
@@ -200,10 +177,6 @@ Review: Doc: Where do keys end up? Will it eat my secret key?
      * @throws IllegalArgumentException if public key has wrong size
      */
     public TransactionMessage sign(KeyPair keys, CryptoFunction crypto) {
-      /*
-Review: Something like `checkRequiredFieldSet(field: Object, fieldName: String)` so that clients
-do not get plain NPEs, but, say, IllegalStateException with message that explains things?
-       */
       checkRequiredFieldsSet();
       PublicKey authorPublicKey = keys.getPublicKey();
       checkArgument(authorPublicKey.size() == AUTHOR_PUBLIC_KEY_SIZE);
@@ -211,6 +184,8 @@ do not get plain NPEs, but, say, IllegalStateException with message that explain
       /*
 Review: This code is incorrect: payload.limit() is not the number of bytes that would
 be transferred in ByteBuffer#put(ByteBuffer).
+
+payload.remaining() and a test!
        */
       ByteBuffer buffer = ByteBuffer
           .allocate(MIN_MESSAGE_SIZE + payload.limit())

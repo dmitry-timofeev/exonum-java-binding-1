@@ -131,9 +131,6 @@ marks from the original object.
   public int size() {
     return rawTransaction.limit();
   }
-  /*
-Review: delegating +fromBytes(byte[])?
-   */
 
   @Override
   public boolean equals(Object o) {

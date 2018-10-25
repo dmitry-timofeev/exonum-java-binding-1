@@ -17,13 +17,16 @@
 
 package com.exonum.binding.common.message;
 
-import static com.exonum.binding.common.hash.Hashing.defaultHashFunction;
+import static com.exonum.binding.common.hash.Hashing.sha256;
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.ByteOrder.LITTLE_ENDIAN;
+import static java.util.Arrays.copyOf;
 
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
 import com.google.common.base.Objects;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.util.Arrays;
 
 /**
  * Binary implementation of the {@link TransactionMessage} class.
@@ -31,8 +34,10 @@ import java.nio.ByteOrder;
 public final class BinaryTransactionMessage implements TransactionMessage {
   private final ByteBuffer rawTransaction;
 
-  private BinaryTransactionMessage(ByteBuffer rawTransaction) {
-    this.rawTransaction = rawTransaction.duplicate().order(ByteOrder.LITTLE_ENDIAN);
+  BinaryTransactionMessage(byte[] bytes) {
+    checkArgument(MIN_MESSAGE_SIZE <= bytes.length,
+        "Expected an array of size at least %s, but was %s", MIN_MESSAGE_SIZE, bytes.length);
+    this.rawTransaction = ByteBuffer.wrap(copyOf(bytes, bytes.length)).order(LITTLE_ENDIAN);
     /*
 Review: It's not OK to do with a ByteBuffer *unless* you make it a precondition
 that a buffer has zero position **and** enforce that. But that limits the applicability
@@ -43,13 +48,13 @@ Therefore, I'd recommend an alternative that is to slice a buffer:
 this.rawTransaction = rawTransaction.slice().order(…);
 ```
      */
-    this.rawTransaction.position(0);
   }
 
   @Override
   public PublicKey getAuthor() {
     byte[] key = new byte[AUTHOR_PUBLIC_KEY_SIZE];
-    rawTransaction.get(key, AUTHOR_PUBLIC_KEY_OFFSET, AUTHOR_PUBLIC_KEY_SIZE);
+    rawTransaction.position(AUTHOR_PUBLIC_KEY_OFFSET);
+    rawTransaction.get(key);
     return PublicKey.fromBytes(key);
   }
 
@@ -65,9 +70,10 @@ this.rawTransaction = rawTransaction.slice().order(…);
 
   @Override
   public byte[] getPayload() {
-    int payloadSize = rawTransaction.limit() - (PAYLOAD_OFFSET + SIGNATURE_SIZE);
+    int payloadSize = rawTransaction.limit() - MIN_MESSAGE_SIZE;
     byte[] payload = new byte[payloadSize];
-    rawTransaction.get(payload, PAYLOAD_OFFSET, payloadSize);
+    rawTransaction.position(PAYLOAD_OFFSET);
+    rawTransaction.get(payload);
     return payload;
   }
 
@@ -92,28 +98,29 @@ Please note that `BB.duplicate()` **does not** duplicate the underlying byte sto
 it duplicates the wrapper around that storage — BB, so that it can have independent
 marks from the original object.
      */
-    return defaultHashFunction().hashBytes(rawTransaction.array());
+    return sha256().newHasher()
+        .putBytes(rawTransaction.duplicate())
+        .hash();
   }
 
   @Override
   public byte[] getSignature() {
+    int payloadSize = rawTransaction.limit() - MIN_MESSAGE_SIZE;
+    rawTransaction.position(PAYLOAD_OFFSET + payloadSize);
     byte[] signature = new byte[SIGNATURE_SIZE];
-    int payloadSize = rawTransaction.limit() - (PAYLOAD_OFFSET + SIGNATURE_SIZE);
-    int offset = PAYLOAD_OFFSET + payloadSize;
-    rawTransaction.get(signature, offset, SIGNATURE_SIZE);
+    rawTransaction.get(signature);
     return signature;
   }
 
   @Override
   public byte[] toBytes() {
-    /*
-Review: This is broken for the same reasons as above, + `duplicate` here does not do anything.
-     */
-    return rawTransaction.duplicate().array();
+    byte[] bytes = rawTransaction.array();
+    return copyOf(bytes, bytes.length);
   }
 
-  public static BinaryTransactionMessage fromBuffer(ByteBuffer buffer) {
-    return new BinaryTransactionMessage(buffer);
+  @Override
+  public int size() {
+    return rawTransaction.limit();
   }
   /*
 Review: delegating +fromBytes(byte[])?
@@ -135,4 +142,10 @@ Review: delegating +fromBytes(byte[])?
   public int hashCode() {
     return Objects.hashCode(rawTransaction);
   }
+
+  @Override
+  public String toString() {
+    return Arrays.toString(rawTransaction.array());
+  }
+
 }

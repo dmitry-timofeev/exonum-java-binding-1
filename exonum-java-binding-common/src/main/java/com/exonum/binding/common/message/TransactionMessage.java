@@ -18,9 +18,9 @@
 package com.exonum.binding.common.message;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.exonum.binding.common.crypto.CryptoFunction;
+import com.exonum.binding.common.crypto.CryptoFunctions;
 import com.exonum.binding.common.crypto.KeyPair;
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
@@ -40,6 +40,7 @@ public interface TransactionMessage {
 
   int AUTHOR_PUBLIC_KEY_SIZE = 32;
   int SIGNATURE_SIZE = 64;
+  int MIN_MESSAGE_SIZE = PAYLOAD_OFFSET + SIGNATURE_SIZE;
 
   /*
 Review: Here and elsewhere, I'd suggest to not capitalize the individual words that comprise
@@ -49,7 +50,7 @@ I.e., "Returns a public key of the author of the transaction message".
 Also, if I remember correctly, `’s` to specify possession is used with people or organizations.
    */
   /**
-   * Returns a public key of the Transaction Message's author.
+   * Returns a public key of the author of the transaction message.
    */
   PublicKey getAuthor();
 
@@ -61,7 +62,7 @@ Review:
 ```
    */
   /**
-   * Returns service id of the Transaction Message.
+   * Returns the identifier of the service this message belongs to.
    */
   short getServiceId();
 
@@ -69,7 +70,7 @@ Review:
 Review: What is transaction id? How is that useful to anyone? Please give these javadocs some love.
    */
   /**
-   * Returns transaction id of the Transaction Message.
+   * Returns transaction identifier which is unique within the service.
    */
   short getTransactionId();
 
@@ -77,7 +78,7 @@ Review: What is transaction id? How is that useful to anyone? Please give these 
 Review: What is payload?
    */
   /**
-   * Returns payload of the Transaction Message.
+   * Returns the transaction message body.
    */
   byte[] getPayload();
 
@@ -85,7 +86,7 @@ Review: What is payload?
 Review: A hash of what exactly?
  */
   /**
-   * Returns Transaction Message hash.
+   * Returns the transaction message hash.
    */
   HashCode hash();
 
@@ -93,12 +94,18 @@ Review: A hash of what exactly?
 Review: A signature of what? Is the format specified?
  */
   /**
-   * Returns Transaction Message signature.
+   * Returns the <a href="https://ed25519.cr.yp.to/">Ed25519</a> signature
+   * over this binary message.
+   *
+   * <p>The signature is <strong>not</strong> guaranteed to be valid and must be verified against
+   * the signer’s public key.
+   *
+   * @see CryptoFunctions#ed25519()
    */
   byte[] getSignature();
 
   /**
-   * Returns Transaction Message in binary format.
+   * Returns the transaction message in binary format.
    */
   byte[] toBytes();
 
@@ -106,7 +113,12 @@ Review: A signature of what? Is the format specified?
   Review: Creates a new builder of the transaction message?
    */
   /**
-   * Returns the Builder for the Transaction Message.
+   * Returns the transaction message size in bytes.
+   */
+  int size();
+
+  /**
+   * Create a new builder for the transaction message.
    */
   static Builder builder() {
     return new Builder();
@@ -116,21 +128,21 @@ Review: A signature of what? Is the format specified?
 Review: I wonder if we shall validate the format somehow on instantiation (in BTM) :thinking:
    */
   /**
-   * Creates Transaction Message from the given bytes array.
+   * Creates the transaction message from the given bytes array.
    */
   static TransactionMessage fromBytes(byte[] bytes) {
-    return BinaryTransactionMessage.fromBuffer(ByteBuffer.wrap(bytes));
+    return new BinaryTransactionMessage(bytes);
   }
 
   /**
-   * Creates Transaction Message from the given bytes buffer.
+   * Creates the transaction message from the given bytes buffer.
    */
   static TransactionMessage fromBuffer(ByteBuffer buffer) {
-    return BinaryTransactionMessage.fromBuffer(buffer);
+    return new BinaryTransactionMessage(buffer.array());
   }
 
   /**
-   * Transaction Message Builder class.
+   * Builder for the binary transaction message.
    */
   class Builder {
     private Short serviceId;
@@ -138,7 +150,7 @@ Review: I wonder if we shall validate the format somehow on instantiation (in BT
     private ByteBuffer payload;
 
     /**
-     * Sets service id to the transaction message.
+     * Sets service identifier to the transaction message.
      */
     public Builder serviceId(short serviceId) {
       this.serviceId = serviceId;
@@ -146,7 +158,7 @@ Review: I wonder if we shall validate the format somehow on instantiation (in BT
     }
 
     /**
-     * Sets transaction id to the transaction message.
+     * Sets transaction identifier to the transaction message.
      */
     public Builder transactionId(short transactionId) {
       this.transactionId = transactionId;
@@ -172,9 +184,13 @@ Review: I wonder if we shall validate the format somehow on instantiation (in BT
 Review: Doc: Where do keys end up? Will it eat my secret key?
  */
     /**
-     * Signs and creates an instance of the transaction message.
+     * Signs the message, creating a new signed binary transaction message.
      *
-     * @throws NullPointerException if serviceId or transactionId or payload haven't set
+     * @param keys key pair with private and public keys. Public key is used as an author key of the
+     *        message and private key is used for signing the message.
+     * @param crypto a cryptographic function to use
+     * @return a new signed binary transaction message
+     * @throws NullPointerException if serviceId or transactionId or payload weren't set
      * @throws IllegalArgumentException if public key has wrong size
      */
     public TransactionMessage sign(KeyPair keys, CryptoFunction crypto) {
@@ -182,14 +198,12 @@ Review: Doc: Where do keys end up? Will it eat my secret key?
 Review: Something like `checkRequiredFieldSet(field: Object, fieldName: String)` so that clients
 do not get plain NPEs, but, say, IllegalStateException with message that explains things?
        */
-      checkNotNull(serviceId);
-      checkNotNull(transactionId);
-      checkNotNull(payload);
+      checkRequiredFieldsSet();
       PublicKey authorPublicKey = keys.getPublicKey();
       checkArgument(authorPublicKey.size() == AUTHOR_PUBLIC_KEY_SIZE);
 
       ByteBuffer buffer = ByteBuffer
-          .allocate(PAYLOAD_OFFSET + payload.limit() + SIGNATURE_SIZE)
+          .allocate(MIN_MESSAGE_SIZE + payload.limit())
           .order(ByteOrder.LITTLE_ENDIAN);
       buffer.put(authorPublicKey.toBytes());
       buffer.put(MessageType.TRANSACTION.bytes());
@@ -203,7 +217,19 @@ do not get plain NPEs, but, say, IllegalStateException with message that explain
       byte[] signature = crypto.signMessage(unsignedMessage, keys.getPrivateKey());
       buffer.put(signature);
 
-      return BinaryTransactionMessage.fromBuffer(buffer);
+      return new BinaryTransactionMessage(buffer.array());
+    }
+
+    private void checkRequiredFieldsSet() {
+      String undefinedFields = "";
+      undefinedFields = serviceId == null ? undefinedFields + " serviceId" : undefinedFields;
+      undefinedFields =
+          transactionId == null ? undefinedFields + " transactionId" : undefinedFields;
+      undefinedFields = payload == null ? undefinedFields + " payload" : undefinedFields;
+      if (!undefinedFields.isEmpty()) {
+        throw new IllegalStateException(
+            "Following field(s) are required but weren't set: " + undefinedFields);
+      }
     }
 
     private Builder() {

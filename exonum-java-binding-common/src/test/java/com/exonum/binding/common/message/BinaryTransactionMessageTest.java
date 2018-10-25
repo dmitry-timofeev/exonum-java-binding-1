@@ -39,10 +39,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/*
-Review: Given the number of methods, I believe that's not enough to confirm it works
-and ensure it does not break.
- */
 class BinaryTransactionMessageTest {
 
   private static final CryptoFunction CRYPTO = CryptoFunctions.ed25519();

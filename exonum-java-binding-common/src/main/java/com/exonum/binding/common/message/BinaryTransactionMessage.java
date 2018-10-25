@@ -107,7 +107,8 @@ marks from the original object.
 
     /*
 Review: it is broken as the code that gets byte arrays modifies position of the original buffer.
-Please add a test for that.
+
+Please add a TEST for that.
      */
     return sha256().newHasher()
         .putBytes(rawTransaction.duplicate())

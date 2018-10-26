@@ -163,12 +163,6 @@ public interface TransactionMessage {
       PublicKey authorPublicKey = keys.getPublicKey();
       checkArgument(authorPublicKey.size() == AUTHOR_PUBLIC_KEY_SIZE);
 
-      /*
-Review: This code is incorrect: payload.limit() is not the number of bytes that would
-be transferred in ByteBuffer#put(ByteBuffer).
-
-payload.remaining() and a test!
-       */
       ByteBuffer buffer = ByteBuffer
           .allocate(MIN_MESSAGE_SIZE + payload.limit())
           .order(ByteOrder.LITTLE_ENDIAN);

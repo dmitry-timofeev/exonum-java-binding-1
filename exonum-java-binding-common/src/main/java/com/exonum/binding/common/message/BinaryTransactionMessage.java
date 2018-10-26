@@ -52,13 +52,6 @@ public final class BinaryTransactionMessage implements TransactionMessage {
   @Override
   public PublicKey getAuthor() {
     byte[] key = new byte[AUTHOR_PUBLIC_KEY_SIZE];
-    /*
-Review: Why use relative operations, that involve two steps and modify the bytebuffer
-marks instead of absolute, that used to be here?
-
-OK, one can use, but hashing is broken — add a test please.
-
-     */
     rawTransaction.position(AUTHOR_PUBLIC_KEY_OFFSET);
     rawTransaction.get(key);
     return PublicKey.fromBytes(key);
@@ -86,29 +79,7 @@ OK, one can use, but hashing is broken — add a test please.
   @Override
   public HashCode hash() {
     /*
-Review: That is broken:
-1. ByteBuffer#array won't work for readonly array
-2. ByteBuffer#array won't work for direct BB
-3. When it will, it will return **the whole** array, i.e., not between `bb.position()` and `bb.limit()`.
-
-Please add regression tests for these cases.
-
-I think this will work:
-```java
-    Hashing.sha256().newHasher()
-        .putBytes(rawTransaction.duplicate())
-        .hash();
-```
-
-Please note that `BB.duplicate()` **does not** duplicate the underlying byte storage,
-it duplicates the wrapper around that storage — BB, so that it can have independent
-marks from the original object.
-     */
-
-    /*
-Review: it is broken as the code that gets byte arrays modifies position of the original buffer.
-
-Please add a TEST for that.
+Review: Please test hash().
      */
     // We can't use BB directly for hashing because rawTransaction#position might be changed
     // and it causes having different hashes for the same message.

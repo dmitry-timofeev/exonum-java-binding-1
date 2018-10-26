@@ -144,10 +144,7 @@ public interface TransactionMessage {
      * Sets payload to the transaction message.
      */
     public Builder payload(ByteBuffer payload) {
-      /*
-Review: Order is irrelevant here — it is just some bytes.
-       */
-      this.payload = payload.duplicate().order(ByteOrder.LITTLE_ENDIAN);
+      this.payload = payload.slice();
       return this;
     }
 
@@ -181,7 +178,7 @@ payload.remaining() and a test!
       buffer.putShort(transactionId);
       buffer.put(payload);
 
-      buffer.position(0);
+      buffer.rewind();
       byte[] unsignedMessage = new byte[PAYLOAD_OFFSET + payload.limit()];
       buffer.get(unsignedMessage);
       byte[] signature = crypto.signMessage(unsignedMessage, keys.getPrivateKey());

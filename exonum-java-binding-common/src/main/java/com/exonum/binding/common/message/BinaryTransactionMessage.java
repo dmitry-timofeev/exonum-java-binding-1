@@ -110,9 +110,9 @@ Review: it is broken as the code that gets byte arrays modifies position of the 
 
 Please add a TEST for that.
      */
-    return sha256().newHasher()
-        .putBytes(rawTransaction.duplicate())
-        .hash();
+    // We can't use BB directly for hashing because rawTransaction#position might be changed
+    // and it causes having different hashes for the same message.
+    return sha256().hashBytes(rawTransaction.array());
   }
 
   @Override

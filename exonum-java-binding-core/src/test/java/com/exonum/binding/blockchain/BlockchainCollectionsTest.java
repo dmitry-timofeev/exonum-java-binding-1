@@ -53,6 +53,9 @@ public class BlockchainCollectionsTest {
 
     ListIndex<HashCode> list = blockchain.getAllBlockHashes();
 
+    /*
+    Review: it will do whatever the mock will do. I'd remove these tests, as they don't work.
+     */
     list.add(HashCode.fromInt(0x0));
   }
 

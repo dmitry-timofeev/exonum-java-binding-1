@@ -23,6 +23,15 @@ import com.exonum.binding.storage.indices.ListIndex;
 import com.exonum.binding.storage.indices.ProofListIndexProxy;
 import com.google.common.annotations.VisibleForTesting;
 
+/*
+Review:
+Not "informational".
+
+Provides read-only access to the blockchain state that is maintained by Exonum core:
+blocks, transaction messages, execution results.
+
+I'd also link https://docs.rs/exonum/0.9.4/exonum/blockchain/struct.Schema.html
+ */
 /**
  * Provides read-only access to the blockchain state
  * and informational indexes maintained by Exonum core.
@@ -44,6 +53,9 @@ public final class Blockchain {
     return new Blockchain(coreSchema);
   }
 
+  /*
+Review: Which height does the genesis block have? The first block? Is it equal to the number of blocks (if not, I'd add a warning)?
+   */
   /**
    * Returns the height of the latest committed block.
    *
@@ -53,6 +65,11 @@ public final class Blockchain {
     return schema.getHeight();
   }
 
+/*
+Review:
+Returns a list of all block hashes, indexed by the block height.
+For example, the genesis block will be at index ?, the block at height {@code h} — at index ?.
+ */
   /**
    * Returns an list index containing a block hash for every block height
    * (represented by list index id).
@@ -61,9 +78,15 @@ public final class Blockchain {
     return schema.getAllBlockHashes();
   }
 
+/*
+Review: This javadoc is incorrect.
+ */
   /**
    * Returns an proof list index containing block hashes for the given height.
    */
+/*
+Review: `@param` (what is a valid range of values), `@throws` — what if I don't get it right?
+ */
   public ProofListIndexProxy<HashCode> getBlockTransactions(long height) {
     return schema.getBlockTransactions(height);
   }

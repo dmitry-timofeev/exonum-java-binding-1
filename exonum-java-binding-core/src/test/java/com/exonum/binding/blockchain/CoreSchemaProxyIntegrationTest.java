@@ -33,9 +33,14 @@ public class CoreSchemaProxyIntegrationTest {
   static {
     LibraryLoader.load();
   }
-
+/*
+Review: I'd move to the class level too and explain *why* they are ignored.
+ */
   @Ignore
   @Test
+  /*
+Review: Please move the annotation to the class level.
+   */
   @RequiresNativeLibrary
   public void heightTest() throws CloseFailuresException {
     try (MemoryDb db = MemoryDb.newInstance();
@@ -65,6 +70,7 @@ public class CoreSchemaProxyIntegrationTest {
   @Test
   @RequiresNativeLibrary
   public void getBlockTransactionsTest() throws CloseFailuresException {
+    // Review: https://jira.bf.local/browse/ECR-2634
     try (MemoryDb db = MemoryDb.newInstance();
         Cleaner cleaner = new Cleaner()) {
       Snapshot view = db.createSnapshot(cleaner);

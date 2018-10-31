@@ -47,6 +47,7 @@ final class CoreSchemaProxy {
    * Constructs a schema proxy for a given dbView.
    */
   static CoreSchemaProxy newInstance(View dbView) {
+    // Review: Another name is required.
     long nativeCreate = nativeCreate(dbView.getViewNativeHandle());
     NativeHandle nativeHandle = new NativeHandle(nativeCreate);
 
@@ -90,12 +91,19 @@ final class CoreSchemaProxy {
 
   private static native long nativeGetHeight(long nativeHandle);
 
+  // Review: `@SuppressWarnings("unused") // Will be done in the next task`
   private static native byte[] nativeGetLastBlock(long nativeHandle);
 
   /**
    * Mapping for Exonum core indexes by name.
    */
   private static final class CoreIndex {
+/*
+Review: These names are not correct — see the Schema source.
+ */
+/*
+Review: why put them in a separate class?
+ */
     private static final String BLOCK_TRANSACTIONS = "block_transactions";
     private static final String ALL_BLOCK_HASHES = "block_hashes_by_height";
   }

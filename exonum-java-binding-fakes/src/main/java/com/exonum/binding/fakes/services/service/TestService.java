@@ -53,6 +53,9 @@ public final class TestService extends AbstractService {
     this.schemaFactory = schemaFactory;
   }
 
+  /*
+Review: @vitvakatu, @skletsun Are such methods accessible in native?
+   */
   public long getBlockchainHeight() {
     return blockchainHeight;
   }

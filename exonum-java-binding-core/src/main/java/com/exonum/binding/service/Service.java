@@ -125,6 +125,8 @@ public interface Service {
    * For example, a service can create one or more transactions if a specific condition
    * has occurred.
    * @param event the current node state on which the blockchain is running
+   * Review:
+event the context allowing to access the blockchain state as of that committed block?
    */
   default void afterCommit(BlockCommittedEvent event) {}
 }

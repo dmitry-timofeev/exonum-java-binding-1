@@ -141,6 +141,10 @@ public class UserServiceAdapter {
     server.mountSubRouter(serviceApiPath(), router);
   }
 
+  /*
+Review:
+Tests?
+   */
   /**
    * Handles block commit event. This handler is invoked after commit of the block.
    * @param snapshotHandle a handle to a native snapshot object

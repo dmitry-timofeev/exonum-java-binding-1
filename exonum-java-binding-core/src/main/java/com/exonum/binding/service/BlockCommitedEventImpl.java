@@ -20,7 +20,9 @@ import com.exonum.binding.storage.database.Snapshot;
 import java.util.Optional;
 
 public class BlockCommitedEventImpl implements BlockCommittedEvent {
-
+/*
+Review: final?
+ */
   private int validatorId;
   private long height;
   private Snapshot snapshot;
@@ -42,8 +44,20 @@ public class BlockCommitedEventImpl implements BlockCommittedEvent {
     return snapshot;
   }
 
+/*
+Review: OptionalInt.
+ */
   @Override
   public Optional<Integer> getValidatorId() {
+    /*
+Review: This logic does not belong here, neither in this method nor in this class.
+The fact that validator id is negative is just an
+implementation detail of a UserServiceAdapter. It's its responsibility to decode any
+internal types used to transfer values from native to Java to appropriate Java types.
+
+A side question is why does the framework communicate the type of node through this event
+:thinking: ?
+     */
     return Optional.of(validatorId).filter(v -> v > 0);
   }
 

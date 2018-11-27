@@ -24,8 +24,17 @@ import java.util.Optional;
  * Returns a result of transaction execution. This result may be either a success, or an error,
  * if execution has failed. Errors consist of an error code and an optional description.
  */
+/*
+Review: It might be an `@AutoValue`, so that explicit eq/hashCode/toString aren't needed.
+ */
+/*
+Review: No serializable.
+ */
 public class TransactionResult implements Serializable {
 
+  /*
+Review: final if not `AutoValue`.
+   */
   private Type type;
   private TransactionError error;
 
@@ -42,6 +51,9 @@ public class TransactionResult implements Serializable {
     return type == Type.SUCCESS;
   }
 
+/*
+Review: The Type descriptions do not distinguish ERROR and unexpected error.
+ */
   /**
    * Return type of the transaction.
    * @return {@code Type.SUCCESS} if transaction was successful

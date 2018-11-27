@@ -80,6 +80,11 @@ class BlockchainTest {
     ProofListIndexProxy mockListIndex = mock(ProofListIndexProxy.class);
     MapIndex mockMapIndex = mock(MapIndex.class);
     HashCode blockId = HashCode.fromString("ab");
+    /* Review:
+    Here and elsewhere: please do not mock values, use a builder/predefined factory method
+    if you'd like to hide irrelevant details about the value (e.g., its hash).
+     */
+
     Block mockBlock = mock(Block.class);
 
     when(mockSchema.getBlocks()).thenReturn(mockMapIndex);

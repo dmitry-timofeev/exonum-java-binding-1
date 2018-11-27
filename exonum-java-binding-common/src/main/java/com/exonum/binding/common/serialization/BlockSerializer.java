@@ -21,6 +21,9 @@ import com.exonum.binding.common.hash.HashCode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+/*
+Review: Shan't it be a package-private class in ejb-core, near its usage in CoreSchema?
+ */
 public enum BlockSerializer implements Serializer<Block> {
   INSTANCE;
 

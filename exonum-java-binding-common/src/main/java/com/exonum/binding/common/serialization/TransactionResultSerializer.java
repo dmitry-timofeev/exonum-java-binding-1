@@ -25,7 +25,9 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
-
+/*
+Review: We do not use Java serialization — these objects are serialized by the core.
+ */
 public enum TransactionResultSerializer implements Serializer<TransactionResult> {
   INSTANCE;
 

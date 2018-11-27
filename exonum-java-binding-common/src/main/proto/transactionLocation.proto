@@ -4,6 +4,8 @@ option java_package = "com.exonum.binding.common.serialization";
 option java_outer_classname = "TransactionLocationProtos";
 
 message TransactionLocation {
+// Review: Why not `uint64` @drogan?
   int64 height = 1;
+// Review: Why not `uint64` @drogan?
   int64 indexInBlock = 2;
 }

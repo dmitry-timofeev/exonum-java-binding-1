@@ -76,6 +76,9 @@ class CoreSchemaProxyIntegrationTest {
       Snapshot view = db.createSnapshot(cleaner);
 
       CoreSchemaProxy schema = CoreSchemaProxy.newInstance(view);
+      /*
+Review: I'd recommend assertTrue (here and elsewhere).
+       */
       assertThat(schema.getBlocks().isEmpty()).isTrue();
     }
   }

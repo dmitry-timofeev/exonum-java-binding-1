@@ -104,7 +104,13 @@ final class CoreSchemaProxy {
     return ProofListIndexProxy.newInGroupUnsafe(
         CoreIndex.BLOCK_TRANSACTIONS, id, dbView, StandardSerializers.hash());
   }
+/*
+Review: FYI, our style guide does not insist on the docs for non-public elements —
+you shall use your judgement to decide if the internal users will benefit from the docs.
 
+Therefore, I'd keep docs in this class clear and concise to reduce the maintenance burden. Things
+like "no redundant returns" apply here as well.
+ */
   /**
    * Returns a table that stores a block object for every block hash.
    * @return a map with block object for every block hash
@@ -154,6 +160,9 @@ final class CoreSchemaProxy {
         StandardSerializers.hash(), transactionLocationSerializer);
   }
 
+  /*
+Review: AFAIK, it is not in the immediate plans to add this method, therefore, it may be removed.
+   */
   @SuppressWarnings("unused") // TODO: should be implemented later
   UncheckedMapProof getProofToServiceCollection(short serviceId, int collectionIndex) {
     throw new NotImplementedException();

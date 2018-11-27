@@ -32,6 +32,10 @@ import com.google.auto.value.AutoValue;
 @AutoValue
 public abstract class Block {
 
+  /*
+Review:
+Shan't it have a hash of this block as it identifies the block?
+   */
   public static Block valueOf(
       short proposerId,
       long height,
@@ -49,6 +53,7 @@ public abstract class Block {
   public abstract short getProposerId();
 
   /**
+   * Review: which … the identifier / which … identifies ?
    * Height of the block, which is also the number of this particular block in the blockchain.
    */
   public abstract long getHeight();
@@ -65,6 +70,7 @@ public abstract class Block {
 
   /**
    * Root hash of the Merkle tree of transactions in this block.
+   * Review: Would you please link the appropriate accessor of that collection, if it is available?
    */
   public abstract HashCode getTxRootHash();
 

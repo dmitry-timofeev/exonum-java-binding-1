@@ -33,6 +33,7 @@ class TransactionLocationSerializerTest {
   }
 
   private static Stream<TransactionLocation> testSource() {
+    // Review: I would not use negatives as they are not valid values.
     return Stream.of(
         TransactionLocation.valueOf(Long.MIN_VALUE, Long.MIN_VALUE),
         TransactionLocation.valueOf(1, 1),

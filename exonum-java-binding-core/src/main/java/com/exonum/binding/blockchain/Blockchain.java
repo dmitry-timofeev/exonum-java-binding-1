@@ -37,6 +37,9 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * blockchain::Schema</a> features in the Core API: blocks, transaction messages, execution
  * results.
  */
+/*
+Review: No redundant returns.
+ */
 public final class Blockchain {
 
   private final CoreSchemaProxy schema;
@@ -100,6 +103,11 @@ public final class Blockchain {
   public ProofListIndexProxy<HashCode> getBlockTransactions(HashCode blockId) {
     MapIndex<HashCode, Block> blocks = schema.getBlocks();
     Block block = blocks.get(blockId);
+    /* Review:
+I don't think null is OK here, it is not something the client code shall handle.
+I think we shall either return an empty list as the method above, or, better, consider
+passing an unknown block hash an error and throw an exception. I'd go with the second, WDYT?
+     */
     if (block == null) {
       return null;
    } else {
@@ -118,6 +126,23 @@ public final class Blockchain {
     return getBlockTransactions(block.getHeight());
   }
 
+/*
+Review:
+> Returns a table that represents a map with a key-value pair of a
+  transaction hash and transaction message.
+
+Returns a map of transaction messages identified/indexed by their SHA-256 hashes.
+
+?
+I'd also simplify a "table that represents a map with" word combination in other Javadocs.
+*/
+/*
+Review: Also, please specify which tx messages it stores:
+  - only committed,
+  - committed + in pool
+  - @vitvakatu, anything else?
+
+ */
   /**
    * Returns a table that represents a map with a key-value pair of a
    * transaction hash and transaction message.
@@ -136,6 +161,13 @@ public final class Blockchain {
     return schema.getTxResults();
   }
 
+/*
+Review: It currently returns `null` if it is not known. I'd consider better options:
+an exception (probably, not the best, as someone might check if tx is committed using this method),
+or Optional.
+
+Also, specify the behaviour in this case in the docs.
+ */
   /**
    * Returns a transaction execution result for given message hash.
    * @param messageHash a message hash
@@ -146,6 +178,9 @@ public final class Blockchain {
     return txResults.get(messageHash);
   }
 
+/*
+Review: Rather, in the blockchain.
+ */
   /**
    * Returns a table that keeps the transaction position inside the block for every transaction
    * hash.
@@ -155,6 +190,9 @@ public final class Blockchain {
     return schema.getTxLocations();
   }
 
+/*
+Review: Same as above — documentation.
+ */
   /**
    * Return transaction position inside the block for given message hash.
    * @param messageHash message hash
@@ -182,6 +220,10 @@ public final class Blockchain {
     throw new NotImplementedException();
   }
 
+/*
+Review: Same as above about the documentation and `null`, but here I lean towards exception,
+because you can't possibly obtain a hash of a block that is not in the database.
+ */
   /**
    * Returns a block object for given block hash.
    * @return a block object

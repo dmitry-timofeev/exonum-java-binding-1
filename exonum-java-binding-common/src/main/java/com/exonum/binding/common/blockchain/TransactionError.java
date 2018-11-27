@@ -17,20 +17,31 @@
 package com.exonum.binding.common.blockchain;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.base.Objects;
 import java.io.Serializable;
 import java.util.Optional;
 
+/*
+Review: Would you please link the tx execution exception?
+ */
 /**
  * Result of unsuccessful transaction execution.
  */
 @AutoValue
+/*
+Review: It must not be serializable.
+ */
 public abstract class TransactionError implements Serializable {
 
+/*
+Review: I guess an overload is needed for the case when there are no description.
+ */
   public static TransactionError valueOf(byte errorCode, String description) {
     return new AutoValue_TransactionError(errorCode, description);
   }
 
+/*
+Review: No redundant `@returns`: https://google.github.io/styleguide/javaguide.html#s7.2-summary-fragment
+ */
   /**
    * Return an error code of a transaction error.
    * @return an error code of a transaction error

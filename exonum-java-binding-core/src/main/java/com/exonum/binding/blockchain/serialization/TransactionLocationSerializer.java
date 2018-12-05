@@ -20,9 +20,6 @@ import com.exonum.binding.blockchain.TransactionLocation;
 import com.exonum.binding.common.serialization.Serializer;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-/*
-Review: Same here — shan't it be a package-private class in ejb-core, near its usage in CoreSchema?
- */
 public enum TransactionLocationSerializer implements Serializer<TransactionLocation> {
   INSTANCE;
 
@@ -38,15 +35,6 @@ public enum TransactionLocationSerializer implements Serializer<TransactionLocat
 
   @Override
   public TransactionLocation fromBytes(byte[] binaryTransactionLocation) {
-    /*
-    Review:
-Would it be easier to use `com.exonum.binding.common.serialization.StandardSerializers.protobuf`,
-which will hide the exception handling (same in other serializers):
-```java
-var txLocationProto = locationProtobufSerializer.fromBytes(bytes);
-return TransactionLocation.valueOf(txLocationProto.getHeight(), txLocationProto.getIndexInBlock());
-```
-     */
     try {
       CoreProtos.TxLocation copiedtxLocationProtos =
           CoreProtos.TxLocation.parseFrom(binaryTransactionLocation);

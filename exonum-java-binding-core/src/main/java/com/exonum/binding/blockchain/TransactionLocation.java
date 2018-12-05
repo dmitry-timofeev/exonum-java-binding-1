@@ -18,9 +18,6 @@ package com.exonum.binding.blockchain;
 
 import com.google.auto.value.AutoValue;
 
-/*
-Review: in the blockchain (as it *includes* the block id = its height).
- */
 /**
  * Transaction position in the blockchain. Enumeration begins from 0.
  */
@@ -31,17 +28,11 @@ public abstract class TransactionLocation {
     return new AutoValue_TransactionLocation(height, indexInBlock);
   }
 
-/*
-Review: tx committed?
- */
   /**
    * Height of the block where the transaction was committed.
    */
   public abstract long getHeight();
 
-/*
-Review: Are transactions executed in the ascending order of **these** indices? If so, please include that.
- */
   /**
    * Zero-based position of this transaction in the block. Transactions executed in the ascending
    * order of these indices.

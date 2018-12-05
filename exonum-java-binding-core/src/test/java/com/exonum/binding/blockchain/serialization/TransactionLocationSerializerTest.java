@@ -39,7 +39,6 @@ class TransactionLocationSerializerTest {
   }
 
   private static Stream<TransactionLocation> testSource() {
-    // Review: I would not use negatives as they are not valid values.
     return Stream.of(
         TransactionLocation.valueOf(1, 1),
         TransactionLocation.valueOf(Long.MAX_VALUE, Long.MAX_VALUE));

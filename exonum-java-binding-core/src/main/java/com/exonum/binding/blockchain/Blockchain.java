@@ -33,9 +33,6 @@ import com.google.common.annotations.VisibleForTesting;
  * blockchain::Schema</a> features in the Core API: blocks, transaction messages, execution
  * results.
  */
-/*
-Review: No redundant returns.
- */
 public final class Blockchain {
 
   private final CoreSchemaProxy schema;
@@ -118,21 +115,7 @@ Review: The exception ^ may be more informative.
   }
 
 /*
-Review:
-> Returns a table that represents a map with a key-value pair of a
-  transaction hash and transaction message.
-
-Returns a map of transaction messages identified/indexed by their SHA-256 hashes.
-
-?
-I'd also simplify a "table that represents a map with" word combination in other Javadocs.
-*/
-/*
-Review: Also, please specify which tx messages it stores:
-  - only committed,
-  - committed + in pool
-  - @vitvakatu, anything else?
-
+Review: in-pool (no yet processed)?
  */
   /**
    * Returns a map of transaction messages identified by their SHA-256 hashes. Both committed and
@@ -165,9 +148,6 @@ Also, specify the behaviour in this case in the docs.
     return txResults.get(messageHash);
   }
 
-/*
-Review: Rather, in the blockchain.
- */
   /**
    * Returns a map that keeps the transaction position inside the blockchain for every transaction
    * hash.
@@ -177,7 +157,7 @@ Review: Rather, in the blockchain.
   }
 
 /*
-Review: Same as above — documentation.
+Review: Same as above — documentation of what happens if no tx location.
  */
   /**
    * Returns transaction position inside the blockchain for given message hash.
@@ -198,6 +178,8 @@ Review: Same as above — documentation.
 /*
 Review: Same as above about the documentation and `null`, but here I lean towards exception,
 because you can't possibly obtain a hash of a block that is not in the database.
+
+If we do not fix it in this PR, I'd add todos/remove this methods.
  */
   /**
    * Returns a block object for given block hash.

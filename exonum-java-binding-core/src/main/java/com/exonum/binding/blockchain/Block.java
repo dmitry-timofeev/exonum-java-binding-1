@@ -35,10 +35,6 @@ import com.google.auto.value.AutoValue;
 @AutoValue
 public abstract class Block {
 
-  /*
-Review:
-Shan't it have a hash of this block as it identifies the block?
-   */
   private final Serializer<Block> blockSerializer = BlockSerializer.INSTANCE;
 
   public static Block valueOf(
@@ -75,7 +71,8 @@ Shan't it have a hash of this block as it identifies the block?
 
   /**
    * Root hash of the Merkle tree of transactions in this block.
-   * Review: Would you please link the appropriate accessor of that collection, if it is available?
+   *
+   * Review: Would you please link the appropriate accessor of that collection, if it is available? {@link Blockchain#getBlockTransactions(Block)}
    */
   public abstract HashCode getTxRootHash();
 

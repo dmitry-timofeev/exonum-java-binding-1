@@ -48,7 +48,6 @@ class BlockSerializerTest {
             HashCode.fromString("ab"),
             HashCode.fromString("bc"),
             HashCode.fromString("cd")),
-        /* Review: AutoValues are non-null by default — have you run this? */
         Block.valueOf(
             Integer.MAX_VALUE,
             Long.MAX_VALUE,

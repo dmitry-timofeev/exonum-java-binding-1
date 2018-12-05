@@ -84,6 +84,13 @@ Shan't it have a hash of this block as it identifies the block?
    */
   public abstract HashCode getStateHash();
 
+  /*
+  Review: This code shall just return a value, not serialize the block and compute the hash,
+  because we cannot assume that protobuf serialization is deterministic across the languages,
+  hence there is no guarantee it'll be the same as the binary stored in core database.
+
+  I think it must be moved to serializer and operate on the bytes that it receives.
+   */
   /**
    * Returns the SHA-256 hash of this block.
    */

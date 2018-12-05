@@ -26,6 +26,9 @@ public enum TransactionResultSerializer implements Serializer<TransactionResult>
 
   @Override
   public byte[] toBytes(TransactionResult value) {
+    /*
+    Review: Extract in a method getErrorCode/extractCoreErrorCode
+     */
     int status;
     switch (value.getType()) {
       case ERROR:

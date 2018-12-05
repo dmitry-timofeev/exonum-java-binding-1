@@ -68,12 +68,18 @@ public enum BlockSerializer implements Serializer<Block> {
   }
 
   private static ByteString toByteString(HashCode hash) {
+    /*
+    Review: hash.asBytes();
+     */
     byte[] bytes = StandardSerializers.hash().toBytes(hash);
     return ByteString.copyFrom(bytes);
   }
 
   private static HashCode toHashCode(ByteString byteString) {
     byte[] bytes = byteString.toByteArray();
+    /*
+    HashCode.fromBytes
+     */
     return StandardSerializers.hash().fromBytes(bytes);
   }
 

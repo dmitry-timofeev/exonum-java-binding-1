@@ -207,6 +207,10 @@ because you can't possibly obtain a hash of a block that is not in the database.
     return blocks.get(blockHash);
   }
 
+/*
+Review: getBlockHashesByHeight()?
+ */
+
   /**
    * Returns the latest committed block.
    */

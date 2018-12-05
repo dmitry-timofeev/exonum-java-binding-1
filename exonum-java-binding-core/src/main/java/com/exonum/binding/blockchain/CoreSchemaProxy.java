@@ -20,17 +20,15 @@ package com.exonum.binding.blockchain;
 import static com.exonum.binding.common.serialization.StandardSerializers.fixed64;
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.exonum.binding.common.blockchain.Block;
-import com.exonum.binding.common.blockchain.TransactionLocation;
-import com.exonum.binding.common.blockchain.TransactionResult;
+import com.exonum.binding.blockchain.serialization.BlockSerializer;
+import com.exonum.binding.blockchain.serialization.TransactionLocationSerializer;
+import com.exonum.binding.blockchain.serialization.TransactionResultSerializer;
+import com.exonum.binding.common.configuration.StoredConfiguration;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.message.TransactionMessage;
-import com.exonum.binding.common.proofs.map.UncheckedMapProof;
-import com.exonum.binding.common.serialization.BlockSerializer;
 import com.exonum.binding.common.serialization.Serializer;
 import com.exonum.binding.common.serialization.StandardSerializers;
-import com.exonum.binding.common.serialization.TransactionLocationSerializer;
-import com.exonum.binding.common.serialization.TransactionResultSerializer;
+import com.exonum.binding.common.serialization.json.StoredConfigurationGsonSerializer;
 import com.exonum.binding.proxy.Cleaner;
 import com.exonum.binding.proxy.NativeHandle;
 import com.exonum.binding.proxy.ProxyDestructor;
@@ -41,7 +39,6 @@ import com.exonum.binding.storage.indices.MapIndex;
 import com.exonum.binding.storage.indices.MapIndexProxy;
 import com.exonum.binding.storage.indices.ProofListIndexProxy;
 import com.exonum.binding.storage.indices.ProofMapIndexProxy;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * A proxy class for the blockchain::Schema struct maintained by Exonum core.
@@ -57,6 +54,8 @@ final class CoreSchemaProxy {
       TransactionLocationSerializer.INSTANCE;
   private final Serializer<TransactionResult> transactionResultSerializer =
       TransactionResultSerializer.INSTANCE;
+  private final Serializer<TransactionMessage> transactionMessageSerializer =
+      StandardSerializers.transactionMessage();
 
   private CoreSchemaProxy(NativeHandle nativeHandle, View dbView) {
     this.nativeHandle = nativeHandle;
@@ -112,8 +111,7 @@ Therefore, I'd keep docs in this class clear and concise to reduce the maintenan
 like "no redundant returns" apply here as well.
  */
   /**
-   * Returns a table that stores a block object for every block hash.
-   * @return a map with block object for every block hash
+   * Returns a map that stores a block object for every block hash.
    */
   MapIndex<HashCode, Block> getBlocks() {
     return MapIndexProxy.newInstance(
@@ -122,7 +120,6 @@ like "no redundant returns" apply here as well.
 
   /**
    * Returns the latest committed block.
-   * @return the latest committed block object
    * @throws RuntimeException if the "genesis block" was not created
    */
   Block getLastBlock() {
@@ -130,20 +127,15 @@ like "no redundant returns" apply here as well.
   }
 
   /**
-   * Returns a table that represents a map with a key-value pair of a
-   * transaction hash and transaction message.
-   * @return a map with a key-value pair of a transaction hash and transaction message
+   * Returns a map of transaction messages identified by their SHA-256 hashes.
    */
   MapIndex<HashCode, TransactionMessage> getTxMessages() {
-    // TODO: serializer
     return MapIndexProxy.newInstance(CoreIndex.TRANSACTIONS, dbView, StandardSerializers.hash(),
-        null);
+        transactionMessageSerializer);
   }
 
   /**
-   * Returns a table that represents a map with a key-value pair of a transaction
-   * hash and execution result.
-   * @return a map with a key-value pair of a transaction hash and execution result
+   * Returns a map with a key-value pair of a transaction hash and execution result.
    */
   ProofMapIndexProxy<HashCode, TransactionResult> getTxResults() {
     return ProofMapIndexProxy.newInstance(CoreIndex.TRANSACTIONS_RESULTS, dbView,
@@ -151,21 +143,23 @@ like "no redundant returns" apply here as well.
   }
 
   /**
-   * Returns a table that keeps the block height and transaction position inside the block for every
+   * Returns a map that keeps the block height and transaction position inside the block for every
    * transaction hash.
-   * @return a map with transaction position for every transaction hash
    */
   MapIndex<HashCode, TransactionLocation> getTxLocations() {
     return MapIndexProxy.newInstance(CoreIndex.TRANSACTIONS_LOCATIONS, dbView,
         StandardSerializers.hash(), transactionLocationSerializer);
   }
 
-  /*
-Review: AFAIK, it is not in the immediate plans to add this method, therefore, it may be removed.
+  /**
+   * Returns the configuration for the latest height of the blockchain.
+   *
+   * @throws RuntimeException if the "genesis block" was not created
    */
-  @SuppressWarnings("unused") // TODO: should be implemented later
-  UncheckedMapProof getProofToServiceCollection(short serviceId, int collectionIndex) {
-    throw new NotImplementedException();
+  StoredConfiguration getActualConfiguration() {
+    String rawConfiguration = nativeGetActualConfiguration(nativeHandle.get());
+
+    return StoredConfigurationGsonSerializer.fromJson(rawConfiguration);
   }
 
   private static native long nativeCreate(long viewNativeHandle);
@@ -173,6 +167,8 @@ Review: AFAIK, it is not in the immediate plans to add this method, therefore, i
   private static native void nativeFree(long nativeHandle);
 
   private static native long nativeGetHeight(long nativeHandle);
+
+  private static native String nativeGetActualConfiguration(long nativeHandle);
 
   /**
    * Returns the latest committed block.

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.exonum.binding.common.serialization;
+package com.exonum.binding.blockchain.serialization;
 
-import com.exonum.binding.common.blockchain.TransactionLocation;
+import com.exonum.binding.blockchain.TransactionLocation;
+import com.exonum.binding.common.serialization.Serializer;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /*
@@ -27,10 +28,10 @@ public enum TransactionLocationSerializer implements Serializer<TransactionLocat
 
   @Override
   public byte[] toBytes(TransactionLocation value) {
-    TransactionLocationProtos.TransactionLocation txLocation =
-        TransactionLocationProtos.TransactionLocation.newBuilder()
-            .setHeight(value.getHeight())
-            .setIndexInBlock(value.getIndexInBlock())
+    CoreProtos.TxLocation txLocation =
+        CoreProtos.TxLocation.newBuilder()
+            .setBlockHeight(value.getHeight())
+            .setPositionInBlock(value.getIndexInBlock())
             .build();
     return txLocation.toByteArray();
   }
@@ -47,13 +48,14 @@ return TransactionLocation.valueOf(txLocationProto.getHeight(), txLocationProto.
 ```
      */
     try {
-      TransactionLocationProtos.TransactionLocation copiedtxLocationProtos =
-          TransactionLocationProtos.TransactionLocation.parseFrom(binaryTransactionLocation);
-      return TransactionLocation.valueOf(copiedtxLocationProtos.getHeight(),
-          copiedtxLocationProtos.getIndexInBlock());
+      CoreProtos.TxLocation copiedtxLocationProtos =
+          CoreProtos.TxLocation.parseFrom(binaryTransactionLocation);
+      return TransactionLocation.valueOf(copiedtxLocationProtos.getBlockHeight(),
+          copiedtxLocationProtos.getPositionInBlock());
     } catch (InvalidProtocolBufferException e) {
       throw new IllegalArgumentException("Unable to instantiate "
-          + "TransactionLocationProtos.TransactionLocation instance from provided binary data", e);
+          + "CoreProtos.TxLocation instance from provided binary data", e);
     }
   }
+
 }

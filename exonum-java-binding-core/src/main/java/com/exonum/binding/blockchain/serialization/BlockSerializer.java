@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.exonum.binding.common.serialization;
+package com.exonum.binding.blockchain.serialization;
 
-import com.exonum.binding.common.blockchain.Block;
+import com.exonum.binding.blockchain.Block;
 import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.common.serialization.Serializer;
+import com.exonum.binding.common.serialization.StandardSerializers;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -29,13 +31,13 @@ public enum BlockSerializer implements Serializer<Block> {
 
   @Override
   public byte[] toBytes(Block value) {
-    BlockProtos.Block block = BlockProtos.Block.newBuilder()
+    CoreProtos.Block block = CoreProtos.Block.newBuilder()
         .setProposerId(value.getProposerId())
         .setHeight(value.getHeight())
-        .setNumTransactions(value.getNumTransactions())
-        .setPreviousBlockHash(toByteString(value.getPreviousBlockHash()))
-        .setTxRootHash(toByteString(value.getTxRootHash()))
-        .setStateHash(toByteString(value.getStateHash()))
+        .setTxCount(value.getNumTransactions())
+        .setPrevHash(toHashProto(value.getPreviousBlockHash()))
+        .setTxHash(toHashProto(value.getTxRootHash()))
+        .setStateHash(toHashProto(value.getStateHash()))
         .build();
     return block.toByteArray();
   }
@@ -43,16 +45,26 @@ public enum BlockSerializer implements Serializer<Block> {
   @Override
   public Block fromBytes(byte[] binaryBlock) {
     try {
-      BlockProtos.Block copiedBlockProtos = BlockProtos.Block.parseFrom(binaryBlock);
-      return Block.valueOf((short) copiedBlockProtos.getProposerId(),
-          copiedBlockProtos.getHeight(), copiedBlockProtos.getNumTransactions(),
-          toHashCode(copiedBlockProtos.getPreviousBlockHash()),
-          toHashCode(copiedBlockProtos.getTxRootHash()),
-          toHashCode(copiedBlockProtos.getStateHash()));
+      CoreProtos.Block copiedBlocks = CoreProtos.Block.parseFrom(binaryBlock);
+      return Block.valueOf(copiedBlocks.getProposerId(),
+          copiedBlocks.getHeight(), copiedBlocks.getTxCount(),
+          fromHashProto(copiedBlocks.getPrevHash()),
+          fromHashProto(copiedBlocks.getTxHash()),
+          fromHashProto(copiedBlocks.getStateHash()));
     } catch (InvalidProtocolBufferException e) {
       throw new IllegalArgumentException(
-          "Unable to instantiate BlockProtos.Block instance from provided binary data", e);
+          "Unable to instantiate Blocks.Block instance from provided binary data", e);
     }
+  }
+
+  private static CoreProtos.Hash toHashProto(HashCode hash) {
+    return CoreProtos.Hash.newBuilder()
+        .setData(toByteString(hash))
+        .build();
+  }
+
+  private static HashCode fromHashProto(CoreProtos.Hash hash) {
+    return toHashCode(hash.getData());
   }
 
   private static ByteString toByteString(HashCode hash) {

@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package com.exonum.binding.test;
+package com.exonum.binding.storage.indices;
 
-public final class TestParameters {
+import com.exonum.binding.common.serialization.Serializer;
+import com.exonum.binding.storage.database.View;
 
-  /**
-   * A syntactic sugar to fluently convert a list of Objects to an array.
-   *
-   * <p>Instead of: <code>new Object[]{o1, o2, o3}</code>,
-   * you get: <code>parameters(o1, o2, o3)</code>.
-   *
-   * <p>Use in {@link org.junit.runners.Parameterized} tests.
-   */
-  public static Object[] parameters(Object... testParameters) {
-    return testParameters;
-  }
-
-  private TestParameters() {}
+@FunctionalInterface
+interface IndexConstructorOne<IndexT, ElementT> {
+  IndexT create(String name, View view, Serializer<ElementT> serializer);
 }

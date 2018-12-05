@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.exonum.binding.common.blockchain;
+package com.exonum.binding.blockchain;
 
 import com.google.auto.value.AutoValue;
 
@@ -22,7 +22,7 @@ import com.google.auto.value.AutoValue;
 Review: in the blockchain (as it *includes* the block id = its height).
  */
 /**
- * Transaction position in a block. Enumeration begins from 0.
+ * Transaction position in the blockchain. Enumeration begins from 0.
  */
 @AutoValue
 public abstract class TransactionLocation {
@@ -35,7 +35,7 @@ public abstract class TransactionLocation {
 Review: tx committed?
  */
   /**
-   * Height of the block where the transaction was included.
+   * Height of the block where the transaction was committed.
    */
   public abstract long getHeight();
 
@@ -43,7 +43,8 @@ Review: tx committed?
 Review: Are transactions executed in the ascending order of **these** indices? If so, please include that.
  */
   /**
-   * Zero-based position of this transaction in the block.
+   * Zero-based position of this transaction in the block. Transactions executed in the ascending
+   * order of these indices.
    */
   public abstract long getIndexInBlock();
 

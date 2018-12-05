@@ -17,9 +17,7 @@
 
 package com.exonum.binding.blockchain;
 
-import com.exonum.binding.common.blockchain.Block;
-import com.exonum.binding.common.blockchain.TransactionLocation;
-import com.exonum.binding.common.blockchain.TransactionResult;
+import com.exonum.binding.common.configuration.StoredConfiguration;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.message.TransactionMessage;
 import com.exonum.binding.storage.database.View;
@@ -28,8 +26,6 @@ import com.exonum.binding.storage.indices.MapIndex;
 import com.exonum.binding.storage.indices.ProofListIndexProxy;
 import com.exonum.binding.storage.indices.ProofMapIndexProxy;
 import com.google.common.annotations.VisibleForTesting;
-import javax.annotation.Nullable;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * Provides read-only access to the subset of
@@ -81,11 +77,10 @@ public final class Blockchain {
   }
 
   /**
-   * Returns a proof list of transaction hashes committed in the block at the given height.
+   * Returns a proof list of transaction hashes committed in the block at the given height or
+   * an empty list if the block at the given height doesn't exist.
    *
    * @param height block height starting from 0
-   * @return a proof list of transaction hashes committed in the block.
-   *        Or an empty list if the block at the given height doesn't exist
    * @throws IllegalArgumentException if the height is negative
    */
   public ProofListIndexProxy<HashCode> getBlockTransactions(long height) {
@@ -93,13 +88,11 @@ public final class Blockchain {
   }
 
   /**
-   * Returns a proof list of transaction hashes committed in the block with given id.
+   * Returns a proof list of transaction hashes committed in the block with given id or an empty
+   * list if the block with given id doesn't exist.
    *
    * @param blockId id of the block
-   * @return a proof list of transaction hashes committed in the block.
-   *        Or null if the block with given id doesn't exist
    */
-  @Nullable
   public ProofListIndexProxy<HashCode> getBlockTransactions(HashCode blockId) {
     MapIndex<HashCode, Block> blocks = schema.getBlocks();
     Block block = blocks.get(blockId);
@@ -108,19 +101,17 @@ I don't think null is OK here, it is not something the client code shall handle.
 I think we shall either return an empty list as the method above, or, better, consider
 passing an unknown block hash an error and throw an exception. I'd go with the second, WDYT?
      */
-    if (block == null) {
-      return null;
-   } else {
-      return getBlockTransactions(block.getHeight());
-    }
+    /*
+Review: The exception ^ may be more informative.
+     */
+    return getBlockTransactions(block.getHeight());
   }
 
   /**
-   * Returns a proof list of transaction hashes committed in the given block.
+   * Returns a proof list of transaction hashes committed in the given block or an empty list if
+   * the block with given id doesn't exist.
    *
    * @param block block of which list of transaction hashes should be returned
-   * @return a proof list of transaction hashes committed in the block.
-   *        Or an empty list if the block with given id doesn't exist
    */
   public ProofListIndexProxy<HashCode> getBlockTransactions(Block block) {
     return getBlockTransactions(block.getHeight());
@@ -144,18 +135,15 @@ Review: Also, please specify which tx messages it stores:
 
  */
   /**
-   * Returns a table that represents a map with a key-value pair of a
-   * transaction hash and transaction message.
-   * @return a map with a key-value pair of a transaction hash and transaction message
+   * Returns a map of transaction messages identified by their SHA-256 hashes. Both committed and
+   * in-pool transactions are returned.
    */
-   public MapIndex<HashCode, TransactionMessage> getTxMessages() {
-     return schema.getTxMessages();
-   }
+  public MapIndex<HashCode, TransactionMessage> getTxMessages() {
+    return schema.getTxMessages();
+  }
 
   /**
-   * Returns a table that represents a map with a key-value pair of a transaction
-   * hash and execution result.
-   * @return a map with a key-value pair of a transaction hash and execution result
+   * Returns a map with a key-value pair of a transaction hash and execution result.
    */
   public ProofMapIndexProxy<HashCode, TransactionResult> getTxResults() {
     return schema.getTxResults();
@@ -171,7 +159,6 @@ Also, specify the behaviour in this case in the docs.
   /**
    * Returns a transaction execution result for given message hash.
    * @param messageHash a message hash
-   * @return a transaction execution result
    */
   public TransactionResult getTxResult(HashCode messageHash) {
     ProofMapIndexProxy<HashCode, TransactionResult> txResults = getTxResults();
@@ -182,9 +169,8 @@ Also, specify the behaviour in this case in the docs.
 Review: Rather, in the blockchain.
  */
   /**
-   * Returns a table that keeps the transaction position inside the block for every transaction
+   * Returns a map that keeps the transaction position inside the blockchain for every transaction
    * hash.
-   * @return a map with transaction position for every transaction hash
    */
   public MapIndex<HashCode, TransactionLocation> getTxLocations() {
     return schema.getTxLocations();
@@ -194,9 +180,8 @@ Review: Rather, in the blockchain.
 Review: Same as above — documentation.
  */
   /**
-   * Return transaction position inside the block for given message hash.
+   * Returns transaction position inside the blockchain for given message hash.
    * @param messageHash message hash
-   * @return transaction position inside the block
    */
   public TransactionLocation getTxLocation(HashCode messageHash) {
     MapIndex<HashCode, TransactionLocation> txLocations = getTxLocations();
@@ -204,20 +189,10 @@ Review: Same as above — documentation.
   }
 
   /**
-   * Returns a table that stores a block object for every block hash.
-   * @return a map with block object for every block hash
+   * Returns a map that stores a block object for every block hash.
    */
   public MapIndex<HashCode, Block> getBlocks() {
     return schema.getBlocks();
-  }
-
-  /**
-   * Returns a list that keeps block hashes according to their corresponding height.
-   * @return a list of block hashes according to their height
-   */
-  public ListIndex<Block> getBlocksByHeight() {
-    // TODO: implementation
-    throw new NotImplementedException();
   }
 
 /*
@@ -226,7 +201,6 @@ because you can't possibly obtain a hash of a block that is not in the database.
  */
   /**
    * Returns a block object for given block hash.
-   * @return a block object
    */
   public Block getBlock(HashCode blockHash) {
     MapIndex<HashCode, Block> blocks = getBlocks();
@@ -235,10 +209,19 @@ because you can't possibly obtain a hash of a block that is not in the database.
 
   /**
    * Returns the latest committed block.
-   * @return a block object
    */
   public Block getLastBlock() {
     return schema.getLastBlock();
+  }
+
+  /**
+   * Returns the configuration for the latest height of the blockchain, including services and their
+   * parameters.
+   *
+   * @throws RuntimeException if the "genesis block" was not created
+   */
+  public StoredConfiguration getActualConfiguration() {
+    return schema.getActualConfiguration();
   }
 
 }

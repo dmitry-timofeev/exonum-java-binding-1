@@ -36,12 +36,16 @@ import io.vertx.ext.web.Router;
 import java.util.List;
 import java.util.OptionalInt;
 import javax.annotation.Nullable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * An adapter of a user-facing interface {@link Service} to an interface with a native code.
  */
 @SuppressWarnings({"unused", "WeakerAccess"})  // Methods are called from the native proxy
 public class UserServiceAdapter {
+
+  private static final Logger logger = LogManager.getLogger(UserServiceAdapter.class);
 
   private static final String API_ROOT_PATH = "/api";
 
@@ -143,7 +147,7 @@ public class UserServiceAdapter {
   }
 
   /**
-   * Handles block commited event. This handler is invoked after commit of the block.
+   * Handles block committed event. This handler is invoked after commit of the block.
    * @param snapshotHandle a handle to a native snapshot object
    * @param validatorId a validator id. Negative if this node is not a validator
    * @param height the current blockchain height
@@ -158,9 +162,18 @@ public class UserServiceAdapter {
           : OptionalInt.empty();
       BlockCommittedEvent event =
           BlockCommittedEventImpl.valueOf(snapshot, optionalValidatorId, height);
-      service.afterCommit(event);
+      doAfterCommit(event);
     } catch (CloseFailuresException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private void doAfterCommit(BlockCommittedEvent event) {
+    try {
+      service.afterCommit(event);
+    } catch (Exception e) {
+      // swallow the exception because it occurs in a user code and it should not be propagated
+      logger.warn("An exception in after commit handler of event {}", event, e);
     }
   }
 

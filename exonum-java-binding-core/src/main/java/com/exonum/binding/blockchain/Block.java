@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package com.exonum.binding.common.blockchain;
+package com.exonum.binding.blockchain;
 
+import com.exonum.binding.blockchain.serialization.BlockSerializer;
 import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.common.hash.Hashing;
+import com.exonum.binding.common.serialization.Serializer;
 import com.google.auto.value.AutoValue;
 
 /**
  * Exonum block header data structure.
  *
- * A block is essentially a list of transactions, which is a result of the consensus algorithm
+ * <p>A block is essentially a list of transactions, which is a result of the consensus algorithm
  * (thus authenticated by the supermajority of validators) and is applied atomically to the
  * blockchain state.
  *
- * This structure only contains the amount of transactions and the transactions root hash as well as
- * other information, but not the transactions themselves.
+ * <p>This structure only contains the amount of transactions and the transactions root hash as well
+ * as other information, but not the transactions themselves.
  */
 @AutoValue
 public abstract class Block {
@@ -36,8 +39,10 @@ public abstract class Block {
 Review:
 Shan't it have a hash of this block as it identifies the block?
    */
+  private final Serializer<Block> blockSerializer = BlockSerializer.INSTANCE;
+
   public static Block valueOf(
-      short proposerId,
+      int proposerId,
       long height,
       int numTransactions,
       HashCode previousBlockHash,
@@ -50,11 +55,11 @@ Shan't it have a hash of this block as it identifies the block?
   /**
    * Identifier of the leader node which has proposed the block.
    */
-  public abstract short getProposerId();
+  public abstract int getProposerId();
 
   /**
-   * Review: which … the identifier / which … identifies ?
-   * Height of the block, which is also the number of this particular block in the blockchain.
+   * Height of the block, which also identifies the number of this particular block in the
+   * blockchain starting from 0 ("genesis" block).
    */
   public abstract long getHeight();
 
@@ -78,5 +83,13 @@ Shan't it have a hash of this block as it identifies the block?
    * Hash of the blockchain state after applying transactions in the block.
    */
   public abstract HashCode getStateHash();
+
+  /**
+   * Returns the SHA-256 hash of this block.
+   */
+  public HashCode getBlockHash() {
+    return Hashing.defaultHashFunction()
+        .hashBytes(blockSerializer.toBytes(this));
+  }
 
 }

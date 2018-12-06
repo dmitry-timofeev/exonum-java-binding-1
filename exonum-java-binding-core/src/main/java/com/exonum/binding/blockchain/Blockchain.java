@@ -91,22 +91,18 @@ public final class Blockchain {
    * @param blockId id of the block
    */
   public ProofListIndexProxy<HashCode> getBlockTransactions(HashCode blockId) {
-    MapIndex<HashCode, Block> blocks = schema.getBlocks();
-    Block block = blocks.get(blockId);
+    Block block = getBlock(blockId);
     /* Review:
 I don't think null is OK here, it is not something the client code shall handle.
 I think we shall either return an empty list as the method above, or, better, consider
 passing an unknown block hash an error and throw an exception. I'd go with the second, WDYT?
-     */
-    /*
-Review: The exception ^ may be more informative.
      */
     return getBlockTransactions(block.getHeight());
   }
 
   /**
    * Returns a proof list of transaction hashes committed in the given block or an empty list if
-   * the block with given id doesn't exist.
+   * the block doesn't exist.
    *
    * @param block block of which list of transaction hashes should be returned
    */
@@ -119,7 +115,7 @@ Review: in-pool (no yet processed)?
  */
   /**
    * Returns a map of transaction messages identified by their SHA-256 hashes. Both committed and
-   * in-pool transactions are returned.
+   * in-pool (not yet processed) transactions are returned.
    */
   public MapIndex<HashCode, TransactionMessage> getTxMessages() {
     return schema.getTxMessages();
@@ -189,12 +185,10 @@ If we do not fix it in this PR, I'd add todos/remove this methods.
     return blocks.get(blockHash);
   }
 
-/*
-Review: getBlockHashesByHeight()?
- */
-
   /**
    * Returns the latest committed block.
+   *
+   * @throws RuntimeException if the "genesis block" was not created
    */
   public Block getLastBlock() {
     return schema.getLastBlock();

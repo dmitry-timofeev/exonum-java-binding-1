@@ -47,6 +47,9 @@ public abstract class TransactionResult {
    */
   public abstract Type getType();
 
+  /*
+  Review: OptionalInt or Optional<Short>?
+   */
   /**
    * Returns an error code of a transaction if its execution resulted in a service-defined error.
    * @return a transaction error code in case of a service-defined error, or
@@ -56,6 +59,7 @@ public abstract class TransactionResult {
 
   /**
    * Returns an optional description of a transaction if its execution resulted in an error.
+   * Review: if there is no description (it is perfectly possible in case of an error)
    * @return a description of an error, or {@code Optional.empty()} if transaction was successful
    */
   public abstract Optional<String> getErrorDescription();

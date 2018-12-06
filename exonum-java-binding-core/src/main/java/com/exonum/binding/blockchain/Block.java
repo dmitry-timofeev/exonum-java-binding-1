@@ -32,6 +32,9 @@ import com.google.auto.value.AutoValue;
 @AutoValue
 public abstract class Block {
 
+  /*
+  Review: 7 parameters of only two types (3 integers and 4 hashcodes) beg for a builder (may be done separately).
+   */
   public static Block valueOf(
       int proposerId,
       long height,

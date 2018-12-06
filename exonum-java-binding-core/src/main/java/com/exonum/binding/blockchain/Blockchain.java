@@ -110,9 +110,6 @@ passing an unknown block hash an error and throw an exception. I'd go with the s
     return getBlockTransactions(block.getHeight());
   }
 
-/*
-Review: in-pool (no yet processed)?
- */
   /**
    * Returns a map of transaction messages identified by their SHA-256 hashes. Both committed and
    * in-pool (not yet processed) transactions are returned.

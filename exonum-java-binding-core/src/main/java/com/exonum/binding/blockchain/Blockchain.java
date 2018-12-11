@@ -130,13 +130,6 @@ public final class Blockchain {
     return schema.getTxResults();
   }
 
-/*
-Review: It currently returns `null` if it is not known. I'd consider better options:
-an exception (probably, not the best, as someone might check if tx is committed using this method),
-or Optional.
-
-Also, specify the behaviour in this case in the docs.
- */
   /**
    * Returns a transaction execution result for given message hash.
    *
@@ -157,9 +150,6 @@ Also, specify the behaviour in this case in the docs.
     return schema.getTxLocations();
   }
 
-/*
-Review: Same as above — documentation of what happens if no tx location.
- */
   /**
    * Returns transaction position inside the blockchain for given message hash.
    *
@@ -179,12 +169,6 @@ Review: Same as above — documentation of what happens if no tx location.
     return schema.getBlocks();
   }
 
-/*
-Review: Same as above about the documentation and `null`, but here I lean towards exception,
-because you can't possibly obtain a hash of a block that is not in the database.
-
-If we do not fix it in this PR, I'd add todos/remove this methods.
- */
   /**
    * Returns a block object for given block hash.
    *

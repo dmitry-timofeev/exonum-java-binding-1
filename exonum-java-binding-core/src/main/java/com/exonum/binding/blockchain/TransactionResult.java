@@ -50,9 +50,6 @@ public abstract class TransactionResult {
    */
   public abstract Type getType();
 
-  /*
-  Review: OptionalInt or Optional<Short>?
-   */
   /**
    * Returns an error code of a transaction if its execution resulted in a service-defined error.
    * @return a transaction error code in case of a service-defined error, or

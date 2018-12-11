@@ -17,6 +17,9 @@
 
 package com.exonum.binding.blockchain;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.exonum.binding.common.configuration.StoredConfiguration;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.message.TransactionMessage;
@@ -26,6 +29,7 @@ import com.exonum.binding.storage.indices.MapIndex;
 import com.exonum.binding.storage.indices.ProofListIndexProxy;
 import com.exonum.binding.storage.indices.ProofMapIndexProxy;
 import com.google.common.annotations.VisibleForTesting;
+import java.util.Optional;
 
 /**
  * Provides read-only access to the subset of
@@ -78,7 +82,7 @@ public final class Blockchain {
    * an empty list if the block at the given height doesn't exist.
    *
    * @param height block height starting from 0
-   * @throws IllegalArgumentException if the height is negative
+   * @throws IllegalArgumentException if the height is negative or there is no block at given height
    */
   public ProofListIndexProxy<HashCode> getBlockTransactions(long height) {
     return schema.getBlockTransactions(height);
@@ -89,15 +93,12 @@ public final class Blockchain {
    * list if the block with given id doesn't exist.
    *
    * @param blockId id of the block
+   * @throws IllegalArgumentException if there is no block with given id
    */
   public ProofListIndexProxy<HashCode> getBlockTransactions(HashCode blockId) {
-    Block block = getBlock(blockId);
-    /* Review:
-I don't think null is OK here, it is not something the client code shall handle.
-I think we shall either return an empty list as the method above, or, better, consider
-passing an unknown block hash an error and throw an exception. I'd go with the second, WDYT?
-     */
-    return getBlockTransactions(block.getHeight());
+    Optional<Block> block = getBlock(blockId);
+    checkArgument(block.isPresent(), "No block found for given id %s", blockId);
+    return getBlockTransactions(block.get().getHeight());
   }
 
   /**
@@ -105,8 +106,12 @@ passing an unknown block hash an error and throw an exception. I'd go with the s
    * the block doesn't exist.
    *
    * @param block block of which list of transaction hashes should be returned
+   * @throws NullPointerException if the block is null
+   * @throws IllegalArgumentException if the height of given block is negative or there is no block
+   *                                  at given height
    */
   public ProofListIndexProxy<HashCode> getBlockTransactions(Block block) {
+    checkNotNull(block);
     return getBlockTransactions(block.getHeight());
   }
 
@@ -134,11 +139,14 @@ Also, specify the behaviour in this case in the docs.
  */
   /**
    * Returns a transaction execution result for given message hash.
-   * @param messageHash a message hash
+   *
+   * @return a transaction execution result, or {@code Optional.empty()} if this transaction
+   *         was not yet executed
    */
-  public TransactionResult getTxResult(HashCode messageHash) {
+  public Optional<TransactionResult> getTxResult(HashCode messageHash) {
     ProofMapIndexProxy<HashCode, TransactionResult> txResults = getTxResults();
-    return txResults.get(messageHash);
+    TransactionResult transactionResult = txResults.get(messageHash);
+    return Optional.ofNullable(transactionResult);
   }
 
   /**
@@ -154,11 +162,14 @@ Review: Same as above — documentation of what happens if no tx location.
  */
   /**
    * Returns transaction position inside the blockchain for given message hash.
-   * @param messageHash message hash
+   *
+   * @return a transaction execution result, or {@code Optional.empty()} if this transaction
+   *         was not yet executed
    */
-  public TransactionLocation getTxLocation(HashCode messageHash) {
+  public Optional<TransactionLocation> getTxLocation(HashCode messageHash) {
     MapIndex<HashCode, TransactionLocation> txLocations = getTxLocations();
-    return txLocations.get(messageHash);
+    TransactionLocation transactionLocation = txLocations.get(messageHash);
+    return Optional.ofNullable(transactionLocation);
   }
 
   /**
@@ -176,10 +187,14 @@ If we do not fix it in this PR, I'd add todos/remove this methods.
  */
   /**
    * Returns a block object for given block hash.
+   *
+   * @return a corresponding block, or {@code Optional.empty()} if there is no block with given
+   *         block hash
    */
-  public Block getBlock(HashCode blockHash) {
+  public Optional<Block> getBlock(HashCode blockHash) {
     MapIndex<HashCode, Block> blocks = getBlocks();
-    return blocks.get(blockHash);
+    Block block = blocks.get(blockHash);
+    return Optional.ofNullable(block);
   }
 
   /**

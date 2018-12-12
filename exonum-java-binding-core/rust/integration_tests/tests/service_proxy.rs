@@ -3,6 +3,9 @@ extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
 
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::Arc;
+
 use integration_tests::mock::service::ServiceMockBuilder;
 use integration_tests::test_service::{
     create_test_map, create_test_service, INITIAL_ENTRY_KEY, INITIAL_ENTRY_VALUE,
@@ -14,11 +17,9 @@ use java_bindings::exonum::encoding::Error as MessageError;
 use java_bindings::exonum::messages::{RawTransaction, ServiceTransaction};
 use java_bindings::exonum::storage::{Database, MemoryDB};
 use java_bindings::jni::JavaVM;
+use java_bindings::MainExecutor;
 use java_bindings::serde_json::Value;
 use java_bindings::utils::any_to_string;
-use java_bindings::MainExecutor;
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
 
 lazy_static! {
     static ref VM: Arc<JavaVM> = create_vm_for_tests_with_fake_classes();
@@ -95,6 +96,8 @@ fn tx_from_raw() {
 #[test]
 #[should_panic(expected = "Java exception: java.lang.OutOfMemoryError")]
 fn tx_from_raw_should_panic_if_java_error_occurred() {
+    /* Review: I'd extract that in a method or a builder with sensible defaults,
+    so that we can ignore unrelated id values. */
     let raw = RawTransaction::new(0, ServiceTransaction::from_raw_unchecked(0, vec![]));
     let service = ServiceMockBuilder::new(EXECUTOR.clone())
         .convert_transaction_throwing(OOM_ERROR_CLASS)
@@ -196,3 +199,4 @@ fn service_can_modify_db_on_initialize() {
         .expect("Failed to find the entry created in the test service");
     assert_eq!(INITIAL_ENTRY_VALUE, value);
 }
+/* Review: What did happen to after_commit tests? */

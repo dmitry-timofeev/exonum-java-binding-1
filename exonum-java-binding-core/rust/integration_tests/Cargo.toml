@@ -16,3 +16,4 @@ java_bindings = { path = "..", features = ["invocation"] }
 exonum-testkit = { git = "https://github.com/vitvakatu/exonum", branch = "java_binding_separated_messages" }
 lazy_static = "1.1.0"
 rand = "0.5"
+# Review: Why are the deps downgraded (lazy & rand)?

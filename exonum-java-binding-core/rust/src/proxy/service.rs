@@ -1,3 +1,5 @@
+use std::fmt;
+
 use exonum::api::ServiceApiBuilder;
 use exonum::blockchain::{Service, ServiceContext, Transaction};
 use exonum::crypto::Hash;
@@ -8,15 +10,13 @@ use jni::objects::{GlobalRef, JObject, JValue};
 use serde_json;
 use serde_json::value::Value;
 
-use std::fmt;
-
+use {JniExecutor, MainExecutor, TransactionProxy};
 use proxy::node::NodeContext;
 use storage::View;
 use utils::{
     check_error_on_exception, convert_to_hash, convert_to_string, panic_on_exception, to_handle,
     unwrap_jni,
 };
-use {JniExecutor, MainExecutor, TransactionProxy};
 
 /// A proxy for `Service`s.
 #[derive(Clone)]
@@ -105,6 +105,8 @@ impl Service for ServiceProxy {
             let res = env.call_method(
                 self.service.as_obj(),
                 "convertTransaction",
+                /* Review: Aren't the ids u16 (= shorts)? Or have you decided to represent them
+                with unsigned ints in Java to never see negatives? */
                 "(II[B)Lcom/exonum/binding/service/adapters/UserTransactionAdapter;",
                 &[
                     JValue::from(service_id),

@@ -3,16 +3,17 @@ extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
 
+use std::sync::Arc;
+
 use integration_tests::{
     mock::transaction::{
-        create_empty_raw_transaction, create_mock_transaction_proxy,
-        create_throwing_exec_exception_mock_transaction_proxy,
-        create_throwing_mock_transaction_proxy, AUTHOR_PK_ENTRY_NAME, ENTRY_VALUE, INFO_VALUE,
+        AUTHOR_PK_ENTRY_NAME, create_empty_raw_transaction,
+        create_mock_transaction_proxy,
+        create_throwing_exec_exception_mock_transaction_proxy, create_throwing_mock_transaction_proxy, ENTRY_VALUE, INFO_VALUE,
         TEST_ENTRY_NAME, TX_HASH_ENTRY_NAME,
     },
     vm::create_vm_for_tests_with_fake_classes,
 };
-
 use java_bindings::{
     exonum::{
         blockchain::{Transaction, TransactionContext, TransactionError, TransactionErrorType},
@@ -24,8 +25,6 @@ use java_bindings::{
     jni::JavaVM,
     MainExecutor,
 };
-
-use std::sync::Arc;
 
 const ARITHMETIC_EXCEPTION_CLASS: &str = "java/lang/ArithmeticException";
 const OOM_ERROR_CLASS: &str = "java/lang/OutOfMemoryError";
@@ -171,6 +170,9 @@ fn execute_should_return_err_if_tx_exec_exception_subclass_occurred_no_message()
     assert!(err.description().is_none());
 }
 
+/* Review:
+The tests are a little complex, I'd try to clarify what happens, possibly, extracting some duplicate
+code. */
 #[test]
 fn passing_transaction_context() {
     let db = MemoryDB::new();

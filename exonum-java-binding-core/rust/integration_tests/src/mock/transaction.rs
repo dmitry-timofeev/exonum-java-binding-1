@@ -1,7 +1,7 @@
+use java_bindings::{JniExecutor, MainExecutor, TransactionProxy};
 use java_bindings::exonum::messages::{RawTransaction, ServiceTransaction};
 use java_bindings::jni::objects::{GlobalRef, JObject, JValue};
 use java_bindings::serde_json::Value;
-use java_bindings::{JniExecutor, MainExecutor, TransactionProxy};
 
 use super::NATIVE_FACADE_CLASS;
 
@@ -119,6 +119,7 @@ pub fn create_mock_transaction(
 }
 
 pub fn create_empty_raw_transaction() -> RawTransaction {
+    /* Review: I'd consider some locals for clarity. */
     let service_transaction = ServiceTransaction::from_raw_unchecked(0, vec![]);
     RawTransaction::new(0, service_transaction)
 }

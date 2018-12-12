@@ -1,18 +1,18 @@
+use std::fmt;
+
 use exonum::blockchain::{ExecutionError, ExecutionResult, Transaction, TransactionContext};
 use exonum::messages::BinaryForm;
 use exonum::messages::RawTransaction;
-use jni::objects::{GlobalRef, JObject, JValue};
 use jni::JNIEnv;
+use jni::objects::{GlobalRef, JObject, JValue};
 use serde;
 
-use std::fmt;
-
+use {JniErrorKind, JniExecutor, JniResult, MainExecutor};
 use storage::View;
 use utils::{
     describe_java_exception, get_and_clear_java_exception, get_exception_message, to_handle,
     unwrap_jni,
 };
-use {JniErrorKind, JniExecutor, JniResult, MainExecutor};
 
 const CLASS_TRANSACTION_EXCEPTION: &str =
     "com/exonum/binding/transaction/TransactionExecutionException";
@@ -22,6 +22,10 @@ const CLASS_TRANSACTION_EXCEPTION: &str =
 pub struct TransactionProxy {
     exec: MainExecutor,
     transaction: GlobalRef,
+    /* Review: Why is RawTransaction still needed? Wasn’t the point of separating messages and
+    transaction to, well, separate them? I see it is used in Serialize implementation,
+    isn't it strange that it is required for *Transaction* trait implementations after
+    "separating" messages? */
     raw: RawTransaction,
 }
 
@@ -63,12 +67,17 @@ impl serde::Serialize for TransactionProxy {
                 .encode()
                 .expect("Could not serialize TransactionProxy"),
         )
+        /* Review: To self: Check that info is removed. */
     }
 }
 
 impl Transaction for TransactionProxy {
     fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
         let res = self.exec.with_attached(|env: &JNIEnv| {
+            /*
+            Review: As a potential optimization, I'd add a task to create TxContext proxy,
+            that performs these conversions *on-demand*.
+            */
             let tx_hash = context.tx_hash();
             let author_pk = context.author();
 

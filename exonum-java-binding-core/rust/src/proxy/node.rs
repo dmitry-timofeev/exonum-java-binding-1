@@ -1,3 +1,5 @@
+use std::{panic, ptr};
+
 use exonum::blockchain::Blockchain;
 use exonum::crypto::PublicKey;
 use exonum::messages::Message;
@@ -6,19 +8,17 @@ use exonum::messages::ServiceTransaction;
 use exonum::node::ApiSender;
 use exonum::storage::Snapshot;
 use failure;
+use jni::JNIEnv;
 use jni::objects::JClass;
 use jni::sys::{jbyteArray, jint};
-use jni::JNIEnv;
-
-use std::{panic, ptr};
+use JniResult;
 
 use proxy::MainExecutor;
 use storage::View;
 use utils::{
-    cast_handle, drop_handle, to_handle, unwrap_exc_or, unwrap_exc_or_default, unwrap_jni_verbose,
-    Handle,
+    cast_handle, drop_handle, Handle, to_handle, unwrap_exc_or, unwrap_exc_or_default,
+    unwrap_jni_verbose,
 };
-use JniResult;
 
 const INTERNAL_SERVER_ERROR: &str = "com/exonum/binding/service/InternalServerError";
 
@@ -67,6 +67,9 @@ impl NodeContext {
     pub fn submit(&self, transaction: RawTransaction) -> Result<(), failure::Error> {
         let service_id = transaction.service_id();
         // FIXME: using hidden service_keypair
+        /*
+        Review: Isn't there a public api for signing and submitting a transaction?
+        */
         let signed_transaction = Message::sign_transaction(
             transaction.service_transaction(),
             service_id,
@@ -99,9 +102,13 @@ pub extern "system" fn Java_com_exonum_binding_service_NodeProxy_nativeSubmit(
             &env,
             || -> JniResult<()> {
                 let payload = env.convert_byte_array(payload)?;
+                /*
+                Review: To self: How is the transaction id passed?
+                */
                 let service_transaction = ServiceTransaction::from_raw_unchecked(0, payload);
                 let raw_transaction = RawTransaction::new(service_id as u16, service_transaction);
                 if let Err(err) = node.submit(raw_transaction) {
+                    /* Review: To self: Is `InvalidTransactionException` removed from Java? */
                     let error_class = INTERNAL_SERVER_ERROR;
                     let error_description = err.to_string();
                     env.throw_new(error_class, error_description)?;

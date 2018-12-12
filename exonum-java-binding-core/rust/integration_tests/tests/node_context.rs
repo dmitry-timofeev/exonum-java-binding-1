@@ -33,6 +33,8 @@ lazy_static! {
 (extracts some variables like service_id, signs the transaction) can we test that as well? */
 
 #[test]
+//TODO
+#[ignore]
 fn submit_transaction() {
     let (mut node, app_rx) = create_node();
     let raw_transaction =

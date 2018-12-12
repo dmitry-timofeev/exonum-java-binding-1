@@ -2,7 +2,6 @@ use std::{panic, ptr};
 
 use exonum::blockchain::Blockchain;
 use exonum::crypto::PublicKey;
-use exonum::messages::Message;
 use exonum::messages::RawTransaction;
 use exonum::messages::ServiceTransaction;
 use exonum::node::ApiSender;
@@ -65,19 +64,7 @@ impl NodeContext {
 
     #[doc(hidden)]
     pub fn submit(&self, transaction: RawTransaction) -> Result<(), failure::Error> {
-        let service_id = transaction.service_id();
-        // FIXME: using hidden service_keypair
-        /*
-        Review: Isn't there a public api for signing and submitting a transaction?
-        */
-        let signed_transaction = Message::sign_transaction(
-            transaction.service_transaction(),
-            service_id,
-            self.public_key,
-            &self.blockchain.service_keypair.1,
-        );
-        self.transaction_sender
-            .broadcast_transaction(signed_transaction)
+        self.blockchain.broadcast_raw_transaction(transaction)
     }
 }
 

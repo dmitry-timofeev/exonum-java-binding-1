@@ -64,6 +64,7 @@ impl NodeContext {
 
     #[doc(hidden)]
     pub fn submit(&self, transaction: RawTransaction) -> Result<(), failure::Error> {
+        /* Review: Naming. */
         self.blockchain.broadcast_raw_transaction(transaction)
     }
 }

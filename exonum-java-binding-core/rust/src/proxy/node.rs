@@ -103,12 +103,12 @@ pub extern "system" fn Java_com_exonum_binding_service_NodeProxy_nativeSubmit(
             || -> JniResult<()> {
                 let payload = env.convert_byte_array(payload)?;
                 /*
-                Review: To self: How is the transaction id passed?
+                Review: How is the transaction id passed?
                 */
                 let service_transaction = ServiceTransaction::from_raw_unchecked(0, payload);
                 let raw_transaction = RawTransaction::new(service_id as u16, service_transaction);
                 if let Err(err) = node.submit(raw_transaction) {
-                    /* Review: To self: Is `InvalidTransactionException` removed from Java? */
+                    /* Review: Is `InvalidTransactionException` removed from Java? — not yet */
                     let error_class = INTERNAL_SERVER_ERROR;
                     let error_description = err.to_string();
                     env.throw_new(error_class, error_description)?;

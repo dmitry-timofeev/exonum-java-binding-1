@@ -56,5 +56,9 @@ public interface Transaction {
   /**
    * Returns this transaction as a binary Exonum message.
    */
+  /*
+Review: Is this method really required in each implementation
+Shan't we separate messages from transactions?
+  */
   RawTransaction getRawTransaction();
 }

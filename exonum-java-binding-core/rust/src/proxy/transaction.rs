@@ -67,7 +67,6 @@ impl serde::Serialize for TransactionProxy {
                 .encode()
                 .expect("Could not serialize TransactionProxy"),
         )
-        /* Review: To self: Check that info is removed. */
     }
 }
 

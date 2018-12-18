@@ -16,13 +16,14 @@
 
 package com.exonum.binding.qaservice.transactions;
 
+import static com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkPayloadSize;
 import static com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkTransaction;
 
+import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.qaservice.QaService;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * An invalid transaction always returning false.
@@ -30,8 +31,6 @@ import java.util.Map;
 public final class InvalidTx implements Transaction {
 
   private static final short ID = QaTransaction.INVALID.id();
-  private static final String INVALID_TX_JSON = QaTransactionGson.instance()
-      .toJson(new AnyTransaction<Map>(ID, Collections.emptyMap()));
 
   @Override
   public void execute(TransactionContext context) {
@@ -39,11 +38,11 @@ public final class InvalidTx implements Transaction {
   }
 
   @Override
-  public RawTransaction getRawTransaction() {
-    return converter().toRawTransaction(this);
+  public HashCode hash() {
+    return null;
   }
 
-  static TransactionMessageConverter<InvalidTx> converter() {
+  public static TransactionMessageConverter<InvalidTx> converter() {
     return TransactionConverter.INSTANCE;
   }
 
@@ -60,14 +59,16 @@ public final class InvalidTx implements Transaction {
 
     @Override
     public RawTransaction toRawTransaction(InvalidTx transaction) {
-      return transaction.getRawTransaction();
+      return RawTransaction.newBuilder()
+          .serviceId(QaService.ID)
+          .transactionId(ID)
+          .payload(new byte[]{})
+          .build();
     }
 
     private void checkMessage(RawTransaction rawTransaction) {
       checkTransaction(rawTransaction, ID);
-
-      //TODO enable ?
-      //checkMessageSize(rawTransaction, BODY_SIZE);
+      checkPayloadSize(rawTransaction, BODY_SIZE);
     }
   }
 }

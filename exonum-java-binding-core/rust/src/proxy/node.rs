@@ -9,8 +9,10 @@ use exonum::storage::Snapshot;
 use failure;
 use jni::JNIEnv;
 use jni::objects::JClass;
-use jni::sys::{jbyteArray, jint};
-use JniResult;
+use jni::sys::{jbyteArray, jshort};
+use jni::JNIEnv;
+
+use std::{panic, ptr};
 
 use proxy::MainExecutor;
 use storage::View;
@@ -82,7 +84,8 @@ pub extern "system" fn Java_com_exonum_binding_service_NodeProxy_nativeSubmit(
     _: JClass,
     node_handle: Handle,
     payload: jbyteArray,
-    service_id: jint,
+    service_id: jshort,
+    transaction_id: jshort,
 ) {
     let res = panic::catch_unwind(|| {
         let node = cast_handle::<NodeContext>(node_handle);
@@ -90,10 +93,8 @@ pub extern "system" fn Java_com_exonum_binding_service_NodeProxy_nativeSubmit(
             &env,
             || -> JniResult<()> {
                 let payload = env.convert_byte_array(payload)?;
-                /*
-                Review: How is the transaction id passed?
-                */
-                let service_transaction = ServiceTransaction::from_raw_unchecked(0, payload);
+                let service_transaction =
+                    ServiceTransaction::from_raw_unchecked(transaction_id as u16, payload);
                 let raw_transaction = RawTransaction::new(service_id as u16, service_transaction);
                 if let Err(err) = node.submit(raw_transaction) {
                     /* Review: Is `InvalidTransactionException` removed from Java? — not yet */

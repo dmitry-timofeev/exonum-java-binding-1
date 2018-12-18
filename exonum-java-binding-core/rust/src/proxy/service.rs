@@ -107,7 +107,7 @@ impl Service for ServiceProxy {
                 "convertTransaction",
                 /* Review: Aren't the ids u16 (= shorts)? Or have you decided to represent them
                 with unsigned ints in Java to never see negatives? */
-                "(II[B)Lcom/exonum/binding/service/adapters/UserTransactionAdapter;",
+                "(SS[B)Lcom/exonum/binding/service/adapters/UserTransactionAdapter;",
                 &[
                     JValue::from(service_id),
                     JValue::from(tx_id),

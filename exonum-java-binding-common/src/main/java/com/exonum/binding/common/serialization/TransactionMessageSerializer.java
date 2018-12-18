@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-package com.exonum.binding.service;
+package com.exonum.binding.common.serialization;
 
-import com.exonum.binding.transaction.Transaction;
+import com.exonum.binding.common.message.TransactionMessage;
 
-/**
- * Indicates that a transaction is not valid
- * (e.g., its {@link Transaction#isValid()} returns false).
- */
-public final class InvalidTransactionException extends Exception {
-  InvalidTransactionException(String message) {
-    super(message);
+enum TransactionMessageSerializer implements Serializer<TransactionMessage> {
+  INSTANCE;
+
+  @Override
+  public byte[] toBytes(TransactionMessage value) {
+    return value.toBytes();
   }
+
+  @Override
+  public TransactionMessage fromBytes(byte[] serializedValue) {
+    return TransactionMessage.fromBytes(serializedValue);
+  }
+
 }

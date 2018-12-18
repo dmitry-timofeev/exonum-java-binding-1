@@ -17,10 +17,13 @@
 package com.exonum.binding.cryptocurrency.transactions;
 
 import static com.exonum.binding.common.crypto.CryptoFunctions.Ed25519.PUBLIC_KEY_BYTES;
+import static com.exonum.binding.common.serialization.StandardSerializers.protobuf;
+import static com.exonum.binding.cryptocurrency.transactions.TransactionError.WALLET_ALREADY_EXISTS;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionPreconditions.checkTransaction;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.exonum.binding.common.crypto.PublicKey;
+import com.exonum.binding.common.serialization.Serializer;
 import com.exonum.binding.cryptocurrency.CryptocurrencySchema;
 import com.exonum.binding.cryptocurrency.Wallet;
 import com.exonum.binding.storage.indices.MapIndex;
@@ -28,15 +31,16 @@ import com.exonum.binding.transaction.AbstractTransaction;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
+import com.exonum.binding.transaction.TransactionExecutionException;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.Objects;
 
 /** A transaction that creates a new named wallet with default balance. */
 public final class CreateWalletTx extends AbstractTransaction implements Transaction {
 
   static final short ID = 1;
-
+  private static final Serializer<TxMessageProtos.CreateWalletTx> PROTO_SERIALIZER =
+      protobuf(TxMessageProtos.CreateWalletTx.class);
   private final PublicKey ownerPublicKey;
   private final long initialBalance;
 
@@ -61,28 +65,22 @@ public final class CreateWalletTx extends AbstractTransaction implements Transac
   public static CreateWalletTx fromMessage(RawTransaction rawTransaction) {
     checkTransaction(rawTransaction, ID);
 
-    try {
-      TxMessageProtos.CreateWalletTx messageBody =
-          TxMessageProtos.CreateWalletTx.parseFrom(rawTransaction.getPayload());
+    TxMessageProtos.CreateWalletTx messageBody =
+        PROTO_SERIALIZER.fromBytes(rawTransaction.getPayload());
 
-      PublicKey ownerPublicKey = PublicKey.fromBytes(
-          (messageBody.getOwnerPublicKey().toByteArray()));
-      long initialBalance = messageBody.getInitialBalance();
-      return new CreateWalletTx(rawTransaction, ownerPublicKey, initialBalance);
-    } catch (InvalidProtocolBufferException e) {
-      throw new IllegalArgumentException(
-          "Unable to instantiate TxMessageProtos.CreateWalletTx instance from provided"
-              + " binary data", e);
-    }
+    PublicKey ownerPublicKey = PublicKey.fromBytes(
+        (messageBody.getOwnerPublicKey().toByteArray()));
+    long initialBalance = messageBody.getInitialBalance();
+    return new CreateWalletTx(rawTransaction, ownerPublicKey, initialBalance);
   }
 
   @Override
-  public void execute(TransactionContext context) {
+  public void execute(TransactionContext context) throws TransactionExecutionException {
     CryptocurrencySchema schema = new CryptocurrencySchema(context.getFork());
     MapIndex<PublicKey, Wallet> wallets = schema.wallets();
 
     if (wallets.containsKey(ownerPublicKey)) {
-      return;
+      throw new TransactionExecutionException(WALLET_ALREADY_EXISTS.errorCode);
     }
 
     Wallet wallet = new Wallet(initialBalance);
@@ -108,3 +106,4 @@ public final class CreateWalletTx extends AbstractTransaction implements Transac
     return Objects.hash(ownerPublicKey, initialBalance);
   }
 }
+

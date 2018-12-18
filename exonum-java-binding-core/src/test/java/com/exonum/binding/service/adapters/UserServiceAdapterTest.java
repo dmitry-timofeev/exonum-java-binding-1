@@ -22,6 +22,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -72,6 +73,7 @@ class UserServiceAdapterTest {
   private UserServiceAdapter serviceAdapter;
 
   private static final short SERVICE_ID = (short) 0xA103;
+  private static final short TRANSACTION_ID = 1;
   private static final long SNAPSHOT_HANDLE = 0x0A;
   private static final long HEIGHT = 1;
   private static final int VALIDATOR_ID = 1;
@@ -79,7 +81,7 @@ class UserServiceAdapterTest {
   @Test
   void convertTransaction_ThrowsIfNull() {
     assertThrows(NullPointerException.class, () ->
-        serviceAdapter.convertTransaction(0, 0, null));
+        serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, null));
   }
 
   @Test
@@ -91,7 +93,7 @@ class UserServiceAdapterTest {
     byte[] message = TemplateRawTransaction.createRawTransaction(SERVICE_ID).getPayload();
 
     UserTransactionAdapter transactionAdapter =
-        serviceAdapter.convertTransaction(SERVICE_ID, 1, message);
+        serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, message);
 
     assertThat(transactionAdapter.transaction, equalTo(expectedTransaction));
   }
@@ -105,7 +107,7 @@ class UserServiceAdapterTest {
     byte[] message = TemplateRawTransaction.createRawTransaction(SERVICE_ID).getPayload();
 
     NullPointerException thrown = assertThrows(NullPointerException.class,
-        () -> serviceAdapter.convertTransaction(SERVICE_ID, 1, message));
+        () -> serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, message));
     assertThat(thrown.getLocalizedMessage(), containsString("Invalid service implementation: "
         + "Service#convertToTransaction must never return null."));
   }
@@ -120,7 +122,7 @@ class UserServiceAdapterTest {
 
     byte[][] hashes = serviceAdapter.getStateHashes(SNAPSHOT_HANDLE);
 
-    assertThat(hashes.length, equalTo(0));
+    assertThat(hashes, arrayWithSize(0));
   }
 
   @Test
@@ -134,7 +136,7 @@ class UserServiceAdapterTest {
 
     byte[][] hashes = serviceAdapter.getStateHashes(SNAPSHOT_HANDLE);
 
-    assertThat(hashes.length, equalTo(1));
+    assertThat(hashes, arrayWithSize(1));
     assertThat(hashes[0], equalTo(h1));
   }
 
@@ -162,7 +164,7 @@ class UserServiceAdapterTest {
 
   @Test
   void getStateHashes_ClosesCleaner() {
-    byte[][] ignored = serviceAdapter.getStateHashes(SNAPSHOT_HANDLE);
+    serviceAdapter.getStateHashes(SNAPSHOT_HANDLE);
 
     ArgumentCaptor<Cleaner> ac = ArgumentCaptor.forClass(Cleaner.class);
     verify(viewFactory).createSnapshot(eq(SNAPSHOT_HANDLE), ac.capture());
@@ -175,7 +177,7 @@ class UserServiceAdapterTest {
   @Test
   void initialize_ClosesCleaner() {
     long forkHandle = 0x0A;
-    String ignored = serviceAdapter.initialize(forkHandle);
+    serviceAdapter.initialize(forkHandle);
 
     ArgumentCaptor<Cleaner> ac = ArgumentCaptor.forClass(Cleaner.class);
     verify(viewFactory).createFork(eq(forkHandle), ac.capture());

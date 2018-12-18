@@ -18,6 +18,8 @@ package com.exonum.binding.transaction;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.exonum.binding.common.hash.HashCode;
+
 /**
  * An abstract Exonum transaction. It includes a reference to a raw Exonum transaction
  * ({@link AbstractTransaction#rawTransaction}, representing this transaction.
@@ -34,7 +36,8 @@ public abstract class AbstractTransaction implements Transaction {
   }
 
   @Override
-  public RawTransaction getRawTransaction() {
-    return rawTransaction;
+  public HashCode hash() {
+    return rawTransaction.hash();
   }
+
 }

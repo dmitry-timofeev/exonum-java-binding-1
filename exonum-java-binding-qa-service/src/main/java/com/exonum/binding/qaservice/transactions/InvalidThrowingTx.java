@@ -16,13 +16,14 @@
 
 package com.exonum.binding.qaservice.transactions;
 
+import static com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkPayloadSize;
 import static com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkTransaction;
 
+import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.qaservice.QaService;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * An invalid transaction always throwing IllegalStateException.
@@ -30,8 +31,6 @@ import java.util.Map;
 public final class InvalidThrowingTx implements Transaction {
 
   private static final short ID = QaTransaction.INVALID_THROWING.id();
-  private static final String INVALID_TX_JSON = QaTransactionGson.instance()
-      .toJson(new AnyTransaction<Map>(ID, Collections.emptyMap()));
 
   @Override
   public void execute(TransactionContext context) {
@@ -39,15 +38,15 @@ public final class InvalidThrowingTx implements Transaction {
   }
 
   @Override
-  public RawTransaction getRawTransaction() {
-    return converter().toRawTransaction(this);
+  public HashCode hash() {
+    return null;
   }
 
-  static TransactionMessageConverter<InvalidThrowingTx> converter() {
-    return TransactionConverter.INSTANCE;
+  public static TransactionMessageConverter<InvalidThrowingTx> converter() {
+    return Converter.INSTANCE;
   }
 
-  private enum TransactionConverter implements TransactionMessageConverter<InvalidThrowingTx> {
+  private enum Converter implements TransactionMessageConverter<InvalidThrowingTx> {
     INSTANCE;
 
     static final int BODY_SIZE = 0;
@@ -60,14 +59,17 @@ public final class InvalidThrowingTx implements Transaction {
 
     @Override
     public RawTransaction toRawTransaction(InvalidThrowingTx transaction) {
-      return transaction.getRawTransaction();
+      return RawTransaction.newBuilder()
+          .serviceId(QaService.ID)
+          .transactionId(ID)
+          .payload(new byte[]{})
+          .build();
     }
 
     private void checkMessage(RawTransaction rawTransaction) {
       checkTransaction(rawTransaction, ID);
-
-      //TODO Enable ?
-      //checkMessageSize(txMessage, BODY_SIZE);
+      checkPayloadSize(rawTransaction, BODY_SIZE);
     }
   }
+
 }

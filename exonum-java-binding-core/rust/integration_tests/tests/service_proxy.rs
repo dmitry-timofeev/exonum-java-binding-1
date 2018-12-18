@@ -2,23 +2,32 @@ extern crate integration_tests;
 extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
+extern crate exonum_testkit;
+#[macro_use]
+extern crate serde_derive;
 
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use integration_tests::{
+    mock::{service::ServiceMockBuilder, transaction::create_empty_raw_transaction},
+    test_service::{create_test_map, create_test_service, INITIAL_ENTRY_KEY, INITIAL_ENTRY_VALUE},
+    vm::create_vm_for_tests_with_fake_classes,
+};
+
+use java_bindings::{
+    exonum::{
+        blockchain::Service,
+        crypto::hash,
+        storage::{Database, MemoryDB},
+    },
+    jni::{objects::JObject, JavaVM},
+    serde_json::{self, Value},
+    utils::{any_to_string, convert_to_string, unwrap_jni},
+    JniExecutor, MainExecutor,
+};
+
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
-use integration_tests::mock::service::ServiceMockBuilder;
-use integration_tests::test_service::{
-    create_test_map, create_test_service, INITIAL_ENTRY_KEY, INITIAL_ENTRY_VALUE,
-};
-use integration_tests::vm::create_vm_for_tests_with_fake_classes;
-use java_bindings::exonum::blockchain::Service;
-use java_bindings::exonum::crypto::hash;
-use java_bindings::exonum::messages::{RawTransaction, ServiceTransaction};
-use java_bindings::exonum::storage::{Database, MemoryDB};
-use java_bindings::jni::JavaVM;
-use java_bindings::MainExecutor;
-use java_bindings::serde_json::Value;
-use java_bindings::utils::any_to_string;
+use exonum_testkit::TestKitBuilder;
 
 lazy_static! {
     static ref VM: Arc<JavaVM> = create_vm_for_tests_with_fake_classes();
@@ -26,6 +35,7 @@ lazy_static! {
 }
 
 const EXCEPTION_CLASS: &str = "java/lang/RuntimeException";
+const TEST_EXCEPTION_CLASS: &str = "com/exonum/binding/fakes/mocks/TestException";
 const OOM_ERROR_CLASS: &str = "java/lang/OutOfMemoryError";
 
 const TEST_CONFIG_JSON: &str = r#""test config""#;
@@ -74,30 +84,10 @@ fn state_hash() {
     assert_eq!(&hashes, service.state_hash(&*snapshot).as_slice());
 }
 
-// FIXME: deserialize to protobuf and compare with protobuf buffer
-/*
-#[test]
-fn tx_from_raw() {
-    let (java_transaction, raw_message) = create_mock_transaction(&EXECUTOR, true);
-    let service = ServiceMockBuilder::new(EXECUTOR.clone())
-        .convert_transaction(java_transaction)
-        .build();
-    let executable_transaction = service
-        .tx_from_raw(raw_message)
-        .expect("Failed to convert transaction");
-    assert_eq!(
-        executable_transaction.serialize_field().unwrap(),
-        *INFO_VALUE
-    );
-}
-*/
-
 #[test]
 #[should_panic(expected = "Java exception: java.lang.OutOfMemoryError")]
 fn tx_from_raw_should_panic_if_java_error_occurred() {
-    /* Review: I'd extract that in a method or a builder with sensible defaults,
-    so that we can ignore unrelated id values. */
-    let raw = RawTransaction::new(0, ServiceTransaction::from_raw_unchecked(0, vec![]));
+    let raw = create_empty_raw_transaction();
     let service = ServiceMockBuilder::new(EXECUTOR.clone())
         .convert_transaction_throwing(OOM_ERROR_CLASS)
         .build();
@@ -106,19 +96,16 @@ fn tx_from_raw_should_panic_if_java_error_occurred() {
 
 #[test]
 fn tx_from_raw_should_return_err_if_java_exception_occurred() {
-    let raw = RawTransaction::new(0, ServiceTransaction::from_raw_unchecked(0, vec![]));
+    let raw = create_empty_raw_transaction();
     let service = ServiceMockBuilder::new(EXECUTOR.clone())
         .convert_transaction_throwing(EXCEPTION_CLASS)
         .build();
     let err = service
         .tx_from_raw(raw)
         .expect_err("This transaction should be de-serialized with an error!");
-    //TODO
-    /*if let MessageError::Basic(ref s) = err {
-        assert!(s.starts_with("Java exception: java.lang.RuntimeException"));
-    } else {
-        panic!("Unexpected error message {:#?}", err);
-    }*/
+    assert!(err
+        .to_string()
+        .starts_with("Java exception: java.lang.RuntimeException"));
 }
 
 #[test]
@@ -200,3 +187,87 @@ fn service_can_modify_db_on_initialize() {
     assert_eq!(INITIAL_ENTRY_VALUE, value);
 }
 /* Review: What did happen to after_commit tests? */
+
+#[test]
+#[should_panic(expected = "Java exception: com.exonum.binding.fakes.mocks.TestException")]
+fn after_commit_throwing() {
+    let service = ServiceMockBuilder::new(EXECUTOR.clone())
+        .after_commit_throwing(TEST_EXCEPTION_CLASS)
+        .build();
+
+    // It turned out that it is MUCH easier to use testkit in order to trigger the after_commit()
+    // callback than calling it by hands providing manually constructed ServiceContext entity.
+    let mut testkit = TestKitBuilder::validator()
+        .with_service(service.clone())
+        .create();
+
+    testkit.create_block();
+}
+
+#[test]
+fn after_commit_validator() {
+    let (builder, interactor) =
+        ServiceMockBuilder::new(EXECUTOR.clone()).get_mock_interaction_after_commit();
+
+    let service = builder.build();
+    let mut testkit = TestKitBuilder::validator()
+        .with_service(service.clone())
+        .create();
+
+    testkit.create_block();
+    testkit.create_block();
+
+    let result = get_mock_interaction_result(&EXECUTOR, interactor.as_obj());
+    let after_commit_args: Vec<AfterCommitArgs> = serde_json::from_str(&result).unwrap();
+
+    assert_eq!(after_commit_args.len(), 2);
+
+    let item: &AfterCommitArgs = &after_commit_args[0];
+    assert_ne!(item.handle, 0);
+    assert_eq!(item.validator, 0);
+    assert_eq!(item.height, 1);
+
+    let item: &AfterCommitArgs = &after_commit_args[1];
+    assert_ne!(item.handle, 0);
+    assert_eq!(item.validator, 0);
+    assert_eq!(item.height, 2);
+}
+
+#[test]
+fn after_commit_auditor() {
+    let (builder, interactor) =
+        ServiceMockBuilder::new(EXECUTOR.clone()).get_mock_interaction_after_commit();
+
+    let service = builder.build();
+    let mut testkit = TestKitBuilder::auditor()
+        .with_service(service.clone())
+        .create();
+
+    testkit.create_block();
+
+    let result = get_mock_interaction_result(&EXECUTOR, interactor.as_obj());
+    let after_commit_args: Vec<AfterCommitArgs> = serde_json::from_str(&result).unwrap();
+
+    assert_eq!(after_commit_args.len(), 1);
+
+    let item: &AfterCommitArgs = &after_commit_args[0];
+    assert_ne!(item.handle, 0);
+    assert_eq!(item.validator, -1);
+    assert_eq!(item.height, 1);
+}
+
+// Helper methods. Gets the JSON representation of interaction with mock.
+fn get_mock_interaction_result(exec: &MainExecutor, obj: JObject) -> String {
+    unwrap_jni(exec.with_attached(|env| {
+        env.call_method(obj, "getInteractions", "()Ljava/lang/String;", &[])?
+            .l()
+            .and_then(|obj| convert_to_string(env, obj))
+    }))
+}
+
+#[derive(Serialize, Deserialize)]
+struct AfterCommitArgs {
+    handle: i64,
+    validator: i32,
+    height: i64,
+}

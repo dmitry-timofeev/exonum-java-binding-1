@@ -1,28 +1,43 @@
 package com.exonum.binding.transaction;
 
-import com.exonum.binding.common.hash.HashCode;
-import com.exonum.binding.common.hash.HashFunction;
-import com.exonum.binding.common.hash.Hashing;
+import static com.exonum.binding.common.hash.Hashing.sha256;
 
-public class RawTransaction {
+import com.exonum.binding.common.hash.HashCode;
+import com.google.common.base.Objects;
+import java.util.Arrays;
+
+/**
+ * Raw transaction class that contains the service and transaction identifiers and a transaction
+ * data serialized in payload.
+ */
+public final class RawTransaction {
   private final short serviceId;
   private final short transactionId;
   private final byte[] payload;
 
-  public RawTransaction(short serviceId, short transactionId, final byte[] payload) {
+  private RawTransaction(short serviceId, short transactionId, final byte[] payload) {
     this.serviceId = serviceId;
     this.transactionId = transactionId;
     this.payload = payload.clone();
   }
 
+  /**
+   * Returns the service identifier.
+   */
   public short getServiceId() {
     return serviceId;
   }
 
+  /**
+   * Returns the transaction identifier.
+   */
   public short getTransactionId() {
     return transactionId;
   }
 
+  /**
+   * Returns the transaction payload.
+   */
   public byte[] getPayload() {
     return payload.clone();
   }
@@ -31,8 +46,33 @@ public class RawTransaction {
    * Returns the SHA-256 hash raw transaction payload.
    */
   public HashCode hash() {
-    HashFunction hashFunction = Hashing.defaultHashFunction();
-    return hashFunction.hashBytes(getPayload());
+    return sha256().hashBytes(getPayload());
+  }
+
+  /**
+   * Returns the new builder for the transaction.
+   */
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    RawTransaction that = (RawTransaction) o;
+    return serviceId == that.serviceId
+        && transactionId == that.transactionId
+        && Arrays.equals(payload, that.payload);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(serviceId, transactionId) + Arrays.hashCode(payload);
   }
 
   public static final class Builder {
@@ -82,7 +122,7 @@ public class RawTransaction {
       }
     }
 
-    public Builder() {
+    private Builder() {
     }
   }
 }

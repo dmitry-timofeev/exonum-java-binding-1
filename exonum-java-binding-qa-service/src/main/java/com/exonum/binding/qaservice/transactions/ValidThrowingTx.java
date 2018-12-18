@@ -16,20 +16,24 @@
 
 package com.exonum.binding.qaservice.transactions;
 
+import static com.exonum.binding.common.serialization.StandardSerializers.protobuf;
 import static com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkTransaction;
 
+import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.common.serialization.Serializer;
 import com.exonum.binding.qaservice.QaSchema;
+import com.exonum.binding.qaservice.QaService;
 import com.exonum.binding.qaservice.transactions.TxMessageProtos.ValidThrowingTxBody;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
-import com.google.common.annotations.VisibleForTesting;
-import com.google.protobuf.InvalidProtocolBufferException;
 import java.util.Objects;
 
 public final class ValidThrowingTx implements Transaction {
 
   private static final short ID = QaTransaction.VALID_THROWING.id();
+  private static final Serializer<ValidThrowingTxBody> PROTO_SERIALIZER =
+      protobuf(ValidThrowingTxBody.class);
 
   private final long seed;
 
@@ -53,9 +57,10 @@ public final class ValidThrowingTx implements Transaction {
     throw new IllegalStateException("#execute of this transaction always throws: " + this);
   }
 
+
   @Override
-  public RawTransaction getRawTransaction() {
-    return converter().toRawTransaction(this);
+  public HashCode hash() {
+    return converter().toRawTransaction(this).hash();
   }
 
   @Override
@@ -75,29 +80,33 @@ public final class ValidThrowingTx implements Transaction {
     return Objects.hashCode(seed);
   }
 
-  static TransactionMessageConverter<ValidThrowingTx> converter() {
-    return TransactionConverter.INSTANCE;
+  public static TransactionMessageConverter<ValidThrowingTx> converter() {
+    return Converter.INSTANCE;
   }
 
-  private enum TransactionConverter implements TransactionMessageConverter<ValidThrowingTx> {
+  private enum Converter implements TransactionMessageConverter<ValidThrowingTx> {
     INSTANCE;
 
     @Override
     public ValidThrowingTx fromRawTransaction(RawTransaction rawTransaction) {
       checkRawTransaction(rawTransaction);
 
-      try {
-        long seed = ValidThrowingTxBody.parseFrom(rawTransaction.getPayload())
-            .getSeed();
-        return new ValidThrowingTx(seed);
-      } catch (InvalidProtocolBufferException e) {
-        throw new IllegalArgumentException(e);
-      }
+      long seed = PROTO_SERIALIZER.fromBytes(rawTransaction.getPayload())
+          .getSeed();
+      return new ValidThrowingTx(seed);
     }
 
     @Override
     public RawTransaction toRawTransaction(ValidThrowingTx transaction) {
-      return transaction.getRawTransaction();
+      byte[] payload = PROTO_SERIALIZER.toBytes(ValidThrowingTxBody.newBuilder()
+          .setSeed(transaction.seed)
+          .build());
+
+      return RawTransaction.newBuilder()
+          .serviceId(QaService.ID)
+          .transactionId(ID)
+          .payload(payload)
+          .build();
     }
 
     private void checkRawTransaction(RawTransaction rawTransaction) {
@@ -105,11 +114,4 @@ public final class ValidThrowingTx implements Transaction {
     }
   }
 
-  @VisibleForTesting
-  static byte[] serializeBody(ValidThrowingTx transaction) {
-    return ValidThrowingTxBody.newBuilder()
-        .setSeed(transaction.seed)
-        .build()
-        .toByteArray();
-  }
 }

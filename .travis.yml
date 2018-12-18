@@ -14,11 +14,14 @@ addons:
   apt:
     sources:
       - sourceline: 'ppa:chris-lea/libsodium'
+      - sourceline: 'ppa:maarten-fonville/protobuf'
     packages:
       - build-essential
       - libsodium-dev
       - libssl-dev
       - pkg-config
+      - protobuf-compiler
+      - libprotobuf-dev
 
 env:
   global:
@@ -50,8 +53,11 @@ matrix:
       jdk: openjdk11
       env: CHECK_RUST=false
   allow_failures:
+    # Flaky service_runtime IT: ECR-1734
     - os: linux
       jdk: openjdk11
+    # Broken everything in Rust: ECR-2750
+    - env: CHECK_RUST=true
   # Report the result of the build as it is ready.
   fast_finish: true
 

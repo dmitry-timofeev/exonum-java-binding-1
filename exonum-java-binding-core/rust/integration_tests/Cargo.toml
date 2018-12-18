@@ -12,8 +12,10 @@ crate-type = ["dylib"]
 
 [dependencies]
 futures = "0.1"
+failure = "0.1"
 java_bindings = { path = "..", features = ["invocation"] }
-exonum-testkit = { git = "https://github.com/exonum/exonum" }
-lazy_static = "1.1.0"
-rand = "0.5"
-# Review: Why are the deps downgraded (lazy & rand)?
+exonum-testkit = "0.10"
+lazy_static = "1.2"
+serde = "1.0"
+serde_derive = "1.0"
+rand = "0.6"

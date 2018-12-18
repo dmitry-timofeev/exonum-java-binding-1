@@ -17,9 +17,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 - Support of new transaction message format added in Exonum 0.10. (#534)
-- Support of core schema API. (#548, #549, #571)
+- Support of core schema API. (#548, #549, #571, #573)
 - Support of `Service#afterCommit(BlockCommittedEvent event)` method
   that is invoked after each block commit event. (#550)
+- Support of Json serialization in a common way. (#611)  
+- Support of separated messages. (#574)
 
 ### Changed
 - `com.exonum.binding.storage.indices.MapEntry` moved to package
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Removed
 - `com.exonum.binding.common.proofs.map.MapEntry` — moved to package
   `com.exonum.binding.common.collect`.
+- `com.exonum.binding.common.message.BinaryMessage`
 
 ## [0.3] - 2018-10-30
 

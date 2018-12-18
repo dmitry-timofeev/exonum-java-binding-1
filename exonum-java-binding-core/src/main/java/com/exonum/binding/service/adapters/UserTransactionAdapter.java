@@ -49,6 +49,9 @@ public final class UserTransactionAdapter {
     this.viewFactory = checkNotNull(viewFactory, "viewFactory");
   }
 
+  /*
+  Review: Nit: I'd drop "Bytes" suffix and say "txMessageHash", "authorPublicKey".
+  Or keep them, but use more detailed names below. */
   public void execute(long forkNativeHandle, byte[] txHashBytes, byte[] authorPkBytes)
       throws TransactionExecutionException {
     try {

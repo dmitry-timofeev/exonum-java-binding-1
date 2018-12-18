@@ -32,6 +32,8 @@ public interface Transaction {
   /**
    * Execute the transaction, possibly modifying the blockchain state.
    *
+   * Review: to access the information about this transaction and the fork,
+   *    allowing to modify the blockchain state.
    * @param context a transaction execution context, which allows to access transaction-related
    *     data.
    * @throws TransactionExecutionException if the transaction cannot be executed normally

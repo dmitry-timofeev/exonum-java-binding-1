@@ -69,9 +69,10 @@ public interface Service {
   }
 
   /**
+   * Review: the summary is wrong.
    * Converts an Exonum transaction message to an executable transaction of <em>this</em> service.
    *
-   * @param rawTransaction a raw transaction
+   * @param rawTransaction a raw transaction Review: This description is sloppy.
    * @return an executable transaction
    * @throws IllegalArgumentException if the message is not a transaction of this service
    * @throws NullPointerException if message is null

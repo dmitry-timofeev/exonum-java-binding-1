@@ -20,6 +20,7 @@ import com.exonum.binding.transaction.RawTransaction;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+/* Review: final */
 public class TemplateRawTransaction {
 
   /**
@@ -29,7 +30,7 @@ public class TemplateRawTransaction {
     return RawTransaction.newBuilder()
         .serviceId((short) 0)
         .transactionId(transactionId)
-        .payload(
+        .payload(/* Review: I'd recommend `new byte[2]` here */
             ByteBuffer.allocate(2)
                 .order(ByteOrder.LITTLE_ENDIAN)
                 .array())

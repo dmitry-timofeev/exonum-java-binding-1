@@ -84,6 +84,7 @@ public class UserServiceAdapter {
    *     a null transaction
    * @throws IllegalArgumentException if message is not a valid transaction message of this service
    */
+  /* Review: Shall we pass serviceId (considering the future changes)? */
   public UserTransactionAdapter convertTransaction(short serviceId, short transactionId,
       byte[] payload) {
     try {

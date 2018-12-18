@@ -29,11 +29,23 @@ public interface TransactionContext {
    */
   Fork getFork();
 
+  /*
+  Review: Of the whole transaction message? Of the transaction message (linkplain BinaryTxMessage) that carried the payload
+  from which the transaction was created (linkplain TxConverter)?
+
+Also, please add that
+  Each transaction message is uniquely identified by its hash. The messages are persisted
+  in the blockchain (link Blockchain#getMessages) and can be fetched by this hash.
+   */
   /**
    * Returns SHA-256 hash of the transaction.
    */
   HashCode getTransactionMessageHash();
 
+  /*
+  Review: Please add that the corresponding transaction message is guaranteed to have a correct
+  Ed25519 signature with this public key.
+   */
   /**
    * Returns public key of the transaction author.
    */

@@ -24,6 +24,9 @@ import com.exonum.binding.common.hash.HashCode;
  * An abstract Exonum transaction. It includes a reference to a raw Exonum transaction
  * ({@link AbstractTransaction#rawTransaction}, representing this transaction.
  */
+/*
+Review: Is this class needed at all?
+ */
 public abstract class AbstractTransaction implements Transaction {
 
   /**
@@ -35,6 +38,10 @@ public abstract class AbstractTransaction implements Transaction {
     this.rawTransaction = checkNotNull(rawTransaction);
   }
 
+/*
+Review: as we discussed, that is not a valid implementation, it is not the hash of the message,
+just the tx payload which is of little value.
+ */
   @Override
   public HashCode hash() {
     return rawTransaction.hash();

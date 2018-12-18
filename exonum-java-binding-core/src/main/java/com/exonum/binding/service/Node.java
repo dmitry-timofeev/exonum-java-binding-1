@@ -27,6 +27,11 @@ import java.util.function.Function;
 // todo: a better name?
 public interface Node {
 
+  /*
+  Review: Please mention the important change, this node will create a transaction message
+  and sign it with its service key. That means that invocations of this method on different
+  nodes will produce different transactions.
+   */
   /**
    * Submits a transaction into Exonum network. This node does <em>not</em> execute
    * the transaction immediately, broadcasts it to all the nodes in the network.
@@ -34,7 +39,7 @@ public interface Node {
    * <a href="https://exonum.com/doc/advanced/consensus/specification/#pool-of-unconfirmed-transactions">pool of unconfirmed transactions</a>.
    * The transaction is executed later asynchronously.
    *
-   * @param rawTransaction a transaction to send
+   * @param rawTransaction a transaction to send Review: transaction parameters to include in transaction
    * @throws InternalServerError if this node failed to process the transaction
    * @throws NullPointerException if the transaction is null
    */

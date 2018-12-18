@@ -48,8 +48,14 @@ class ServiceBootstrapIntegrationTest {
     // Check the service and its dependencies work as expected.
     assertThat(service.getId(), equalTo(UserService.ID));
     assertThat(service.getName(), equalTo(UserService.NAME));
+    /* Review: please remove this, and pass required arguments directly:
+    ```java
+    service.convertTransaction(UserService.ID, transactionId, payload);
+    ```
+    */
     RawTransaction transaction = TemplateRawTransaction.createRawTransaction((short) 1);
 
+    /* Review: Please verify it is correct (at least, not null). Now it is unused. */
     UserTransactionAdapter transactionAdapter = service.convertTransaction(
         transaction.getServiceId(), transaction.getTransactionId(), transaction.getPayload());
 

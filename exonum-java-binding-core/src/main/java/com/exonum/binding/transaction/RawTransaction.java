@@ -10,17 +10,20 @@ import java.util.Arrays;
  * Raw transaction class that contains the service and transaction identifiers and a transaction
  * data serialized in payload.
  */
+/* Review: AutoValue? */
 public final class RawTransaction {
   private final short serviceId;
   private final short transactionId;
   private final byte[] payload;
 
+  /* Review: There is no need to make args `final`? */
   private RawTransaction(short serviceId, short transactionId, final byte[] payload) {
     this.serviceId = serviceId;
     this.transactionId = transactionId;
     this.payload = payload.clone();
   }
 
+  /* Review: Returns the identifier of the service this transaction belongs to. @see Service#getId */
   /**
    * Returns the service identifier.
    */
@@ -28,6 +31,7 @@ public final class RawTransaction {
     return serviceId;
   }
 
+  /* Review: Returns the type of this transaction within a service. */
   /**
    * Returns the transaction identifier.
    */
@@ -35,6 +39,7 @@ public final class RawTransaction {
     return transactionId;
   }
 
+  /* Review: What is payload? */
   /**
    * Returns the transaction payload.
    */
@@ -42,6 +47,7 @@ public final class RawTransaction {
     return payload.clone();
   }
 
+  /* Review: Please remove, it is not needed */
   /**
    * Returns the SHA-256 hash raw transaction payload.
    */
@@ -80,6 +86,7 @@ public final class RawTransaction {
     private Short transactionId;
     private byte[] payload;
 
+    /* Review: identifier of the service this transaction belongs to. */
     /**
      * Sets service identifier to the transaction message.
      */
@@ -88,6 +95,7 @@ public final class RawTransaction {
       return this;
     }
 
+    /* Review: identifier of the transaction within a service. */
     /**
      * Sets transaction identifier to the transaction message.
      */
@@ -96,6 +104,7 @@ public final class RawTransaction {
       return this;
     }
 
+    /* Review: the payload *of* … */
     /**
      * Sets payload to the transaction message.
      */

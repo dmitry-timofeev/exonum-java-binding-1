@@ -90,12 +90,15 @@ class UserServiceAdapterTest {
     when(service.convertToTransaction(any(RawTransaction.class)))
         .thenReturn(expectedTransaction);
 
+    /* Review: not a message. Also, why do we perform such complex expression to just create
+    an array which contents is not relevant? I'd replace with new byte[1]; */
     byte[] message = TemplateRawTransaction.createRawTransaction(SERVICE_ID).getPayload();
 
     UserTransactionAdapter transactionAdapter =
         serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, message);
 
     assertThat(transactionAdapter.transaction, equalTo(expectedTransaction));
+    /* Review: Shan't we verify that it creates a correct RawTransaction? */
   }
 
   @Test
@@ -104,6 +107,7 @@ class UserServiceAdapterTest {
         // Such service impl. is not valid
         .thenReturn(null);
 
+    /* Review: Same as above */
     byte[] message = TemplateRawTransaction.createRawTransaction(SERVICE_ID).getPayload();
 
     NullPointerException thrown = assertThrows(NullPointerException.class,
@@ -122,6 +126,7 @@ class UserServiceAdapterTest {
 
     byte[][] hashes = serviceAdapter.getStateHashes(SNAPSHOT_HANDLE);
 
+    /* Review: emptyArray()) */
     assertThat(hashes, arrayWithSize(0));
   }
 

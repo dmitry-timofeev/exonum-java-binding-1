@@ -38,7 +38,7 @@ Also, please add that
   in the blockchain (link Blockchain#getMessages) and can be fetched by this hash.
    */
   /**
-   * Returns SHA-256 hash of the transaction.
+   * Returns SHA-256 hash of the transaction message.
    */
   HashCode getTransactionMessageHash();
 
@@ -51,28 +51,40 @@ Also, please add that
    */
   PublicKey getAuthorPk();
 
+  /**
+   * Returns the builder of the transaction context.
+   */
   static Builder builder() {
     return new Builder();
   }
 
+  /**
+   * Transaction context builder.
+   */
   final class Builder {
     private Fork fork;
     private HashCode hash;
     private PublicKey authorPk;
 
-    private Builder() {
-    }
-
+    /**
+     * Sets database fork for the context.
+     */
     public Builder fork(Fork fork) {
       this.fork = fork;
       return this;
     }
 
+    /**
+     * Sets message hash for the context.
+     */
     public Builder hash(HashCode hash) {
       this.hash = hash;
       return this;
     }
 
+    /**
+     * Sets transaction author public key for the context.
+     */
     public Builder authorPk(PublicKey authorPk) {
       this.authorPk = authorPk;
       return this;
@@ -81,8 +93,14 @@ Also, please add that
     /* Review:
 Why not just TransactionContext? Also, we considered defaults for hash & authorPk.
 Also, Javadocs are needed. */
+    /**
+     * Creates the transaction context instance.
+     */
     public InternalTransactionContext build() {
       return new InternalTransactionContext(fork, hash, authorPk);
+    }
+
+    private Builder() {
     }
   }
 

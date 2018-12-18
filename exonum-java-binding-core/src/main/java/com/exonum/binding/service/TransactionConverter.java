@@ -34,7 +34,6 @@ public interface TransactionConverter<T extends Transaction> {
   /**
    * Converts an Exonum transaction message to an executable transaction of some service.
    *
-   * Review: > (i.e., whose message type is a transaction) wrong
    * @param rawTransaction a raw transaction
    * @return an executable transaction of some service
    * Review: wrong

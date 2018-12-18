@@ -106,7 +106,7 @@ public final class NativeFacade {
    * <ul>
    *   <li>{@link UserServiceAdapter#initialize(long)}</li>
    *   <li>{@link UserServiceAdapter#getStateHashes(long)}</li>
-   *   <li>{@link UserServiceAdapter#convertTransaction(int, int, byte[])}</li>
+   *   <li>{@link UserServiceAdapter#convertTransaction(int, int, byte[])}</li> Review: broken Javadoc link
    * </ul>
    *
    * @see #createServiceFakeBuilder()

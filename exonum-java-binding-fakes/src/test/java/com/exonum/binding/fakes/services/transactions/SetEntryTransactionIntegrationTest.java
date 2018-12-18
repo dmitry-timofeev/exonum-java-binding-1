@@ -57,6 +57,7 @@ class SetEntryTransactionIntegrationTest {
           .hash(HashCode.fromInt(123))
           .authorPk(PublicKey.fromHexString("1234"))
           .build();
+      // Review: Shan't this test also test new behaviours?
 
       tx.execute(context);
 

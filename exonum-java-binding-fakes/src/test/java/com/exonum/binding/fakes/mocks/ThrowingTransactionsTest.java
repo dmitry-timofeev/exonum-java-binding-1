@@ -35,11 +35,15 @@ class ThrowingTransactionsTest {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     Transaction transaction = ThrowingTransactions.createThrowing(exceptionType);
 
+    /*
+    Review: Can we pass a proper context? `null` does not seem like an acceptable one?
+     */
     assertThrows(exceptionType, () -> transaction.execute(null));
   }
 
   @Test
   void createThrowingIllegalArgumentInInfo() {
+    // Review: No such method (info — please fix the comment and method name)
     // Transaction#info is a default method, check it separately
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     Transaction transaction = ThrowingTransactions.createThrowing(exceptionType);

@@ -34,6 +34,7 @@ import com.exonum.binding.transaction.TransactionContext;
  */
 public final class SetEntryTransaction implements Transaction {
 
+  /* Review: Are there two same constants? */
   static final String ENTRY_NAME = "test_entry";
   static final String TEST_ENTRY_NAME = "test_entry";
   static final String TX_HASH_NAME = "tx_hash";

@@ -44,6 +44,7 @@ class UserServiceAdapterMockBuilderTest {
     builder.convertTransactionThrowing(exceptionType);
     UserServiceAdapter service = builder.build();
 
+    /* Review: Not a message */
     byte[] rawTxMessage = new byte[MIN_MESSAGE_SIZE];
     assertThrows(exceptionType,
         () -> service.convertTransaction(service.getId(), (short) 1, rawTxMessage));

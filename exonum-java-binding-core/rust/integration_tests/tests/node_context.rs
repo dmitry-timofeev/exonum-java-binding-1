@@ -79,6 +79,7 @@ fn submit_transaction_to_missing_service() {
     assert!(res.is_err());
 }
 
+/* Review: Why don't we pass a keypair, releaving the callers from unpacking it? */
 fn create_node(
     public_key: PublicKey,
     secret_key: SecretKey,

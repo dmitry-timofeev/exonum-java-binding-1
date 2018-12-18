@@ -50,4 +50,37 @@ Also, please add that
    * Returns public key of the transaction author.
    */
   PublicKey getAuthorPk();
+
+  static Builder builder() {
+    return new Builder();
+  }
+
+  final class Builder {
+    private Fork fork;
+    private HashCode hash;
+    private PublicKey authorPk;
+
+    private Builder() {
+    }
+
+    public Builder fork(Fork fork) {
+      this.fork = fork;
+      return this;
+    }
+
+    public Builder hash(HashCode hash) {
+      this.hash = hash;
+      return this;
+    }
+
+    public Builder authorPk(PublicKey authorPk) {
+      this.authorPk = authorPk;
+      return this;
+    }
+
+    public InternalTransactionContext build() {
+      return new InternalTransactionContext(fork, hash, authorPk);
+    }
+  }
+
 }

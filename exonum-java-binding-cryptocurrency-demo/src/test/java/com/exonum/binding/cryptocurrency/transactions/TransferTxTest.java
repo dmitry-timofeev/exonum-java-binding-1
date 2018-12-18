@@ -28,8 +28,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
@@ -44,8 +42,8 @@ import com.exonum.binding.storage.database.Fork;
 import com.exonum.binding.storage.database.MemoryDb;
 import com.exonum.binding.storage.indices.ProofMapIndexProxy;
 import com.exonum.binding.test.RequiresNativeLibrary;
-import com.exonum.binding.transaction.InternalTransactionContext;
 import com.exonum.binding.transaction.RawTransaction;
+import com.exonum.binding.transaction.TransactionContext;
 import com.exonum.binding.transaction.TransactionExecutionException;
 import com.exonum.binding.util.LibraryLoader;
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -68,11 +66,11 @@ class TransferTxTest {
   void fromRawTransaction() {
     long seed = 1;
     long amount = 50L;
-    RawTransaction m = createRawTransaction(seed, FROM_KEY, TO_KEY, amount);
+    RawTransaction raw = createRawTransaction(seed, FROM_KEY, TO_KEY, amount);
 
-    TransferTx tx = TransferTx.fromRawTransaction(m);
+    TransferTx tx = TransferTx.fromRawTransaction(raw);
 
-    assertThat(tx, equalTo(withMockRawTransaction(seed, FROM_KEY, TO_KEY, amount)));
+    assertThat(tx, equalTo(new TransferTx(seed, FROM_KEY, TO_KEY, amount)));
   }
 
   @Test
@@ -123,8 +121,13 @@ class TransferTxTest {
       // Create and execute the transaction
       long seed = 1L;
       long transferSum = 40L;
-      TransferTx tx = withMockRawTransaction(seed, FROM_KEY, TO_KEY, transferSum);
-      InternalTransactionContext context = new InternalTransactionContext(view, null, null);
+      HashCode hash = HashCode.fromString("a0a0a0a0");
+      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferSum);
+      TransactionContext context = TransactionContext.builder()
+          .fork(view)
+          .hash(hash)
+          .build();
+
       tx.execute(context);
 
       // Check that wallets have correct balances
@@ -141,7 +144,7 @@ class TransferTxTest {
           .setWalletFrom(FROM_KEY)
           .setWalletTo(TO_KEY)
           .setAmount(transferSum)
-          .setTransactionHash(tx.hash())
+          .setTransactionHash(context.getTransactionMessageHash())
           .build();
       assertThat(schema.walletHistory(FROM_KEY), hasItem(expectedEntity));
       assertThat(schema.walletHistory(TO_KEY), hasItem(expectedEntity));
@@ -161,8 +164,12 @@ class TransferTxTest {
 
       long seed = 1L;
       long transferValue = 50L;
-      TransferTx tx = withMockRawTransaction(seed, FROM_KEY, TO_KEY, transferValue);
-      InternalTransactionContext context = new InternalTransactionContext(view, null, null);
+
+      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferValue);
+      TransactionContext context = TransactionContext.builder()
+          .fork(view)
+          .build();
+
       // Execute the transaction that attempts to transfer from an unknown wallet
       TransactionExecutionException e = assertThrows(
           TransactionExecutionException.class, () -> tx.execute(context));
@@ -185,8 +192,11 @@ class TransferTxTest {
       long transferValue = 50L;
       long seed = 1L;
 
-      TransferTx tx = withMockRawTransaction(seed, FROM_KEY, TO_KEY, transferValue);
-      InternalTransactionContext context = new InternalTransactionContext(view, null, null);
+      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferValue);
+      TransactionContext context = TransactionContext.builder()
+          .fork(view)
+          .build();
+
       TransactionExecutionException e = assertThrows(
           TransactionExecutionException.class, () -> tx.execute(context));
       assertThat(e, hasErrorCode(UNKNOWN_RECEIVER));
@@ -209,8 +219,12 @@ class TransferTxTest {
       // exceeding the balance
       long seed = 1L;
       long transferValue = initialBalance + 50L;
-      TransferTx tx = withMockRawTransaction(seed, FROM_KEY, TO_KEY, transferValue);
-      InternalTransactionContext context = new InternalTransactionContext(view, null, null);
+
+      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferValue);
+      TransactionContext context = TransactionContext.builder()
+          .fork(view)
+          .build();
+
       TransactionExecutionException e = assertThrows(
           TransactionExecutionException.class, () -> tx.execute(context));
       assertThat(e, hasErrorCode(INSUFFICIENT_FUNDS));
@@ -223,13 +237,6 @@ class TransferTxTest {
         .forClass(TransferTx.class)
         .withPrefabValues(HashCode.class, HashCode.fromInt(1), HashCode.fromInt(2))
         .verify();
-  }
-
-  private TransferTx withMockRawTransaction(long seed, PublicKey senderId, PublicKey recipientId,
-      long amount) {
-    RawTransaction rawTransaction = mock(RawTransaction.class);
-    lenient().when(rawTransaction.hash()).thenReturn(HashCode.fromString("a0a0a0a0"));
-    return new TransferTx(rawTransaction, seed, senderId, recipientId, amount);
   }
 
   private static Matcher<TransactionExecutionException> hasErrorCode(TransactionError expected) {

@@ -56,6 +56,7 @@ public final class CreateWalletTx implements Transaction {
   }
 
   /**
+   * Review: not message
    * Creates a create wallet transaction from its message.
    * @param rawTransaction a raw transaction
    */

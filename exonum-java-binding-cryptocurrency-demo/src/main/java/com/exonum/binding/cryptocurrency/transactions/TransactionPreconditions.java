@@ -31,6 +31,11 @@ final class TransactionPreconditions {
   }
 
   @CanIgnoreReturnValue
+  /*
+  Review: It used to work with BinaryMessage & just Message, returning exactly what you pass.
+  Please simplify to checkTransaction(RawTransaction, short), because with RawTransaction
+  it does not seem to be needed (especially in void methods below).
+   */
   static <T extends RawTransaction> T checkTransaction(T transaction, short expectedTxId) {
     checkServiceId(transaction);
     checkTransactionId(transaction, expectedTxId);

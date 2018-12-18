@@ -56,6 +56,11 @@ class TransferTxHistoryTest {
         Cleaner cleaner = new Cleaner()) {
       Fork view = db.createFork(cleaner);
       HashCode hash = HashCode.fromString("a0a0a0a0");
+      /*
+      Review: it is generally not OK to reuse a context for two different transactions:
+      (1) The hash is the same, but two different txs can't have the same hash.
+      (2) The signer is the same, which, again, with two different txs is not possible.
+       */
       TransactionContext context = TransactionContext.builder()
           .fork(view)
           .hash(hash)
@@ -93,6 +98,7 @@ class TransferTxHistoryTest {
           .setWalletFrom(ACCOUNT_1)
           .setWalletTo(ACCOUNT_2)
           .setAmount(transferSum1)
+          // Review: just `hash`?
           .setTransactionHash(context.getTransactionMessageHash())
           .build();
       HistoryEntity expectedEntity2 = HistoryEntity.Builder.newBuilder()

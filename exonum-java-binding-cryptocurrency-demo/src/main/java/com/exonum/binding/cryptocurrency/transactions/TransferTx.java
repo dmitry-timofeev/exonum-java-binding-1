@@ -64,6 +64,7 @@ public final class TransferTx implements Transaction {
   }
 
   /**
+   * Review: not message
    * Creates a new transfer transaction from the binary message.
    */
   public static TransferTx fromRawTransaction(RawTransaction rawTransaction) {
@@ -86,6 +87,10 @@ public final class TransferTx implements Transaction {
 
   @Override
   public void execute(TransactionContext context) throws TransactionExecutionException {
+    /* Review: I think with manual verification of the signature against from gone,
+    we **must** check that authorPk == fromWallet, or, remove fromWallet and use authorPk
+    as fromWallet (because no one but fromWallet can sign this tx).
+     */
     CryptocurrencySchema schema = new CryptocurrencySchema(context.getFork());
     ProofMapIndexProxy<PublicKey, Wallet> wallets = schema.wallets();
     checkExecution(wallets.containsKey(fromWallet), UNKNOWN_SENDER.errorCode);

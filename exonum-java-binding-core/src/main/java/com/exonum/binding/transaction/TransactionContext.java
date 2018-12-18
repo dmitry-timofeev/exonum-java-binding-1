@@ -77,6 +77,11 @@ Also, please add that
     /**
      * Sets message hash for the context.
      */
+    /* Review: From the usages I've seen in tests, it seems that a more exact name would be better,
+     because it is not clear what is a hash of a transaction execution context. `messageHash`?
+     `txMessageHash`?
+     */
+
     public Builder hash(HashCode hash) {
       this.hash = hash;
       return this;

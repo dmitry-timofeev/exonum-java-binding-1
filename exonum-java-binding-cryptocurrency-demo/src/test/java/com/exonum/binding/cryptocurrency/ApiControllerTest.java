@@ -150,6 +150,9 @@ class ApiControllerTest {
         HistoryEntity.Builder.newBuilder()
             .setSeed(1L)
             .setWalletFrom(FROM_KEY)
+            /*
+            Review: As it is a successful test, I'd use TO_KEY
+             */
             .setWalletTo(FROM_KEY)
             .setAmount(10L)
             .setTransactionHash(HashCode.fromString("a0a0a0"))

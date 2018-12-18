@@ -78,6 +78,9 @@ Also, please add that
       return this;
     }
 
+    /* Review:
+Why not just TransactionContext? Also, we considered defaults for hash & authorPk.
+Also, Javadocs are needed. */
     public InternalTransactionContext build() {
       return new InternalTransactionContext(fork, hash, authorPk);
     }

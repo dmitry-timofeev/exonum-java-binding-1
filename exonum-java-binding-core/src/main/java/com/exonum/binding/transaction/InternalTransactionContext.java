@@ -10,6 +10,7 @@ final class InternalTransactionContext implements TransactionContext {
   private final PublicKey authorPk;
 
   InternalTransactionContext(Fork fork, HashCode hash, PublicKey authorPk) {
+    /* Review: I'd validate them for correctness. Each is never null. */
     this.fork = fork;
     this.hash = hash;
     this.authorPk = authorPk;

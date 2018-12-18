@@ -1,16 +1,17 @@
+extern crate failure;
 extern crate futures;
 extern crate integration_tests;
 extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
-extern crate failure;
 
 use std::sync::Arc;
 
 use futures::{
-    sync::mpsc::{self, Receiver},
     Stream,
+    sync::mpsc::{self, Receiver},
 };
+
 use integration_tests::vm::create_vm_for_tests_with_fake_classes;
 use java_bindings::{
     exonum::{
@@ -29,7 +30,11 @@ lazy_static! {
     pub static ref EXECUTOR: MainExecutor = MainExecutor::new(VM.clone());
 }
 /* Review: As this method now does a little more
-(extracts some variables like service_id, signs the transaction) can we test that as well? */
+(extracts some variables like service_id, signs the transaction) can we test that as well?
+
+ Please push all the meaningful operations to `submit`, leaving only conversion in the glue code,
+ and test what submit does.
+ */
 
 #[test]
 fn submit_transaction() {
@@ -40,6 +45,7 @@ fn submit_transaction() {
     let tx_payload = vec![1, 2, 3];
     let service_transaction = ServiceTransaction::from_raw_unchecked(transaction_id, tx_payload);
     let raw_transaction = RawTransaction::new(service_id, service_transaction);
+    // Review: Please make this test clearer, currently the code under test is mixed with the setup code.
     node.submit(raw_transaction.clone()).unwrap();
     let sent_message = app_rx.wait().next().unwrap().unwrap();
     /*
@@ -49,6 +55,7 @@ fn submit_transaction() {
     */
     match sent_message {
         ExternalMessage::Transaction(sent) => {
+            /* Review: This naming is misleading: it is **not** a tx payload. */
             let tx_payload = sent.payload();
             let tx_author = sent.author();
             assert_eq!(&raw_transaction, tx_payload);

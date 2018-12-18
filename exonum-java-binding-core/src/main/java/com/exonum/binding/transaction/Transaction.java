@@ -45,8 +45,7 @@ public interface Transaction {
   void execute(TransactionContext context) throws TransactionExecutionException;
 
   /*
-Review: Is this method really required in each implementation
-Shan't we separate messages from transactions?
+Review: Is this method really required in each implementation?
   */
   /**
    * Returns a hash of this transaction — a SHA-256 hash of the transaction message.

@@ -1,4 +1,5 @@
 use std::{panic, ptr};
+use std::{panic, ptr};
 
 use exonum::blockchain::Blockchain;
 use exonum::crypto::PublicKey;
@@ -8,11 +9,9 @@ use exonum::node::ApiSender;
 use exonum::storage::Snapshot;
 use failure;
 use jni::JNIEnv;
+use jni::JNIEnv;
 use jni::objects::JClass;
 use jni::sys::{jbyteArray, jshort};
-use jni::JNIEnv;
-
-use std::{panic, ptr};
 
 use proxy::MainExecutor;
 use storage::View;
@@ -66,7 +65,6 @@ impl NodeContext {
 
     #[doc(hidden)]
     pub fn submit(&self, transaction: RawTransaction) -> Result<(), failure::Error> {
-        /* Review: Naming. */
         self.blockchain.broadcast_raw_transaction(transaction)
     }
 }
@@ -97,7 +95,6 @@ pub extern "system" fn Java_com_exonum_binding_service_NodeProxy_nativeSubmit(
                     ServiceTransaction::from_raw_unchecked(transaction_id as u16, payload);
                 let raw_transaction = RawTransaction::new(service_id as u16, service_transaction);
                 if let Err(err) = node.submit(raw_transaction) {
-                    /* Review: Is `InvalidTransactionException` removed from Java? — not yet */
                     let error_class = INTERNAL_SERVER_ERROR;
                     let error_description = err.to_string();
                     env.throw_new(error_class, error_description)?;

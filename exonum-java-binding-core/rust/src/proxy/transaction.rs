@@ -73,10 +73,6 @@ impl serde::Serialize for TransactionProxy {
 impl Transaction for TransactionProxy {
     fn execute(&self, mut context: TransactionContext) -> ExecutionResult {
         let res = self.exec.with_attached(|env: &JNIEnv| {
-            /*
-            Review: As a potential optimization, I'd add a task to create TxContext proxy,
-            that performs these conversions *on-demand*.
-            */
             let tx_hash = context.tx_hash();
             let author_pk = context.author();
 

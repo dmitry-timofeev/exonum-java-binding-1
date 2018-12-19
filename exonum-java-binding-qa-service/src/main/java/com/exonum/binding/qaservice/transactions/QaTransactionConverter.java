@@ -57,6 +57,9 @@ public final class QaTransactionConverter implements TransactionConverter {
         .apply(rawTransaction);
   }
 
+  /* Review: possibly, can replace this method with one, extracted from
+  `com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkTransaction`
+   */
   private static void checkServiceId(RawTransaction rawTransaction) {
     short serviceId = rawTransaction.getServiceId();
     checkArgument(serviceId == QaService.ID,

@@ -72,6 +72,7 @@ class CreateCounterTxIntegrationTest {
     CreateCounterTx tx = new CreateCounterTx(name);
 
     RawTransaction raw = converter().toRawTransaction(tx);
+    // Review: txFromRaw — here and elsewhere in tests!
     CreateCounterTx txFromMessage = converter().fromRawTransaction(raw);
 
     assertThat(txFromMessage, equalTo(tx));
@@ -132,6 +133,10 @@ class CreateCounterTxIntegrationTest {
 
       // Execute the transaction, that has the same name.
       CreateCounterTx tx = new CreateCounterTx(name);
+      /*
+      Review: Shan't we create a tests-wide method aContext(Fork) -> TransactionContext.Builder
+      or even createContext(Fork) -> TransactionContext that sets defaults?
+       */
       TransactionContext context = TransactionContext.builder()
           .fork(view)
           .build();

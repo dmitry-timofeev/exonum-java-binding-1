@@ -27,6 +27,7 @@ final class TransactionPreconditions {
 
   private static final short SERVICE_ID = QaService.ID;
 
+  /* Review: Same as in crypto, I'd simplify this to a non-parameterized method. */
   static <T extends RawTransaction> T checkTransaction(T transaction, short expectedTxId) {
     short serviceId = transaction.getServiceId();
     checkArgument(serviceId == SERVICE_ID,
@@ -42,6 +43,7 @@ final class TransactionPreconditions {
   }
 
   static <T extends RawTransaction> T checkPayloadSize(T transaction, int expectedSize) {
+    // Review: The payload of this transaction
     checkArgument(transaction.getPayload().length == expectedSize,
         "This transaction (%s) has wrong size (%s), expected %s bytes",
         transaction, transaction.getPayload().length, expectedSize);

@@ -127,6 +127,10 @@ public final class ValidErrorTx implements Transaction {
       byte[] payload = PROTO_SERIALIZER.toBytes(ValidErrorTxBody.newBuilder()
           .setSeed(transaction.seed)
           .setErrorCode(transaction.errorCode)
+          /*
+          Review: Why is nullToEmpty removed? Also, (here and elsewhere) I'd consider keeping
+          `serializeBody` to separate things.
+           */
           .setErrorDescription(transaction.errorDescription)
           .build());
 

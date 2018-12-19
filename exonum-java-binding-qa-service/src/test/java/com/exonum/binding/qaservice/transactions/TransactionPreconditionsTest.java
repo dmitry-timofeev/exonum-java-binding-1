@@ -97,6 +97,7 @@ class TransactionPreconditionsTest {
     RawTransaction tx = RawTransaction.newBuilder()
         .serviceId(QaService.ID)
         .transactionId(QaTransaction.INVALID.id())
+        // Review: new byte[bodySize]
         .payload(ByteBuffer.allocate(body).array())
         .build();
 

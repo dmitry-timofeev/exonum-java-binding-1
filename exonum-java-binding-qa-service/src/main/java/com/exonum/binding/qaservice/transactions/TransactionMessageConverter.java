@@ -21,6 +21,7 @@ import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 
 /**
+ * Review: Javadoc (no binary message)
  * A converter between executable transaction & its binary message.
  *
  * @param <TransactionT> a type of transaction. You can have a single

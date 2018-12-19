@@ -48,6 +48,10 @@ public final class UnknownTx implements Transaction {
     return RawTransaction.newBuilder()
         .serviceId(QaService.ID)
         .transactionId(ID)
+        /* Review: Shall we use empty payload as the default in RawTransaction.Builder?
+        Probably, not, because usually you can't have a tx with empty body (need some kind of
+         a seed to distinguish tx instances from the same author).
+         */
         .payload(new byte[]{})
         .build();
   }

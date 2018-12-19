@@ -27,7 +27,10 @@ import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
 import java.util.Objects;
-
+/* Review:
+I think we must drop `Valid` prefix as transaction can be 'invalid' only if
+they have incorrect signature (and that is handled by the core).
+ */
 public final class ValidThrowingTx implements Transaction {
 
   private static final short ID = QaTransaction.VALID_THROWING.id();

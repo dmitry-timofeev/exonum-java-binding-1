@@ -86,6 +86,7 @@ public final class CreateCounterTx implements Transaction {
     return Converter.INSTANCE;
   }
 
+  /* Review: (to self) Why is it needed? */
   private enum Converter implements TransactionMessageConverter<CreateCounterTx> {
     INSTANCE;
 

@@ -27,6 +27,9 @@ import com.exonum.binding.transaction.TransactionContext;
 /**
  * An invalid transaction always returning false.
  */
+/*
+Review: With no `#isValid` such transaction no longer makes sense.
+ */
 public final class InvalidTx implements Transaction {
 
   private static final short ID = QaTransaction.INVALID.id();

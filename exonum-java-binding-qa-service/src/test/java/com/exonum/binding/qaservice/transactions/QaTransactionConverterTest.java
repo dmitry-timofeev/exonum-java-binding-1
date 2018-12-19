@@ -53,6 +53,7 @@ class QaTransactionConverterTest {
     RawTransaction tx = RawTransaction.newBuilder()
         .serviceId((short) (QaService.ID + 1))
         .transactionId(QaTransaction.INCREMENT_COUNTER.id())
+        // Review: that's a fancy way to say `new byte[0]`
         .payload(ByteBuffer.allocate(0).array())
         .build();
 
@@ -71,4 +72,5 @@ class QaTransactionConverterTest {
     assertThat(e).hasMessageStartingWith("Unknown transaction");
   }
 
+  /* Review: Why this test has been removed? It tests the main responsibility of this class. */
 }

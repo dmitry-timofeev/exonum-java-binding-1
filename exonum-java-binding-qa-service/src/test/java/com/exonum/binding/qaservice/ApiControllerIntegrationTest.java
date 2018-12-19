@@ -510,6 +510,7 @@ class ApiControllerIntegrationTest {
       VertxTestContext context) {
     return context.succeeding(
         response -> context.verify(() -> {
+          // Review: I do not understand this method and its checks — please clarify.
           assertThat(response.statusCode()).isEqualTo(HTTP_INTERNAL_ERROR);
           context.completeNow();
         })

@@ -27,6 +27,9 @@ import com.exonum.binding.transaction.TransactionContext;
 /**
  * An invalid transaction always throwing IllegalStateException.
  */
+/*
+Review: With no `#isValid` such transaction no longer makes sense.
+ */
 public final class InvalidThrowingTx implements Transaction {
 
   private static final short ID = QaTransaction.INVALID_THROWING.id();

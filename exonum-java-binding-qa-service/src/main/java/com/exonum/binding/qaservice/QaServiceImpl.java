@@ -140,7 +140,15 @@ final class QaServiceImpl extends AbstractService implements QaService {
   @Override
   public HashCode submitIncrementCounter(long requestSeed, HashCode counterId) {
     IncrementCounterTx tx = new IncrementCounterTx(requestSeed, counterId);
+    /*
+     Review: I wonder if we shall drop Converters, and replace them with static factory methods
+     of `RawTransaction`s, something like `IncrementCounterTx#createRawTransaction(long, HashCode)`,
+     because creating a transaction only to convert it to a raw transaction seems a little
+     strange.
 
+     However, as eventually the test driver will submit _most_ transaction _directly_ to core,
+     we may leave it as is, but add a todo here.
+      */
     return submitTransaction(IncrementCounterTx.converter().toRawTransaction(tx));
   }
 
@@ -252,6 +260,12 @@ final class QaServiceImpl extends AbstractService implements QaService {
     checkBlockchainInitialized();
     try {
       node.submitTransaction(rawTransaction);
+      /*
+      Review: Won't work. A client can't use it simply (= in queries for transaction messages),
+       because it is a hash of payload, not of a whole transaction message.
+
+       @vitvakatu, @oleg Shan't node.submitTransaction return a hash of the message that _core_ created?
+       */
       return rawTransaction.hash();
     } catch (InternalServerError e) {
       throw new RuntimeException("Propagated transaction submission exception", e);

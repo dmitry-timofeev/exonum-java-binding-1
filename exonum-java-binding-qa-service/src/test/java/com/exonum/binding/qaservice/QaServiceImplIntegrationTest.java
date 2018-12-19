@@ -225,6 +225,7 @@ class QaServiceImplIntegrationTest {
     HashCode txHash = service.submitUnknownTx();
 
     assertThat(txHash).isNotNull();
+    // Review: This test is sloppy
     verify(node).submitTransaction(any(RawTransaction.class));
   }
 
@@ -341,6 +342,9 @@ class QaServiceImplIntegrationTest {
           .hashString(AFTER_COMMIT_COUNTER_NAME, StandardCharsets.UTF_8);
       IncrementCounterTx expectedTx = new IncrementCounterTx(height, counterId);
 
+      /*
+      Review: Please extract this huge expression in a var
+       */
       verify(node)
           .submitTransaction(eq(IncrementCounterTx.converter().toRawTransaction(expectedTx)));
     }

@@ -68,6 +68,7 @@
     <dependency>
       <groupId>com.ryanharter.auto.value</groupId>
       <artifactId>auto-value-gson</artifactId>
+      <!-- Review: Do we inherit the scope? -->
     </dependency>
 
     <dependency>

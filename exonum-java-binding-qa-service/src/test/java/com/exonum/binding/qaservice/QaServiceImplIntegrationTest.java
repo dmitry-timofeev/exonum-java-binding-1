@@ -368,6 +368,9 @@ class QaServiceImplIntegrationTest {
     }
   }
 
+  /*
+  Review: It's bad we can't have meaningful tests. Shall we keep those or remove them?
+   */
   @Test
   @RequiresNativeLibrary
   void getBlockTransactionsByBlockId() {
@@ -379,6 +382,20 @@ class QaServiceImplIntegrationTest {
       assertThat(t.getMessage()).contains(NO_GENESIS_BLOCK_ERROR_MESSAGE);
     }
   }
+
+  /*
+  Review: May consider something like
+
+  private void withNodeFake(Runnable r) {
+    try (MemoryDb db = MemoryDb.newInstance()) {
+      node = new NodeFake(db);
+      setServiceNode(node);
+
+      r.run();
+    }
+  }
+
+   */
 
   @Test
   @RequiresNativeLibrary

@@ -16,9 +16,21 @@
 
 package com.exonum.binding.qaservice;
 
-import static com.exonum.binding.qaservice.ApiController.*;
-import static com.exonum.binding.test.Bytes.bytes;
-import static com.exonum.binding.test.Bytes.createPrefixed;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_ALL_BLOCK_HASHES_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_BLOCKS_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_BLOCK_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_BLOCK_TRANSACTIONS_BY_BLOCK_ID_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_BLOCK_TRANSACTIONS_BY_HEIGHT_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_HEIGHT_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_LAST_BLOCK_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_TRANSACTION_LOCATIONS_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_TRANSACTION_LOCATION_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_TRANSACTION_RESULTS_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCKCHAIN_TRANSACTION_RESULT_PATH;
+import static com.exonum.binding.qaservice.ApiController.BLOCK_HEIGHT_PARAM;
+import static com.exonum.binding.qaservice.ApiController.BLOCK_ID_PARAM;
+import static com.exonum.binding.qaservice.ApiController.GET_ACTUAL_CONFIGURATION_PATH;
+import static com.exonum.binding.qaservice.ApiController.MESSAGE_HASH_PARAM;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CREATED;
@@ -47,7 +59,6 @@ import com.exonum.binding.common.configuration.ValidatorKey;
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.hash.Hashing;
-import com.exonum.binding.common.message.TransactionMessage;
 import com.exonum.binding.common.serialization.json.JsonSerializer;
 import com.exonum.binding.service.InternalServerError;
 import com.exonum.binding.service.InvalidTransactionException;
@@ -585,6 +596,12 @@ class ApiControllerIntegrationTest {
   void getBlocks(VertxTestContext context) {
     Block firstBlock = createBlock(1L);
     Block secondBlock = createBlock(2L);
+
+    /*
+    Review:
+    Maps.uniqueIndex(Arrays.asList(createBlock(1L), createBlock(2L)),
+        Block::getBlockHash);
+ */
     Map<HashCode, Block> blocks = ImmutableMap.of(
         HashCode.fromInt(0x00), firstBlock,
         HashCode.fromInt(0x01), secondBlock);
@@ -606,10 +623,12 @@ class ApiControllerIntegrationTest {
         })));
   }
 
+  // Review: Can we have at least one `none` case?
   @Test
   void getBlock(VertxTestContext context) {
     Block block = createBlock(1L);
 
+    // Review: block.getBlockHash()?
     HashCode blockId = HashCode.fromString(HASH_STRING);
     when(qaService.getBlock(blockId)).thenReturn(Optional.of(block));
 
@@ -677,6 +696,7 @@ class ApiControllerIntegrationTest {
         .previousBlockHash(HashCode.fromString(HASH_STRING))
         .txRootHash(HashCode.fromString(HASH_STRING))
         .stateHash(HashCode.fromString(HASH_STRING))
+        // Review: I'd recommend using a method that inserts a unique hash for each height, please see my PR:
         .blockHash(HashCode.fromString(HASH_STRING))
         .build();
   }

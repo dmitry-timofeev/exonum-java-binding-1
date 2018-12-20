@@ -255,6 +255,7 @@ final class ApiController {
           .end(json().toJson(block.get()));
     } else {
       rc.response()
+          /* Review: Not found? */
           .setStatusCode(HTTP_BAD_REQUEST)
           .end();
     }
@@ -289,6 +290,7 @@ final class ApiController {
 
   private void getTransactionMessages(RoutingContext rc) {
     // TODO: TransactionMessage
+    // Review: May do as base16/base64 string.
     Map<HashCode, TransactionMessage> txMessages = service.getTxMessages();
     rc.response()
         .putHeader("Content-Type", "application/json")
@@ -313,6 +315,7 @@ final class ApiController {
           .end(json().toJson(txResult.get()));
     } else {
       rc.response()
+          /* Review: Not found */
           .setStatusCode(HTTP_BAD_REQUEST)
           .end();
     }
@@ -324,6 +327,22 @@ final class ApiController {
         .putHeader("Content-Type", "application/json")
         .end(json().toJson(txLocations));
   }
+
+/* Review:
+  private <T> void respondWithJson(RoutingContext rc, Optional<T> responseBody) {
+    if (responseBody.isPresent()) {
+      respondWithJson(rc, responseBody.get());
+    } else {
+      respondNotFound(rc);
+    }
+  }
+
+  private void respondWithJson(RoutingContext rc, Object responseBody) {
+    rc.response()
+        .putHeader("Content-Type", "application/json")
+        .end(json().toJson(responseBody));
+  }
+  */
 
   private void getTransactionLocation(RoutingContext rc) {
     HashCode messageHash = getRequiredParameter(rc.request().params(), MESSAGE_HASH_PARAM,

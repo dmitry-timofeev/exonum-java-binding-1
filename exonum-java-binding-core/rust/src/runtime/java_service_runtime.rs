@@ -1,15 +1,15 @@
+use std::env;
+use std::sync::{Arc, Once, ONCE_INIT};
+
 use exonum::blockchain::Service;
 use exonum::helpers::fabric::{Command, CommandExtension, Context, ServiceFactory};
 use jni::{self, JavaVM};
 
-use std::env;
-use std::sync::{Arc, Once, ONCE_INIT};
-
+use MainExecutor;
 use proxy::{JniExecutor, ServiceProxy};
 use runtime::cmd::{Finalize, GenerateNodeConfig, Run};
 use runtime::config::{self, Config, JvmConfig, ServiceConfig};
 use utils::unwrap_jni;
-use MainExecutor;
 
 static mut JAVA_SERVICE_RUNTIME: Option<JavaServiceRuntime> = None;
 static JAVA_SERVICE_RUNTIME_INIT: Once = ONCE_INIT;
@@ -74,6 +74,7 @@ impl JavaServiceRuntime {
             "-Dlog4j.configurationFile={}",
             config.log_config_path
         ));
+        // Review: Some tests?
         if let Some(socket) = config.jvm_debug_socket {
             args_builder = args_builder.option(&format!(
                 "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address={}",

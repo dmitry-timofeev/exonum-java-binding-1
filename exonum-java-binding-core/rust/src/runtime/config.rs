@@ -75,7 +75,7 @@ fn check_not_forbidden(user_parameter: &str) -> Result<(), ForbiddenParameterErr
     if user_parameter.starts_with("Djava.class.path")
         || user_parameter.starts_with("Djava.library.path")
         || user_parameter.starts_with("Dlog4j.configurationFile")
-        || user_parameter.starts_with("agentlib:jdwp")
+        || user_parameter.starts_with("agentlib:jdwp") // Review: There is no reason to forbid it
     {
         Err(ForbiddenParameterError(user_parameter.to_string()))
     } else {

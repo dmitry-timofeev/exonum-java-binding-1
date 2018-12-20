@@ -1,11 +1,12 @@
-use super::{Config, JvmConfig, ServiceConfig};
-use exonum::helpers::fabric::keys;
 use exonum::helpers::fabric::Argument;
 use exonum::helpers::fabric::CommandExtension;
 use exonum::helpers::fabric::Context;
+use exonum::helpers::fabric::keys;
 use exonum::node::NodeConfig;
 use failure;
 use toml::Value;
+
+use super::{Config, JvmConfig, ServiceConfig};
 
 const EJB_JVM_ARGUMENTS: &str = "EJB_JVM_ARGUMENTS";
 const EJB_JVM_DEBUG_SOCKET: &str = "EJB_JVM_DEBUG_SOCKET";
@@ -50,10 +51,16 @@ impl CommandExtension for GenerateNodeConfig {
     }
 
     fn execute(&self, mut context: Context) -> Result<Context, failure::Error> {
+        /*
+        Review: Is it still needed at this stage (generate node config)?
+        */
         let user_parameters = Vec::new();
         let log_config_path = context.arg(EJB_LOG_CONFIG_PATH).unwrap_or_default();
         let class_path = context.arg(EJB_CLASSPATH)?;
         let lib_path = context.arg(EJB_LIBPATH)?;
+        /*
+        Review: Is it available?
+        */
         let jvm_debug_socket = None;
 
         let jvm_config = JvmConfig {
@@ -150,6 +157,7 @@ impl CommandExtension for Run {
             Argument::new_named(
                 EJB_JVM_DEBUG_SOCKET,
                 false,
+                // Review: Must not have a leading dash. is redundant here (people don't usually write `-127.1:5634`).
                 "Allows JVM being remotely debugged. Takes a socket address as a parameter in form \
                 of `HOSTNAME:PORT`. Must not have a leading dash. For example, `localhost:8000`",
                 None,
@@ -160,6 +168,7 @@ impl CommandExtension for Run {
     }
 
     fn execute(&self, mut context: Context) -> Result<Context, failure::Error> {
+        // Review: I don't understand what happens here. Would you please clarify the intention of this code?
         let user_parameters: Vec<String> =
             context.arg_multiple(EJB_JVM_ARGUMENTS).unwrap_or_default();
         let jvm_debug_socket = context.arg(EJB_JVM_DEBUG_SOCKET).ok();

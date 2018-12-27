@@ -164,6 +164,7 @@ class QaServiceImplIntegrationTest {
   @Test
   void submitCreateCounter() throws Exception {
     setServiceNode(node);
+    // Review: Here and elsewhere: `thenReturn(txHash)` and then `assertThat(actualTxHash).isEqualTo(txHash)`
     when(node.submitTransaction(any(RawTransaction.class))).thenReturn(Bytes.bytes(0x00));
 
     String counterName = "bids";
@@ -241,6 +242,7 @@ class QaServiceImplIntegrationTest {
         TransactionContext context = spy(newContext(view).create());
         new CreateCounterTx(counterName)
             .execute(context);
+        // Review: No
         verify(context).getFork();
 
         db.merge(view);

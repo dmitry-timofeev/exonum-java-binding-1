@@ -59,6 +59,10 @@ class SetEntryTransactionIntegrationTest {
       TransactionContext context = spy(newContext(fork).create());
       tx.execute(context);
 
+      /* Review: These verifies are off. Below is a proper test of the behaviour of this transaction —
+that it writes the expected entries in the database.
+       */
+
       verify(context).getFork();
       verify(context).getTransactionMessageHash();
       verify(context).getAuthorPk();

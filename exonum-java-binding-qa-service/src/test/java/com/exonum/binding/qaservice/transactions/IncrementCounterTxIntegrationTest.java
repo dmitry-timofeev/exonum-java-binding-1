@@ -108,6 +108,7 @@ class IncrementCounterTxIntegrationTest {
       // Execute the transaction
       TransactionContext context = spy(newContext(view).create());
       tx.execute(context);
+      /* Review: No */
       verify(context).getFork();
 
       // Check the counter has an incremented value

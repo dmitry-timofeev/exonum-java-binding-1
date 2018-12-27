@@ -88,6 +88,7 @@ public final class NodeFake implements Node {
   @Override
   public byte[] submitTransaction(RawTransaction transaction) {
     checkNotNull(transaction);
+    // Review: I'd use a 32-byte HashCode as the default.
     return new byte[0];
   }
 

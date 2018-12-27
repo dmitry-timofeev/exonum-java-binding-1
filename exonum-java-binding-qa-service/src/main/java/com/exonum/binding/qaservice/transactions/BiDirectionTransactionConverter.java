@@ -34,6 +34,9 @@ Review: I'd remove this comment, as I don't see a place for such an interface in
     + "Consider splitting into two functional interfaces, so that some APIs may use "
     + "method references."
 )
+/*
+Review: (to-self) Is it still needed?
+ */
 public interface BiDirectionTransactionConverter<TransactionT extends Transaction> {
 
   /**

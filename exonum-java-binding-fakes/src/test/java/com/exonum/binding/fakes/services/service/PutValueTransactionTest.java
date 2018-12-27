@@ -85,6 +85,7 @@ class PutValueTransactionTest {
     // Execute the transaction
     TransactionContext context = spy(newContext(fork).create());
     tx.execute(context);
+    // Review: Why this verify?
     verify(context).getFork();
 
     verify(testMap).put(eq(hash), eq(value));

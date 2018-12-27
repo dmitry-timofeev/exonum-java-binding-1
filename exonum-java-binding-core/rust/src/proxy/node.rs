@@ -1,3 +1,5 @@
+use std::{panic, ptr};
+
 use exonum::{
     blockchain::Blockchain,
     crypto::{Hash, PublicKey},
@@ -6,19 +8,17 @@ use exonum::{
     storage::Snapshot,
 };
 use failure;
+use jni::JNIEnv;
 use jni::objects::JClass;
 use jni::sys::{jbyteArray, jshort};
-use jni::JNIEnv;
-
-use std::{panic, ptr};
+use JniResult;
 
 use proxy::MainExecutor;
 use storage::View;
 use utils::{
-    cast_handle, drop_handle, to_handle, unwrap_exc_or, unwrap_exc_or_default, unwrap_jni_verbose,
-    Handle,
+    cast_handle, drop_handle, Handle, to_handle, unwrap_exc_or, unwrap_exc_or_default,
+    unwrap_jni_verbose,
 };
-use JniResult;
 
 const INTERNAL_SERVER_ERROR: &str = "com/exonum/binding/service/InternalServerError";
 
@@ -117,6 +117,9 @@ pub extern "system" fn Java_com_exonum_binding_service_NodeProxy_nativeSubmit(
                 }
             }(),
         );
+        /*
+        Review: These two consecutive match expressions do not make sense. Can we do everything needed in one?
+        */
         match hash {
             Some(hash) => Ok(convert_hash(&env, &hash)?),
             None => Ok(ptr::null_mut()),

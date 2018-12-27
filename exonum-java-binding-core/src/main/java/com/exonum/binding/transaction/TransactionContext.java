@@ -59,6 +59,9 @@ Also, please add that
     return new Builder();
   }
 
+  /*
+   Review: (nit) It's good, but I'd consider autogenerating InternalTransactionContext and its builder.
+   */
   /**
    * Transaction context builder.
    */

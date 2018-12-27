@@ -28,6 +28,7 @@ import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -88,7 +89,7 @@ class QaTransactionConverterTest {
   }
 
   private static Collection<Arguments> transactions() {
-    // Review: map
+    // Review: map (see below)
     List<Arguments> transactionTemplates = asList(
         Arguments.of(CreateCounterTx.class,
             new CreateCounterTx("name").toRawTransaction()),
@@ -108,6 +109,13 @@ class QaTransactionConverterTest {
     assertThat(transactionTemplates).hasSameSizeAs(QaTransaction.values());
 
     return transactionTemplates;
+  }
+
+  private static Stream<Arguments> foo() {
+    return Stream.of(
+        new CreateCounterTx("name")
+    )
+        .map(tx -> Arguments.arguments(tx.getClass(), tx.toRawTransaction()));
   }
 
 }

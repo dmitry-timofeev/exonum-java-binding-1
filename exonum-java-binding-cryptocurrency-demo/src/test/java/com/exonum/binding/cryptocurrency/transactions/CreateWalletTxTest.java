@@ -88,6 +88,9 @@ class CreateWalletTxTest {
           .withAuthorKey(OWNER_KEY)
           .create());
       tx.execute(context);
+      /*
+      Review: Why verifying these invocations?
+       */
       verify(context).getFork();
       verify(context).getAuthorPk();
 

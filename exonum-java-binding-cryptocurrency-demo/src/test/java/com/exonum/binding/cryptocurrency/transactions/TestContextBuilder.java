@@ -28,6 +28,11 @@ final class TestContextBuilder {
 
   private final TransactionContext.Builder builder;
 
+  /*
+  Review: I am not sure I understand why this class is needed as a builder and not
+  as a single method newContext that returns a preconfigured `TransactionContext.Builder`
+  that already has all required methods.
+   */
   private TestContextBuilder(Fork view) {
     this.builder = TransactionContext.builder()
         .fork(view)

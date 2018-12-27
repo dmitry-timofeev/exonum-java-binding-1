@@ -34,11 +34,14 @@ public interface Node {
    */
   /**
    * Creates a transaction from the given parameters and sign it with its service key.
+   * Review: Creates …, signs it with the node service key, and then submits it to.
    * And then submits it into Exonum network. This node does <em>not</em> execute
    * the transaction immediately, broadcasts it to all the nodes in the network.
    * Then each node adds the transaction to a
    * <a href="https://exonum.com/doc/advanced/consensus/specification/#pool-of-unconfirmed-transactions">pool of unconfirmed transactions</a>.
    * The transaction is executed later asynchronously.
+   * Review: I'd say "… that each node has its own service key pair, therefore invocations of this method on different nodes
+   *    * will produce different transactions.
    * <em>Be aware that invocations of this method on different nodes
    * will produce different transactions.</em>
    *
@@ -47,6 +50,7 @@ public interface Node {
    * @throws InternalServerError if this node failed to process the transaction
    * @throws NullPointerException if the transaction is null
    */
+  /* Review: @return */
   /* Review: HashCode */
   byte[] submitTransaction(RawTransaction rawTransaction)
       throws InternalServerError;

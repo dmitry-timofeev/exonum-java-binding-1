@@ -77,7 +77,6 @@ public interface Service {
    *         or it doesn't belong to this service
    * @throws NullPointerException if raw transaction is null
    */
-  /* Review: Nit: or doesn't belong to this service */
   Transaction convertToTransaction(RawTransaction rawTransaction);
 
   /**

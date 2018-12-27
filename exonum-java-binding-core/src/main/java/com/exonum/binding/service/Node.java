@@ -28,11 +28,6 @@ import java.util.function.Function;
 // todo: a better name?
 public interface Node {
 
-  /*
-  Review: Please mention the important change, this node will create a transaction message
-  and sign it with its service key. That means that invocations of this method on different
-  nodes will produce different transactions.
-   */
   /**
    * Creates a transaction from the given parameters and sign it with its service key.
    * Review: Creates …, signs it with the node service key, and then submits it to.
@@ -51,8 +46,6 @@ public interface Node {
    * @throws InternalServerError if this node failed to process the transaction
    * @throws NullPointerException if the transaction is null
    */
-  /* Review: @return */
-  /* Review: HashCode */
   HashCode submitTransaction(RawTransaction rawTransaction)
       throws InternalServerError;
 

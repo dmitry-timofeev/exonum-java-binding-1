@@ -89,7 +89,8 @@ class CreateWalletTxTest {
           .create());
       tx.execute(context);
       /*
-      Review: Why verifying these invocations?
+      Review: Why are these invocations verified? I don't see much value in that, as below we check
+      that the transaction has applied the expected changes to the database state through this fork.
        */
       verify(context).getFork();
       verify(context).getAuthorPk();

@@ -224,7 +224,6 @@ final class QaServiceImpl extends AbstractService implements QaService {
   }
 
   private void createCounter(String name, Fork fork) {
-    // Review: Do we test it? :-)
     QaSchema schema = new QaSchema(fork);
     MapIndex<HashCode, Long> counters = schema.counters();
     MapIndex<HashCode, String> names = schema.counterNames();

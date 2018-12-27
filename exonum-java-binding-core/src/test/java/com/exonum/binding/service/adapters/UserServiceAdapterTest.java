@@ -96,7 +96,6 @@ class UserServiceAdapterTest {
     UserTransactionAdapter transactionAdapter =
         serviceAdapter.convertTransaction(TRANSACTION_ID, payload);
     assertThat(transactionAdapter.transaction, equalTo(expectedTransaction));
-    /* Review: Shan't we verify that it creates a correct RawTransaction? */
 
     RawTransaction expectedRawTransaction = RawTransaction.newBuilder()
         .serviceId(SERVICE_ID)

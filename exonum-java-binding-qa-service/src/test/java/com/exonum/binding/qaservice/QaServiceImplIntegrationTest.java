@@ -48,7 +48,6 @@ import com.exonum.binding.storage.database.MemoryDb;
 import com.exonum.binding.storage.database.Snapshot;
 import com.exonum.binding.storage.database.View;
 import com.exonum.binding.storage.indices.MapIndex;
-import com.exonum.binding.test.Bytes;
 import com.exonum.binding.test.RequiresNativeLibrary;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.TransactionContext;
@@ -165,7 +164,9 @@ class QaServiceImplIntegrationTest {
   void submitCreateCounter() throws Exception {
     setServiceNode(node);
     // Review: Here and elsewhere: `thenReturn(txHash)` and then `assertThat(actualTxHash).isEqualTo(txHash)`
-    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(Bytes.bytes(0x00));
+    // Review: Don't mock HashCode.
+    HashCode hash = mock(HashCode.class);
+    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(hash);
 
     String counterName = "bids";
     HashCode txHash = service.submitCreateCounter(counterName);
@@ -180,7 +181,8 @@ class QaServiceImplIntegrationTest {
   @Test
   void submitIncrementCounter() throws Exception {
     setServiceNode(node);
-    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(Bytes.bytes(0x00));
+    HashCode hash = mock(HashCode.class);
+    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(hash);
 
     long seed = 1L;
     HashCode counterId = sha256()
@@ -197,7 +199,8 @@ class QaServiceImplIntegrationTest {
   @Test
   void submitValidThrowingTx() throws Exception {
     setServiceNode(node);
-    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(Bytes.bytes(0x00));
+    HashCode hash = mock(HashCode.class);
+    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(hash);
 
     long seed = 1L;
     HashCode txHash = service.submitValidThrowingTx(seed);
@@ -211,7 +214,8 @@ class QaServiceImplIntegrationTest {
   @Test
   void submitUnknownTx() throws Exception {
     setServiceNode(node);
-    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(Bytes.bytes(0x00));
+    HashCode hash = mock(HashCode.class);
+    when(node.submitTransaction(any(RawTransaction.class))).thenReturn(hash);
 
     HashCode txHash = service.submitUnknownTx();
 
@@ -321,7 +325,8 @@ class QaServiceImplIntegrationTest {
         Cleaner cleaner = new Cleaner()) {
       Fork fork = db.createFork(cleaner);
       setServiceNode(node);
-      when(node.submitTransaction(any(RawTransaction.class))).thenReturn(Bytes.bytes(0x00));
+      HashCode hash = mock(HashCode.class);
+      when(node.submitTransaction(any(RawTransaction.class))).thenReturn(hash);
       service.initialize(fork);
 
       Snapshot snapshot = db.createSnapshot(cleaner);

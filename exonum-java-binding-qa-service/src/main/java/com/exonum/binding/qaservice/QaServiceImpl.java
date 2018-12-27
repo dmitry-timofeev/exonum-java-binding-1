@@ -16,19 +16,19 @@
 
 package com.exonum.binding.qaservice;
 
+import static com.exonum.binding.common.hash.Hashing.defaultHashFunction;
 import static com.google.common.base.Preconditions.checkState;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.exonum.binding.blockchain.Blockchain;
 import com.exonum.binding.common.configuration.StoredConfiguration;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.hash.Hashing;
 import com.exonum.binding.qaservice.transactions.CreateCounterTx;
+import com.exonum.binding.qaservice.transactions.ErrorTx;
 import com.exonum.binding.qaservice.transactions.IncrementCounterTx;
-import com.exonum.binding.qaservice.transactions.InvalidThrowingTx;
-import com.exonum.binding.qaservice.transactions.InvalidTx;
+import com.exonum.binding.qaservice.transactions.ThrowingTx;
 import com.exonum.binding.qaservice.transactions.UnknownTx;
-import com.exonum.binding.qaservice.transactions.ValidErrorTx;
-import com.exonum.binding.qaservice.transactions.ValidThrowingTx;
 import com.exonum.binding.service.AbstractService;
 import com.exonum.binding.service.BlockCommittedEvent;
 import com.exonum.binding.service.InternalServerError;
@@ -42,7 +42,6 @@ import com.exonum.binding.storage.indices.ListIndex;
 import com.exonum.binding.storage.indices.MapIndex;
 import com.exonum.binding.storage.indices.ProofListIndexProxy;
 import com.exonum.binding.transaction.RawTransaction;
-import com.exonum.binding.transaction.TransactionContext;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
@@ -134,7 +133,8 @@ final class QaServiceImpl extends AbstractService implements QaService {
   @Override
   public HashCode submitCreateCounter(String counterName) {
     CreateCounterTx tx = new CreateCounterTx(counterName);
-    return submitTransaction(CreateCounterTx.converter().toRawTransaction(tx));
+
+    return submitTransaction(tx.toRawTransaction());
   }
 
   @Override
@@ -149,36 +149,23 @@ final class QaServiceImpl extends AbstractService implements QaService {
      However, as eventually the test driver will submit _most_ transaction _directly_ to core,
      we may leave it as is, but add a todo here.
       */
-    return submitTransaction(IncrementCounterTx.converter().toRawTransaction(tx));
+    return submitTransaction(tx.toRawTransaction());
   }
 
-  @Override
-  public HashCode submitInvalidTx() {
-    InvalidTx tx = new InvalidTx();
-
-    return submitTransaction(InvalidTx.converter().toRawTransaction(tx));
-  }
-
-  @Override
-  public HashCode submitInvalidThrowingTx() {
-    InvalidThrowingTx tx = new InvalidThrowingTx();
-
-    return submitTransaction(InvalidThrowingTx.converter().toRawTransaction(tx));
-  }
 
   @Override
   public HashCode submitValidThrowingTx(long requestSeed) {
-    ValidThrowingTx tx = new ValidThrowingTx(requestSeed);
+    ThrowingTx tx = new ThrowingTx(requestSeed);
 
-    return submitTransaction(ValidThrowingTx.converter().toRawTransaction(tx));
+    return submitTransaction(tx.toRawTransaction());
   }
 
   @Override
   public HashCode submitValidErrorTx(long requestSeed, byte errorCode,
       @Nullable String description) {
-    ValidErrorTx tx = new ValidErrorTx(requestSeed, errorCode, description);
+    ErrorTx tx = new ErrorTx(requestSeed, errorCode, description);
 
-    return submitTransaction(ValidErrorTx.converter().toRawTransaction(tx));
+    return submitTransaction(tx.toRawTransaction());
   }
 
   @Override
@@ -237,11 +224,17 @@ final class QaServiceImpl extends AbstractService implements QaService {
   }
 
   private void createCounter(String name, Fork fork) {
-    TransactionContext context = TransactionContext.builder()
-        .fork(fork)
-        .build();
+    // Review: Do we test it? :-)
+    QaSchema schema = new QaSchema(fork);
+    MapIndex<HashCode, Long> counters = schema.counters();
+    MapIndex<HashCode, String> names = schema.counterNames();
 
-    new CreateCounterTx(name).execute(context);
+    HashCode counterId = defaultHashFunction().hashString(name, UTF_8);
+    if (counters.containsKey(counterId)) {
+      return;
+    }
+    counters.put(counterId, 0L);
+    names.put(counterId, name);
   }
 
   @Override
@@ -259,14 +252,8 @@ final class QaServiceImpl extends AbstractService implements QaService {
   private HashCode submitTransaction(RawTransaction rawTransaction) {
     checkBlockchainInitialized();
     try {
-      node.submitTransaction(rawTransaction);
-      /*
-      Review: Won't work. A client can't use it simply (= in queries for transaction messages),
-       because it is a hash of payload, not of a whole transaction message.
-
-       @vitvakatu, @oleg Shan't node.submitTransaction return a hash of the message that _core_ created?
-       */
-      return rawTransaction.hash();
+      byte[] txMessageHash = node.submitTransaction(rawTransaction);
+      return HashCode.fromBytes(txMessageHash);
     } catch (InternalServerError e) {
       throw new RuntimeException("Propagated transaction submission exception", e);
     }

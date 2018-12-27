@@ -48,21 +48,18 @@ public final class UserTransactionAdapter {
     this.viewFactory = checkNotNull(viewFactory, "viewFactory");
   }
 
-  /*
-  Review: Nit: I'd drop "Bytes" suffix and say "txMessageHash", "authorPublicKey".
-  Or keep them, but use more detailed names below. */
-  public void execute(long forkNativeHandle, byte[] txHashBytes, byte[] authorPkBytes)
+  public void execute(long forkNativeHandle, byte[] txMessageHash, byte[] authorPublicKey)
       throws TransactionExecutionException {
     try {
       assert forkNativeHandle != 0L : "Fork handle must not be 0";
 
       try (Cleaner cleaner = new Cleaner("Transaction#execute")) {
         Fork fork = viewFactory.createFork(forkNativeHandle, cleaner);
-        HashCode hash = HashCode.fromBytes(txHashBytes);
-        PublicKey authorPk = PublicKey.fromBytes(authorPkBytes);
+        HashCode hash = HashCode.fromBytes(txMessageHash);
+        PublicKey authorPk = PublicKey.fromBytes(authorPublicKey);
         TransactionContext context = TransactionContext.builder()
             .fork(fork)
-            .hash(hash)
+            .txMessageHash(hash)
             .authorPk(authorPk)
             .build();
 
@@ -76,6 +73,15 @@ public final class UserTransactionAdapter {
       logger.error("Failed to close some resources during transaction {} execution:",
           transaction, e);
       throw new RuntimeException(e);
+    } catch (Throwable e) {
+      logUnexpectedException(e);
+      throw e;
+    }
+  }
+
+  public String info() {
+    try {
+      return transaction.info();
     } catch (Throwable e) {
       logUnexpectedException(e);
       throw e;

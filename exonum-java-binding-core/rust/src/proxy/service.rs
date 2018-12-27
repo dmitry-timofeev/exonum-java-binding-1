@@ -1,5 +1,3 @@
-use std::fmt;
-
 use exonum::api::ServiceApiBuilder;
 use exonum::blockchain::{Service, ServiceContext, Transaction};
 use exonum::crypto::Hash;
@@ -7,16 +5,18 @@ use exonum::messages::RawTransaction;
 use exonum::storage::{Fork, Snapshot};
 use failure;
 use jni::objects::{GlobalRef, JObject, JValue};
+use jni::signature::JavaType;
 use serde_json;
 use serde_json::value::Value;
+use std::fmt;
 
-use {JniExecutor, MainExecutor, TransactionProxy};
 use proxy::node::NodeContext;
 use storage::View;
 use utils::{
-    check_error_on_exception, convert_to_hash, convert_to_string, panic_on_exception, to_handle,
-    unwrap_jni,
+    check_error_on_exception, convert_to_hash, convert_to_string, jni_cache::service_adapter,
+    panic_on_exception, to_handle, unwrap_jni,
 };
+use {JniExecutor, MainExecutor, TransactionProxy};
 
 /// A proxy for `Service`s.
 #[derive(Clone)]
@@ -75,15 +75,14 @@ impl Service for ServiceProxy {
     fn state_hash(&self, snapshot: &Snapshot) -> Vec<Hash> {
         unwrap_jni(self.exec.with_attached(|env| {
             let view_handle = to_handle(View::from_ref_snapshot(snapshot));
-            let java_service_hashes = panic_on_exception(
-                env,
-                env.call_method(
+            let java_service_hashes = panic_on_exception(env, unsafe {
+                env.call_method_unsafe(
                     self.service.as_obj(),
-                    "getStateHashes",
-                    "(J)[[B",
+                    service_adapter::state_hashes_id(),
+                    JavaType::from_str("[[B").unwrap(),
                     &[JValue::from(view_handle)],
-                ),
-            );
+                )
+            });
             let byte_array_array = java_service_hashes.l()?.into_inner();
             let len = env.get_array_length(byte_array_array)?;
             let mut hashes: Vec<Hash> = Vec::with_capacity(len as usize);
@@ -98,22 +97,19 @@ impl Service for ServiceProxy {
     fn tx_from_raw(&self, raw: RawTransaction) -> Result<Box<dyn Transaction>, failure::Error> {
         unwrap_jni(self.exec.with_attached(|env| {
             let raw_clone = raw.clone();
-            let service_id = raw.service_id();
             let (tx_id, payload) = raw.service_transaction().into_raw_parts();
             let payload = JObject::from(env.byte_array_from_slice(&payload)?);
 
-            let res = env.call_method(
-                self.service.as_obj(),
-                "convertTransaction",
-                /* Review: Aren't the ids u16 (= shorts)? Or have you decided to represent them
-                with unsigned ints in Java to never see negatives? */
-                "(SS[B)Lcom/exonum/binding/service/adapters/UserTransactionAdapter;",
-                &[
-                    JValue::from(service_id),
-                    JValue::from(tx_id),
-                    JValue::from(payload),
-                ],
-            );
+            let res = unsafe {
+                env.call_method_unsafe(
+                    self.service.as_obj(),
+                    service_adapter::convert_transaction_id(),
+                    JavaType::Object(
+                        "com/exonum/binding/service/adapters/UserTransactionAdapter".into(),
+                    ),
+                    &[JValue::from(tx_id), JValue::from(payload)],
+                )
+            };
             // TODO consider whether `NullPointerException` should raise a panic:
             // [https://jira.bf.local/browse/ECR-944]
             Ok(match check_error_on_exception(env, res) {

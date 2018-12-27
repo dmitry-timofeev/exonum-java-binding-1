@@ -23,7 +23,7 @@ import com.exonum.binding.common.serialization.Serializer;
 import com.exonum.binding.common.serialization.StandardSerializers;
 import com.exonum.binding.qaservice.QaSchema;
 import com.exonum.binding.qaservice.QaService;
-import com.exonum.binding.qaservice.transactions.TxMessageProtos.ValidErrorTxBody;
+import com.exonum.binding.qaservice.transactions.TxMessageProtos.ErrorTxBody;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
@@ -37,11 +37,11 @@ import javax.annotation.Nullable;
  * throw an {@link TransactionExecutionException}.
  * Clears all collections of this service before throwing the exception.
  */
-public final class ValidErrorTx implements Transaction {
+public final class ErrorTx implements Transaction {
 
   private static final short ID = QaTransaction.VALID_ERROR.id();
-  private static final Serializer<ValidErrorTxBody> PROTO_SERIALIZER =
-      StandardSerializers.protobuf(ValidErrorTxBody.class);
+  private static final Serializer<ErrorTxBody> PROTO_SERIALIZER =
+      StandardSerializers.protobuf(ErrorTxBody.class);
 
   private final long seed;
   private final byte errorCode;
@@ -58,7 +58,7 @@ public final class ValidErrorTx implements Transaction {
    * @throws IllegalArgumentException if the error code is not in range [0; 127]
    *     or error description is empty
    */
-  public ValidErrorTx(long seed, byte errorCode, @Nullable String errorDescription) {
+  public ErrorTx(long seed, byte errorCode, @Nullable String errorDescription) {
     // Reject negative errorCodes so that there is no confusion between *signed* Java byte
     // and *unsigned* errorCode that Rust persists.
     checkArgument(errorCode >= 0, "error code (%s) must be in range [0; 127]", errorCode);
@@ -84,14 +84,23 @@ public final class ValidErrorTx implements Transaction {
   }
 
   @Override
+  public String info() {
+    return QaTransactionJson.toJson(ID, this);
+  }
+
+  public RawTransaction toRawTransaction() {
+    return converter().toRawTransaction(this);
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof ValidErrorTx)) {
+    if (!(o instanceof ErrorTx)) {
       return false;
     }
-    ValidErrorTx that = (ValidErrorTx) o;
+    ErrorTx that = (ErrorTx) o;
     return seed == that.seed
         && errorCode == that.errorCode
         && Objects.equals(errorDescription, that.errorDescription);
@@ -102,36 +111,32 @@ public final class ValidErrorTx implements Transaction {
     return Objects.hash(seed, errorCode, errorDescription);
   }
 
-  public static TransactionMessageConverter<ValidErrorTx> converter() {
+  public static BiDirectionTransactionConverter<ErrorTx> converter() {
     return Converter.INSTANCE;
   }
 
-  private enum Converter implements TransactionMessageConverter<ValidErrorTx> {
+  private enum Converter implements BiDirectionTransactionConverter<ErrorTx> {
     INSTANCE;
 
     @Override
-    public ValidErrorTx fromRawTransaction(RawTransaction rawTransaction) {
+    public ErrorTx fromRawTransaction(RawTransaction rawTransaction) {
       checkRawTransaction(rawTransaction);
 
-      ValidErrorTxBody body = PROTO_SERIALIZER.fromBytes(rawTransaction.getPayload());
+      ErrorTxBody body = PROTO_SERIALIZER.fromBytes(rawTransaction.getPayload());
       long seed = body.getSeed();
       byte errorCode = (byte) body.getErrorCode();
       // Convert empty to null because unset error description will be deserialized
       // as empty string.
       String errorDescription = Strings.emptyToNull(body.getErrorDescription());
-      return new ValidErrorTx(seed, errorCode, errorDescription);
+      return new ErrorTx(seed, errorCode, errorDescription);
     }
 
     @Override
-    public RawTransaction toRawTransaction(ValidErrorTx transaction) {
-      byte[] payload = PROTO_SERIALIZER.toBytes(ValidErrorTxBody.newBuilder()
+    public RawTransaction toRawTransaction(ErrorTx transaction) {
+      byte[] payload = PROTO_SERIALIZER.toBytes(ErrorTxBody.newBuilder()
           .setSeed(transaction.seed)
           .setErrorCode(transaction.errorCode)
-          /*
-          Review: Why is nullToEmpty removed? Also, (here and elsewhere) I'd consider keeping
-          `serializeBody` to separate things.
-           */
-          .setErrorDescription(transaction.errorDescription)
+          .setErrorDescription(Strings.nullToEmpty(transaction.errorDescription))
           .build());
 
       return RawTransaction.newBuilder()
@@ -139,7 +144,6 @@ public final class ValidErrorTx implements Transaction {
           .transactionId(ID)
           .payload(payload)
           .build();
-
     }
 
     private void checkRawTransaction(RawTransaction rawTransaction) {

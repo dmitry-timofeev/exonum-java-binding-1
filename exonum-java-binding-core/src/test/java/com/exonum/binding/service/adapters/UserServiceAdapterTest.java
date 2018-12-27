@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.collection.IsArrayWithSize.arrayWithSize;
+import static org.hamcrest.collection.IsArrayWithSize.emptyArray;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,11 +34,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.exonum.binding.common.hash.HashCode;
-import com.exonum.binding.common.message.TemplateRawTransaction;
 import com.exonum.binding.proxy.Cleaner;
 import com.exonum.binding.service.BlockCommittedEvent;
 import com.exonum.binding.service.Service;
 import com.exonum.binding.storage.database.Snapshot;
+import com.exonum.binding.test.Bytes;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transport.Server;
@@ -73,7 +74,7 @@ class UserServiceAdapterTest {
   private UserServiceAdapter serviceAdapter;
 
   private static final short SERVICE_ID = (short) 0xA103;
-  private static final short TRANSACTION_ID = 1;
+  private static final short TRANSACTION_ID = 0x05;
   private static final long SNAPSHOT_HANDLE = 0x0A;
   private static final long HEIGHT = 1;
   private static final int VALIDATOR_ID = 1;
@@ -81,7 +82,7 @@ class UserServiceAdapterTest {
   @Test
   void convertTransaction_ThrowsIfNull() {
     assertThrows(NullPointerException.class, () ->
-        serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, null));
+        serviceAdapter.convertTransaction(TRANSACTION_ID, null));
   }
 
   @Test
@@ -89,16 +90,20 @@ class UserServiceAdapterTest {
     Transaction expectedTransaction = mock(Transaction.class);
     when(service.convertToTransaction(any(RawTransaction.class)))
         .thenReturn(expectedTransaction);
-
-    /* Review: not a message. Also, why do we perform such complex expression to just create
-    an array which contents is not relevant? I'd replace with new byte[1]; */
-    byte[] message = TemplateRawTransaction.createRawTransaction(SERVICE_ID).getPayload();
+    when(service.getId()).thenReturn(SERVICE_ID);
+    byte[] payload = Bytes.bytes(0x00, 0x01);
 
     UserTransactionAdapter transactionAdapter =
-        serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, message);
-
+        serviceAdapter.convertTransaction(TRANSACTION_ID, payload);
     assertThat(transactionAdapter.transaction, equalTo(expectedTransaction));
     /* Review: Shan't we verify that it creates a correct RawTransaction? */
+
+    RawTransaction expectedRawTransaction = RawTransaction.newBuilder()
+        .serviceId(SERVICE_ID)
+        .transactionId(TRANSACTION_ID)
+        .payload(payload)
+        .build();
+    verify(service).convertToTransaction(expectedRawTransaction);
   }
 
   @Test
@@ -107,11 +112,10 @@ class UserServiceAdapterTest {
         // Such service impl. is not valid
         .thenReturn(null);
 
-    /* Review: Same as above */
-    byte[] message = TemplateRawTransaction.createRawTransaction(SERVICE_ID).getPayload();
+    byte[] payload = Bytes.bytes(0x00, 0x01);
 
     NullPointerException thrown = assertThrows(NullPointerException.class,
-        () -> serviceAdapter.convertTransaction(SERVICE_ID, TRANSACTION_ID, message));
+        () -> serviceAdapter.convertTransaction(TRANSACTION_ID, payload));
     assertThat(thrown.getLocalizedMessage(), containsString("Invalid service implementation: "
         + "Service#convertToTransaction must never return null."));
   }
@@ -126,8 +130,7 @@ class UserServiceAdapterTest {
 
     byte[][] hashes = serviceAdapter.getStateHashes(SNAPSHOT_HANDLE);
 
-    /* Review: emptyArray()) */
-    assertThat(hashes, arrayWithSize(0));
+    assertThat(hashes, emptyArray());
   }
 
   @Test

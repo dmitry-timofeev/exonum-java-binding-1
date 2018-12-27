@@ -70,6 +70,15 @@ public final class IncrementCounterTx implements Transaction {
   }
 
   @Override
+  public String info() {
+    return QaTransactionJson.toJson(ID, this);
+  }
+
+  public RawTransaction toRawTransaction() {
+    return converter().toRawTransaction(this);
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -87,11 +96,11 @@ public final class IncrementCounterTx implements Transaction {
     return Objects.hash(seed, counterId);
   }
 
-  public static TransactionMessageConverter<IncrementCounterTx> converter() {
+  public static BiDirectionTransactionConverter<IncrementCounterTx> converter() {
     return Converter.INSTANCE;
   }
 
-  private enum Converter implements TransactionMessageConverter<IncrementCounterTx> {
+  private enum Converter implements BiDirectionTransactionConverter<IncrementCounterTx> {
     INSTANCE;
 
     @Override
@@ -108,7 +117,6 @@ public final class IncrementCounterTx implements Transaction {
 
     @Override
     public RawTransaction toRawTransaction(IncrementCounterTx transaction) {
-
       byte[] payload = PROTO_SERIALIZER.toBytes(IncrementCounterTxBody.newBuilder()
           .setSeed(transaction.seed)
           .setCounterId(ByteString.copyFrom(transaction.counterId.asBytes()))

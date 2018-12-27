@@ -16,8 +16,10 @@
 
 package com.exonum.binding.cryptocurrency.transactions;
 
+import static com.exonum.binding.common.serialization.json.JsonSerializer.json;
 import static com.exonum.binding.cryptocurrency.transactions.CreateTransferTransactionUtils.createRawTransaction;
 import static com.exonum.binding.cryptocurrency.transactions.CreateTransferTransactionUtils.createWallet;
+import static com.exonum.binding.cryptocurrency.transactions.TestContextBuilder.newContext;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionError.INSUFFICIENT_FUNDS;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionError.UNKNOWN_RECEIVER;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionError.UNKNOWN_SENDER;
@@ -43,9 +45,11 @@ import com.exonum.binding.storage.database.MemoryDb;
 import com.exonum.binding.storage.indices.ProofMapIndexProxy;
 import com.exonum.binding.test.RequiresNativeLibrary;
 import com.exonum.binding.transaction.RawTransaction;
+import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
 import com.exonum.binding.transaction.TransactionExecutionException;
 import com.exonum.binding.util.LibraryLoader;
+import com.google.common.reflect.TypeToken;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
@@ -66,25 +70,11 @@ class TransferTxTest {
   void fromRawTransaction() {
     long seed = 1;
     long amount = 50L;
-    RawTransaction raw = createRawTransaction(seed, FROM_KEY, TO_KEY, amount);
+    RawTransaction raw = createRawTransaction(seed, TO_KEY, amount);
 
     TransferTx tx = TransferTx.fromRawTransaction(raw);
 
-    assertThat(tx, equalTo(new TransferTx(seed, FROM_KEY, TO_KEY, amount)));
-  }
-
-  @Test
-  void fromRawTransactionRejectsSameSenderAndReceiver() {
-    long seed = 1;
-    long amount = 50L;
-    RawTransaction tx = createRawTransaction(seed, FROM_KEY, FROM_KEY, amount);
-
-    Exception e = assertThrows(IllegalArgumentException.class,
-        () -> TransferTx.fromRawTransaction(tx));
-
-    assertThat(e.getMessage(), allOf(
-        containsStringIgnoringCase("same sender and receiver"),
-        containsStringIgnoringCase(FROM_KEY.toString())));
+    assertThat(tx, equalTo(new TransferTx(seed, TO_KEY, amount)));
   }
 
   @ParameterizedTest
@@ -96,7 +86,7 @@ class TransferTxTest {
   })
   void fromRawTransactionRejectsNonPositiveBalance(long transferAmount) {
     long seed = 1;
-    RawTransaction tx = createRawTransaction(seed, FROM_KEY, TO_KEY, transferAmount);
+    RawTransaction tx = createRawTransaction(seed, TO_KEY, transferAmount);
 
     Exception e = assertThrows(IllegalArgumentException.class,
         () -> TransferTx.fromRawTransaction(tx));
@@ -122,12 +112,11 @@ class TransferTxTest {
       long seed = 1L;
       long transferSum = 40L;
       HashCode hash = HashCode.fromString("a0a0a0a0");
-      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferSum);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .hash(hash)
-          .build();
-
+      TransferTx tx = new TransferTx(seed, TO_KEY, transferSum);
+      TransactionContext context = newContext(view)
+          .withTxMessageHash(hash)
+          .withAuthorKey(FROM_KEY)
+          .create();
       tx.execute(context);
 
       // Check that wallets have correct balances
@@ -165,11 +154,10 @@ class TransferTxTest {
 
       long seed = 1L;
       long transferValue = 50L;
-
-      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferValue);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
+      TransferTx tx = new TransferTx(seed, TO_KEY, transferValue);
+      TransactionContext context = newContext(view)
+          .withAuthorKey(FROM_KEY)
+          .create();
 
       // Execute the transaction that attempts to transfer from an unknown wallet
       TransactionExecutionException e = assertThrows(
@@ -192,15 +180,37 @@ class TransferTxTest {
       // Create and execute the transaction that attempts to transfer to unknown wallet
       long transferValue = 50L;
       long seed = 1L;
-
-      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferValue);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
+      TransferTx tx = new TransferTx(seed, TO_KEY, transferValue);
+      TransactionContext context = newContext(view)
+          .withAuthorKey(FROM_KEY)
+          .create();
 
       TransactionExecutionException e = assertThrows(
           TransactionExecutionException.class, () -> tx.execute(context));
       assertThat(e, hasErrorCode(UNKNOWN_RECEIVER));
+    }
+  }
+
+  @Test
+  @RequiresNativeLibrary
+  void executeTransfer_RejectsSameSenderAndReceiver() throws CloseFailuresException {
+    try (Database db = MemoryDb.newInstance();
+        Cleaner cleaner = new Cleaner()) {
+      Fork view = db.createFork(cleaner);
+
+      long seed = 1;
+      long amount = 50L;
+      TransferTx tx = new TransferTx(seed, FROM_KEY, amount);
+      TransactionContext context = newContext(view)
+          .withAuthorKey(FROM_KEY)
+          .create();
+
+      Exception e = assertThrows(IllegalStateException.class,
+          () -> tx.execute(context));
+
+      assertThat(e.getMessage(), allOf(
+          containsStringIgnoringCase("same sender and receiver"),
+          containsStringIgnoringCase(FROM_KEY.toString())));
     }
   }
 
@@ -220,16 +230,29 @@ class TransferTxTest {
       // exceeding the balance
       long seed = 1L;
       long transferValue = initialBalance + 50L;
-
-      TransferTx tx = new TransferTx(seed, FROM_KEY, TO_KEY, transferValue);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
+      TransferTx tx = new TransferTx(seed, TO_KEY, transferValue);
+      TransactionContext context = newContext(view)
+          .withAuthorKey(FROM_KEY)
+          .create();
 
       TransactionExecutionException e = assertThrows(
           TransactionExecutionException.class, () -> tx.execute(context));
       assertThat(e, hasErrorCode(INSUFFICIENT_FUNDS));
     }
+  }
+
+  @Test
+  void info() {
+    long seed = Long.MAX_VALUE - 1L;
+    TransferTx tx =  new TransferTx(seed, TO_KEY, 50L);
+
+    String info = tx.info();
+
+    // Check the transaction parameters in JSON
+    Transaction txParameters = json().fromJson(info, new TypeToken<TransferTx>() {
+    }.getType());
+
+    assertThat(txParameters, equalTo(tx));
   }
 
   @Test

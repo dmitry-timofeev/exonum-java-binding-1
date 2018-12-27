@@ -20,6 +20,7 @@ import com.exonum.binding.qaservice.QaService;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A transaction that has QA service identifier, but an unknown transaction id.
@@ -45,14 +46,20 @@ public final class UnknownTx implements Transaction {
    * Returns raw transaction.
    */
   public static RawTransaction createRawTransaction() {
+    byte[] seed = new byte[1];
+    ThreadLocalRandom.current().nextBytes(seed);
+
     return RawTransaction.newBuilder()
         .serviceId(QaService.ID)
         .transactionId(ID)
         /* Review: Shall we use empty payload as the default in RawTransaction.Builder?
         Probably, not, because usually you can't have a tx with empty body (need some kind of
          a seed to distinguish tx instances from the same author).
+
+         ---
+         No random seed at service-side.
          */
-        .payload(new byte[]{})
+        .payload(seed)
         .build();
   }
 

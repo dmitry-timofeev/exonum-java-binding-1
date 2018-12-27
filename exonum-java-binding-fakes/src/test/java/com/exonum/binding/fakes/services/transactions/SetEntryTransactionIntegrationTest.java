@@ -17,12 +17,13 @@
 package com.exonum.binding.fakes.services.transactions;
 
 import static com.exonum.binding.fakes.services.transactions.SetEntryTransaction.ENTRY_NAME;
+import static com.exonum.binding.fakes.services.transactions.TestContextBuilder.newContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
-import com.exonum.binding.common.crypto.PublicKey;
-import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.serialization.StandardSerializers;
 import com.exonum.binding.proxy.Cleaner;
 import com.exonum.binding.proxy.CloseFailuresException;
@@ -51,15 +52,16 @@ class SetEntryTransactionIntegrationTest {
       String value = "A value to set into entry";
       Fork fork = database.createFork(cleaner);
 
-      SetEntryTransaction tx = new SetEntryTransaction(value);
-      TransactionContext context = TransactionContext.builder()
-          .fork(fork)
-          .hash(HashCode.fromInt(123))
-          .authorPk(PublicKey.fromHexString("1234"))
-          .build();
-      // Review: Shan't this test also test new behaviours?
+      SetEntryTransaction tx = new SetEntryTransaction(value, "");
+      // Review: Shan't this test also test new behaviours (verify is sloppy)?
 
+      // Execute the transaction
+      TransactionContext context = spy(newContext(fork).create());
       tx.execute(context);
+
+      verify(context).getFork();
+      verify(context).getTransactionMessageHash();
+      verify(context).getAuthorPk();
 
       database.merge(fork);
 

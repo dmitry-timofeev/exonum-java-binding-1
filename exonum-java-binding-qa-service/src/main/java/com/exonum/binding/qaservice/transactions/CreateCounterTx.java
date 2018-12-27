@@ -66,6 +66,16 @@ public final class CreateCounterTx implements Transaction {
   }
 
   @Override
+  public String info() {
+    return QaTransactionJson.toJson(ID, this);
+  }
+
+  // Review: (to self) Why is it needed?
+  public RawTransaction toRawTransaction() {
+    return converter().toRawTransaction(this);
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -82,12 +92,12 @@ public final class CreateCounterTx implements Transaction {
     return Objects.hashCode(name);
   }
 
-  public static TransactionMessageConverter<CreateCounterTx> converter() {
+  public static BiDirectionTransactionConverter<CreateCounterTx> converter() {
     return Converter.INSTANCE;
   }
 
   /* Review: (to self) Why is it needed? */
-  private enum Converter implements TransactionMessageConverter<CreateCounterTx> {
+  private enum Converter implements BiDirectionTransactionConverter<CreateCounterTx> {
     INSTANCE;
 
     @Override

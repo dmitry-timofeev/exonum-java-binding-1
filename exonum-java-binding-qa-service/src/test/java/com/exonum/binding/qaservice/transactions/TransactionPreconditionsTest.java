@@ -16,7 +16,6 @@
 
 package com.exonum.binding.qaservice.transactions;
 
-import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.text.MatchesPattern.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -24,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.exonum.binding.qaservice.QaService;
 import com.exonum.binding.test.Bytes;
 import com.exonum.binding.transaction.RawTransaction;
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 
 class TransactionPreconditionsTest {
@@ -38,9 +36,7 @@ class TransactionPreconditionsTest {
         .payload(Bytes.bytes())
         .build();
 
-    RawTransaction actual = TransactionPreconditions.checkTransaction(tx, txId);
-
-    assertThat(actual, sameInstance(tx));
+    TransactionPreconditions.checkTransaction(tx, txId);
   }
 
   @Test
@@ -55,7 +51,7 @@ class TransactionPreconditionsTest {
 
     Exception e = assertThrows(IllegalArgumentException.class,
         () -> TransactionPreconditions.checkTransaction(tx, txId));
-    assertThat(e.getMessage(), matchesPattern("This message \\(.+\\) does not belong "
+    assertThat(e.getMessage(), matchesPattern("This transaction \\(.+\\) does not belong "
         + "to this service: wrong service id \\(10\\), must be " + QaService.ID));
   }
 
@@ -72,38 +68,37 @@ class TransactionPreconditionsTest {
 
     Exception e = assertThrows(IllegalArgumentException.class,
         () -> TransactionPreconditions.checkTransaction(tx, expectedTxId));
-    assertThat(e.getMessage(), matchesPattern("This message \\(.+\\) "
+    assertThat(e.getMessage(), matchesPattern("This transaction \\(.+\\) "
         + "has wrong transaction id \\(1\\), must be " + expectedTxId));
   }
 
   @Test
-  void checkMessageCorrectSize() {
-    int body = 10;
+  void checkTransactionCorrectSize() {
+    short txId = 0x01;
+    int payloadSize = 10;
     RawTransaction tx = RawTransaction.newBuilder()
         .serviceId(QaService.ID)
-        .transactionId(QaTransaction.INVALID.id())
-        .payload(ByteBuffer.allocate(body).array())
+        .transactionId(txId)
+        .payload(new byte[payloadSize])
         .build();
 
-    RawTransaction actual = TransactionPreconditions.checkPayloadSize(tx, body);
-
-    assertThat(actual, sameInstance(tx));
+    TransactionPreconditions.checkPayloadSize(tx, payloadSize);
   }
 
   @Test
-  void checkMessageWrongSize() {
-    int expectedBody = 11;
-    int body = 10;
+  void checkTransactionWrongSize() {
+    short txId = 0x01;
+    int expectedPayloadSize = 11;
+    int payloadSize = 10;
     RawTransaction tx = RawTransaction.newBuilder()
         .serviceId(QaService.ID)
-        .transactionId(QaTransaction.INVALID.id())
-        // Review: new byte[bodySize]
-        .payload(ByteBuffer.allocate(body).array())
+        .transactionId(txId)
+        .payload(new byte[payloadSize])
         .build();
 
     Exception e = assertThrows(IllegalArgumentException.class,
-        () -> TransactionPreconditions.checkPayloadSize(tx, expectedBody));
-    assertThat(e.getMessage(), matchesPattern("This transaction \\(.+\\) "
+        () -> TransactionPreconditions.checkPayloadSize(tx, expectedPayloadSize));
+    assertThat(e.getMessage(), matchesPattern("The payload of this transaction \\(.+\\) "
         + "has wrong size \\(\\d+\\), expected \\d+ bytes"));
   }
 }

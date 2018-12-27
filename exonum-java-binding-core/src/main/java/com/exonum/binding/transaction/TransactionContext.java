@@ -16,12 +16,15 @@
 
 package com.exonum.binding.transaction;
 
+import com.exonum.binding.common.crypto.CryptoFunctions;
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.storage.database.Fork;
 
 /**
  * Transaction context class. Contains required information for the transaction execution.
+ * The context is provided by the framework and users shouldn't create context instances manually
+ * except tests.
  */
 public interface TransactionContext {
   /**
@@ -42,12 +45,10 @@ Also, please add that
    */
   HashCode getTransactionMessageHash();
 
-  /*
-  Review: Please add that the corresponding transaction message is guaranteed to have a correct
-  Ed25519 signature with this public key.
-   */
   /**
-   * Returns public key of the transaction author.
+   * Returns public key of the transaction author. The corresponding transaction message
+   * is guaranteed to have a correct {@link CryptoFunctions#ed25519()} signature
+   * with this public key.
    */
   PublicKey getAuthorPk();
 
@@ -75,14 +76,9 @@ Also, please add that
     }
 
     /**
-     * Sets message hash for the context.
+     * Sets transaction message hash for the context.
      */
-    /* Review: From the usages I've seen in tests, it seems that a more exact name would be better,
-     because it is not clear what is a hash of a transaction execution context. `messageHash`?
-     `txMessageHash`?
-     */
-
-    public Builder hash(HashCode hash) {
+    public Builder txMessageHash(HashCode hash) {
       this.hash = hash;
       return this;
     }
@@ -96,12 +92,12 @@ Also, please add that
     }
 
     /* Review:
-Why not just TransactionContext? Also, we considered defaults for hash & authorPk.
+Why not just TransactionContext? Also, we considered *defaults* for hash & authorPk.
 Also, Javadocs are needed. */
     /**
      * Creates the transaction context instance.
      */
-    public InternalTransactionContext build() {
+    public TransactionContext build() {
       return new InternalTransactionContext(fork, hash, authorPk);
     }
 

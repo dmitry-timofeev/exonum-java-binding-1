@@ -22,24 +22,21 @@ import static com.exonum.binding.qaservice.transactions.TransactionPreconditions
 import com.exonum.binding.common.serialization.Serializer;
 import com.exonum.binding.qaservice.QaSchema;
 import com.exonum.binding.qaservice.QaService;
-import com.exonum.binding.qaservice.transactions.TxMessageProtos.ValidThrowingTxBody;
+import com.exonum.binding.qaservice.transactions.TxMessageProtos.ThrowingTxBody;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.transaction.TransactionContext;
 import java.util.Objects;
-/* Review:
-I think we must drop `Valid` prefix as transaction can be 'invalid' only if
-they have incorrect signature (and that is handled by the core).
- */
-public final class ValidThrowingTx implements Transaction {
+
+public final class ThrowingTx implements Transaction {
 
   private static final short ID = QaTransaction.VALID_THROWING.id();
-  private static final Serializer<ValidThrowingTxBody> PROTO_SERIALIZER =
-      protobuf(ValidThrowingTxBody.class);
+  private static final Serializer<ThrowingTxBody> PROTO_SERIALIZER =
+      protobuf(ThrowingTxBody.class);
 
   private final long seed;
 
-  public ValidThrowingTx(long seed) {
+  public ThrowingTx(long seed) {
     this.seed = seed;
   }
 
@@ -60,6 +57,15 @@ public final class ValidThrowingTx implements Transaction {
   }
 
   @Override
+  public String info() {
+    return QaTransactionJson.toJson(ID, this);
+  }
+
+  public RawTransaction toRawTransaction() {
+    return converter().toRawTransaction(this);
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
@@ -67,7 +73,7 @@ public final class ValidThrowingTx implements Transaction {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    ValidThrowingTx that = (ValidThrowingTx) o;
+    ThrowingTx that = (ThrowingTx) o;
     return seed == that.seed;
   }
 
@@ -76,25 +82,25 @@ public final class ValidThrowingTx implements Transaction {
     return Objects.hashCode(seed);
   }
 
-  public static TransactionMessageConverter<ValidThrowingTx> converter() {
+  public static BiDirectionTransactionConverter<ThrowingTx> converter() {
     return Converter.INSTANCE;
   }
 
-  private enum Converter implements TransactionMessageConverter<ValidThrowingTx> {
+  private enum Converter implements BiDirectionTransactionConverter<ThrowingTx> {
     INSTANCE;
 
     @Override
-    public ValidThrowingTx fromRawTransaction(RawTransaction rawTransaction) {
+    public ThrowingTx fromRawTransaction(RawTransaction rawTransaction) {
       checkRawTransaction(rawTransaction);
 
       long seed = PROTO_SERIALIZER.fromBytes(rawTransaction.getPayload())
           .getSeed();
-      return new ValidThrowingTx(seed);
+      return new ThrowingTx(seed);
     }
 
     @Override
-    public RawTransaction toRawTransaction(ValidThrowingTx transaction) {
-      byte[] payload = PROTO_SERIALIZER.toBytes(ValidThrowingTxBody.newBuilder()
+    public RawTransaction toRawTransaction(ThrowingTx transaction) {
+      byte[] payload = PROTO_SERIALIZER.toBytes(ThrowingTxBody.newBuilder()
           .setSeed(transaction.seed)
           .build());
 

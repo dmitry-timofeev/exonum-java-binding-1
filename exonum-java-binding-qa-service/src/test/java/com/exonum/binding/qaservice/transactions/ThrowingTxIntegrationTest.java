@@ -18,6 +18,7 @@ package com.exonum.binding.qaservice.transactions;
 
 import static com.exonum.binding.common.serialization.json.JsonSerializer.json;
 import static com.exonum.binding.qaservice.transactions.CreateCounterTxIntegrationTest.createCounter;
+import static com.exonum.binding.qaservice.transactions.TestContextBuilder.newContext;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,7 +40,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class ValidThrowingTxIntegrationTest {
+class ThrowingTxIntegrationTest {
 
   @BeforeAll
   static void loadLibrary() {
@@ -49,24 +50,23 @@ class ValidThrowingTxIntegrationTest {
   @Test
   void converterRoundtrip() {
     long seed = 10L;
-    ValidThrowingTx tx = new ValidThrowingTx(seed);
+    ThrowingTx tx = new ThrowingTx(seed);
 
-    RawTransaction message = ValidThrowingTx.converter().toRawTransaction(tx);
+    RawTransaction message = ThrowingTx.converter().toRawTransaction(tx);
 
-    ValidThrowingTx txFromMessage = ValidThrowingTx.converter().fromRawTransaction(message);
+    ThrowingTx txFromRaw = ThrowingTx.converter().fromRawTransaction(message);
 
-    assertThat(txFromMessage, equalTo(tx));
+    assertThat(txFromRaw, equalTo(tx));
   }
 
   @Test
-  void jsonRepresentation() {
+  void info() {
     long seed = 10L;
-    ValidThrowingTx tx = new ValidThrowingTx(seed);
-    String txJson = QaTransactionJson.toJson(QaTransaction.VALID_THROWING.id(), tx);
+    ThrowingTx tx = new ThrowingTx(seed);
+    String info = tx.info();
 
-    AnyTransaction<ValidThrowingTx> txParams = json().fromJson(txJson,
-        new TypeToken<AnyTransaction<ValidThrowingTx>>() {
-        }.getType());
+    AnyTransaction<ThrowingTx> txParams = json().fromJson(info,
+        new TypeToken<AnyTransaction<ThrowingTx>>(){}.getType());
 
     assertThat(txParams.service_id, equalTo(QaService.ID));
     assertThat(txParams.message_id, equalTo(QaTransaction.VALID_THROWING.id()));
@@ -79,10 +79,6 @@ class ValidThrowingTxIntegrationTest {
     try (MemoryDb db = MemoryDb.newInstance();
         Cleaner cleaner = new Cleaner()) {
       Fork view = db.createFork(cleaner);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
-
 
       // Initialize storage with a counter equal to 10
       String name = "counter";
@@ -90,9 +86,10 @@ class ValidThrowingTxIntegrationTest {
       createCounter(view, name, value);
 
       // Create the transaction
-      ValidThrowingTx tx = new ValidThrowingTx(0L);
+      ThrowingTx tx = new ThrowingTx(0L);
 
       // Execute the transaction
+      TransactionContext context = newContext(view).create();
       IllegalStateException expected = assertThrows(IllegalStateException.class,
           () -> tx.execute(context));
 
@@ -109,7 +106,7 @@ class ValidThrowingTxIntegrationTest {
 
   @Test
   void equals() {
-    EqualsVerifier.forClass(ValidThrowingTx.class)
+    EqualsVerifier.forClass(ThrowingTx.class)
         .verify();
   }
 }

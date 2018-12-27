@@ -20,8 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.exonum.binding.common.crypto.PublicKey;
-import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.fakes.services.service.TestService;
 import com.exonum.binding.service.adapters.UserServiceAdapter;
 import com.exonum.binding.service.adapters.UserTransactionAdapter;
@@ -29,16 +27,21 @@ import org.junit.jupiter.api.Test;
 
 class NativeFacadeTest {
 
-  private static final byte[] TX_HASH_BYTES = HashCode.fromInt(123).asBytes();
-  private static final byte[] AUTHOR_PK_BYTES = PublicKey.fromHexString("1234").toBytes();
-
   @Test
   void createThrowingIllegalArgumentInInfo() {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     UserTransactionAdapter transaction = NativeFacade.createThrowingTransaction(exceptionType);
 
-    assertThrows(exceptionType, () -> transaction.execute(1,
-        TX_HASH_BYTES, AUTHOR_PK_BYTES));
+    assertThrows(exceptionType, transaction::info);
+  }
+
+  @Test
+  void createTransactionWithInfo() {
+    String txValue = "value";
+    String txInfo = "{ \"info\": \"A custom transaction information\" }";
+    UserTransactionAdapter tx = NativeFacade.createTransaction(txValue, txInfo);
+
+    assertThat(tx.info(), equalTo(txInfo));
   }
 
   @Test

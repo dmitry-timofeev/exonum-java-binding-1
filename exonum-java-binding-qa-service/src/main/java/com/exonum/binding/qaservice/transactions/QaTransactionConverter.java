@@ -18,13 +18,10 @@ package com.exonum.binding.qaservice.transactions;
 
 import static com.exonum.binding.qaservice.transactions.QaTransaction.CREATE_COUNTER;
 import static com.exonum.binding.qaservice.transactions.QaTransaction.INCREMENT_COUNTER;
-import static com.exonum.binding.qaservice.transactions.QaTransaction.INVALID;
-import static com.exonum.binding.qaservice.transactions.QaTransaction.INVALID_THROWING;
 import static com.exonum.binding.qaservice.transactions.QaTransaction.VALID_ERROR;
 import static com.exonum.binding.qaservice.transactions.QaTransaction.VALID_THROWING;
-import static com.google.common.base.Preconditions.checkArgument;
+import static com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkServiceId;
 
-import com.exonum.binding.qaservice.QaService;
 import com.exonum.binding.service.TransactionConverter;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
@@ -40,10 +37,8 @@ public final class QaTransactionConverter implements TransactionConverter {
       ImmutableMap.<Short, Function<RawTransaction, Transaction>>builder()
           .put(INCREMENT_COUNTER.id(), IncrementCounterTx.converter()::fromRawTransaction)
           .put(CREATE_COUNTER.id(), CreateCounterTx.converter()::fromRawTransaction)
-          .put(INVALID.id(), InvalidTx.converter()::fromRawTransaction)
-          .put(INVALID_THROWING.id(), InvalidThrowingTx.converter()::fromRawTransaction)
-          .put(VALID_THROWING.id(), ValidThrowingTx.converter()::fromRawTransaction)
-          .put(VALID_ERROR.id(), ValidErrorTx.converter()::fromRawTransaction)
+          .put(VALID_THROWING.id(), ThrowingTx.converter()::fromRawTransaction)
+          .put(VALID_ERROR.id(), ErrorTx.converter()::fromRawTransaction)
           .build();
 
   @Override
@@ -57,12 +52,4 @@ public final class QaTransactionConverter implements TransactionConverter {
         .apply(rawTransaction);
   }
 
-  /* Review: possibly, can replace this method with one, extracted from
-  `com.exonum.binding.qaservice.transactions.TransactionPreconditions.checkTransaction`
-   */
-  private static void checkServiceId(RawTransaction rawTransaction) {
-    short serviceId = rawTransaction.getServiceId();
-    checkArgument(serviceId == QaService.ID,
-        "Wrong service id (%s), must be %s", serviceId, QaService.ID);
-  }
 }

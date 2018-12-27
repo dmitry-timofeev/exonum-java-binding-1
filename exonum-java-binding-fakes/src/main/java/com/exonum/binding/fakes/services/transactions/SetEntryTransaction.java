@@ -36,25 +36,28 @@ public final class SetEntryTransaction implements Transaction {
 
   /* Review: Are there two same constants? */
   static final String ENTRY_NAME = "test_entry";
-  static final String TEST_ENTRY_NAME = "test_entry";
   static final String TX_HASH_NAME = "tx_hash";
   static final String AUTHOR_PK_NAME = "author_pk";
 
   private final String value;
+  private final String info;
 
   /**
    * Creates a transaction with a pre-configured behaviour.
    *
-   * @param value a value to put into an entry {@link #TEST_ENTRY_NAME}
+   * @param value a value to put into an entry {@link #ENTRY_NAME}
+   * @param info a value to be returned as this transaction text representation
+   *     {@link Transaction#info()}
    */
-  public SetEntryTransaction(String value) {
+  public SetEntryTransaction(String value, String info) {
     this.value = checkNotNull(value);
+    this.info = checkNotNull(info);
   }
 
   @Override
   public void execute(TransactionContext context) {
     Fork fork = context.getFork();
-    EntryIndexProxy<String> entry = createTestEntry(context.getFork());
+    EntryIndexProxy<String> entry = createTestEntry(fork);
     entry.set(value);
     EntryIndexProxy<HashCode> txHash = createTxHashEntry(fork);
     txHash.set(context.getTransactionMessageHash());
@@ -62,8 +65,13 @@ public final class SetEntryTransaction implements Transaction {
     authorPk.set(context.getAuthorPk());
   }
 
+  @Override
+  public String info() {
+    return info;
+  }
+
   private EntryIndexProxy<String> createTestEntry(Fork view) {
-    return EntryIndexProxy.newInstance(TEST_ENTRY_NAME, view, StandardSerializers.string());
+    return EntryIndexProxy.newInstance(ENTRY_NAME, view, StandardSerializers.string());
   }
 
   private EntryIndexProxy<HashCode> createTxHashEntry(Fork view) {

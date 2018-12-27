@@ -18,14 +18,18 @@ package com.exonum.binding.qaservice.transactions;
 
 import static com.exonum.binding.common.hash.Hashing.defaultHashFunction;
 import static com.exonum.binding.common.hash.Hashing.sha256;
+import static com.exonum.binding.common.serialization.json.JsonSerializer.json;
 import static com.exonum.binding.qaservice.transactions.CreateCounterTxIntegrationTest.createCounter;
 import static com.exonum.binding.qaservice.transactions.IncrementCounterTx.converter;
 import static com.exonum.binding.qaservice.transactions.QaTransaction.INCREMENT_COUNTER;
+import static com.exonum.binding.qaservice.transactions.TestContextBuilder.newContext;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.proxy.Cleaner;
@@ -42,6 +46,7 @@ import com.exonum.binding.test.RequiresNativeLibrary;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.TransactionContext;
 import com.exonum.binding.util.LibraryLoader;
+import com.google.gson.reflect.TypeToken;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
@@ -54,7 +59,7 @@ class IncrementCounterTxIntegrationTest {
   @Test
   void converterRejectsWrongServiceId() {
     RawTransaction tx = txTemplate()
-        .serviceId((short) (QaService.ID + 1))
+        .serviceId((short) -1)
         .build();
 
     assertThrows(IllegalArgumentException.class,
@@ -64,7 +69,7 @@ class IncrementCounterTxIntegrationTest {
   @Test
   void converterRejectsWrongTxId() {
     RawTransaction tx = txTemplate()
-        .transactionId((short) (INCREMENT_COUNTER.id() + 1))
+        .transactionId((short) -1)
         .build();
 
     assertThrows(IllegalArgumentException.class,
@@ -78,9 +83,9 @@ class IncrementCounterTxIntegrationTest {
 
     IncrementCounterTx tx = new IncrementCounterTx(seed, counterId);
     RawTransaction raw = converter().toRawTransaction(tx);
-    IncrementCounterTx txFromMessage = converter().fromRawTransaction(raw);
+    IncrementCounterTx txFromRaw = converter().fromRawTransaction(raw);
 
-    assertThat(txFromMessage, equalTo(tx));
+    assertThat(txFromRaw, equalTo(tx));
   }
 
   @Test
@@ -99,10 +104,11 @@ class IncrementCounterTxIntegrationTest {
       long seed = 0L;
       HashCode nameHash = defaultHashFunction().hashString(name, UTF_8);
       IncrementCounterTx tx = new IncrementCounterTx(seed, nameHash);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
+
+      // Execute the transaction
+      TransactionContext context = spy(newContext(view).create());
       tx.execute(context);
+      verify(context).getFork();
 
       // Check the counter has an incremented value
       QaSchema schema = new QaSchema(view);
@@ -123,11 +129,12 @@ class IncrementCounterTxIntegrationTest {
       long seed = 0L;
       String name = "unknown-counter";
       HashCode nameHash = defaultHashFunction().hashString(name, UTF_8);
+
+      // Execute the transaction
       IncrementCounterTx tx = new IncrementCounterTx(seed, nameHash);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
+      TransactionContext context = spy(newContext(view).create());
       tx.execute(context);
+      verify(context).getFork();
 
       // Check there isn’t such a counter after tx execution
       QaSchema schema = new QaSchema(view);
@@ -136,6 +143,23 @@ class IncrementCounterTxIntegrationTest {
       assertFalse(counters.containsKey(nameHash));
       assertFalse(counterNames.containsKey(nameHash));
     }
+  }
+
+  @Test
+  void info() {
+    // Create a transaction with the given parameters.
+    long seed = Long.MAX_VALUE - 1;
+    String name = "new_counter";
+    HashCode nameHash = defaultHashFunction().hashString(name, UTF_8);
+    IncrementCounterTx tx = new IncrementCounterTx(seed, nameHash);
+
+    String info = tx.info();
+
+    // Check the transaction parameters in JSON
+    AnyTransaction<IncrementCounterTx> txParameters = json().fromJson(info,
+        new TypeToken<AnyTransaction<IncrementCounterTx>>(){}.getType());
+
+    assertThat(txParameters.body, equalTo(tx));
   }
 
   @Test

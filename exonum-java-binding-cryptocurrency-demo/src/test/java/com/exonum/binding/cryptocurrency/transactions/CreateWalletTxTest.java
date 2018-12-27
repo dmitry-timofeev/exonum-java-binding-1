@@ -16,14 +16,17 @@
 
 package com.exonum.binding.cryptocurrency.transactions;
 
+import static com.exonum.binding.common.serialization.json.JsonSerializer.json;
 import static com.exonum.binding.cryptocurrency.transactions.CreateWalletTransactionUtils.DEFAULT_BALANCE;
 import static com.exonum.binding.cryptocurrency.transactions.CreateWalletTransactionUtils.createRawTransaction;
+import static com.exonum.binding.cryptocurrency.transactions.TestContextBuilder.newContext;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionError.WALLET_ALREADY_EXISTS;
-import static com.exonum.binding.test.Bytes.bytes;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.cryptocurrency.CryptocurrencySchema;
@@ -54,21 +57,11 @@ class CreateWalletTxTest {
   @Test
   void fromRawTransaction() {
     long initialBalance = 100L;
-    RawTransaction raw = createRawTransaction(OWNER_KEY, initialBalance);
+    RawTransaction raw = createRawTransaction(initialBalance);
 
     CreateWalletTx tx = CreateWalletTx.fromRawTransaction(raw);
 
-    assertThat(tx, equalTo(new CreateWalletTx(OWNER_KEY, initialBalance)));
-  }
-
-  @Test
-  void constructorRejectsInvalidSizedKey() {
-    PublicKey publicKey = PublicKey.fromBytes(bytes(0x01));
-
-    Throwable t = assertThrows(IllegalArgumentException.class,
-        () -> new CreateWalletTx(publicKey, DEFAULT_BALANCE)
-    );
-    assertThat(t.getMessage(), equalTo("Public key has invalid size (1), must be 32 bytes long."));
+    assertThat(tx, equalTo(new CreateWalletTx(initialBalance)));
   }
 
   @Test
@@ -76,26 +69,27 @@ class CreateWalletTxTest {
     long initialBalance = -1L;
 
     Throwable t = assertThrows(IllegalArgumentException.class,
-        () -> new CreateWalletTx(OWNER_KEY, initialBalance)
-    );
-    assertThat(t.getMessage(), equalTo("The initial balance (-1) must not be negative."));
+        () -> new CreateWalletTx(initialBalance));
 
+    assertThat(t.getMessage(), equalTo("The initial balance (-1) must not be negative."));
   }
 
   @Test
   @RequiresNativeLibrary
   void executeCreateWalletTx() throws Exception {
-    CreateWalletTx tx = new CreateWalletTx(OWNER_KEY, DEFAULT_BALANCE);
+    CreateWalletTx tx = new CreateWalletTx(DEFAULT_BALANCE);
 
     try (Database db = MemoryDb.newInstance();
         Cleaner cleaner = new Cleaner()) {
       Fork view = db.createFork(cleaner);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .authorPk(OWNER_KEY)
-          .build();
 
+      // Execute the transaction
+      TransactionContext context = spy(newContext(view)
+          .withAuthorKey(OWNER_KEY)
+          .create());
       tx.execute(context);
+      verify(context).getFork();
+      verify(context).getAuthorPk();
 
       // Check that entries have been added.
       CryptocurrencySchema schema = new CryptocurrencySchema(view);
@@ -125,18 +119,27 @@ class CreateWalletTxTest {
       // Execute the transaction, that has the same owner key.
       // Use twice the initial balance to detect invalid updates.
       long newBalance = 2 * initialBalance;
-      CreateWalletTx tx = new CreateWalletTx(OWNER_KEY, newBalance);
-
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .authorPk(OWNER_KEY)
-          .build();
-
+      CreateWalletTx tx = new CreateWalletTx(newBalance);
+      TransactionContext context = newContext(view)
+          .withAuthorKey(OWNER_KEY)
+          .create();
       TransactionExecutionException e = assertThrows(
           TransactionExecutionException.class, () -> tx.execute(context));
 
       assertThat(e.getErrorCode(), equalTo(WALLET_ALREADY_EXISTS.errorCode));
     }
+  }
+
+  @Test
+  void info() {
+    CreateWalletTx tx = new CreateWalletTx(DEFAULT_BALANCE);
+
+    String info = tx.info();
+
+    CreateWalletTx txParams = json()
+        .fromJson(info, CreateWalletTx.class);
+
+    assertThat(txParams, equalTo(tx));
   }
 
   @Test

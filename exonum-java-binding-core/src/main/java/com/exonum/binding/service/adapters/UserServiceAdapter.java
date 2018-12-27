@@ -76,7 +76,6 @@ public class UserServiceAdapter {
    *
    * <p>The callee must handle the declared exceptions.
    *
-   * @param serviceId an identifier of the service
    * @param transactionId an identifier of the transaction
    * @param payload a transaction payload
    * @return an executable transaction of this service
@@ -85,12 +84,11 @@ public class UserServiceAdapter {
    * @throws IllegalArgumentException if message is not a valid transaction message of this service
    */
   /* Review: Shall we pass serviceId (considering the future changes)? */
-  public UserTransactionAdapter convertTransaction(short serviceId, short transactionId,
-      byte[] payload) {
+  public UserTransactionAdapter convertTransaction(short transactionId, byte[] payload) {
     try {
       checkNotNull(payload);
       RawTransaction rawTransaction = RawTransaction.newBuilder()
-          .serviceId(serviceId)
+          .serviceId(service.getId())
           .transactionId(transactionId)
           .payload(payload)
           .build();
@@ -102,11 +100,12 @@ public class UserServiceAdapter {
 
       return new UserTransactionAdapter(transaction, viewFactory);
     } catch (NullPointerException | IllegalArgumentException e) {
-      logger.warn("Failed to convert transaction {} for service {}", transactionId, serviceId, e);
+      logger.warn("Failed to convert transaction {} for service {}",
+          transactionId, service.getId(), e);
       throw e;
     } catch (Exception e) {
       logger.error("Unexpected exception occurs at convert transaction {} for service {}",
-          transactionId, serviceId, e);
+          transactionId, service.getId(), e);
       throw e;
     }
   }

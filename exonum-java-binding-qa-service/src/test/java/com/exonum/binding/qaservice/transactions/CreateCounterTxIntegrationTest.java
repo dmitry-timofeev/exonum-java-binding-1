@@ -17,13 +17,17 @@
 package com.exonum.binding.qaservice.transactions;
 
 import static com.exonum.binding.common.hash.Hashing.defaultHashFunction;
+import static com.exonum.binding.common.serialization.json.JsonSerializer.json;
 import static com.exonum.binding.qaservice.transactions.CreateCounterTx.converter;
 import static com.exonum.binding.qaservice.transactions.QaTransaction.CREATE_COUNTER;
+import static com.exonum.binding.qaservice.transactions.TestContextBuilder.newContext;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.proxy.Cleaner;
@@ -39,6 +43,7 @@ import com.exonum.binding.test.RequiresNativeLibrary;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.TransactionContext;
 import com.exonum.binding.util.LibraryLoader;
+import com.google.gson.reflect.TypeToken;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
@@ -51,7 +56,7 @@ class CreateCounterTxIntegrationTest {
   @Test
   void converterRejectsWrongServiceId() {
     RawTransaction tx = txTemplate()
-        .serviceId((short) (QaService.ID + 1))
+        .serviceId((short) -1)
         .build();
 
     assertThrows(IllegalArgumentException.class, () -> converter().fromRawTransaction(tx));
@@ -60,7 +65,7 @@ class CreateCounterTxIntegrationTest {
   @Test
   void converterRejectsWrongTxId() {
     RawTransaction tx = txTemplate()
-        .transactionId((short) (CREATE_COUNTER.id() + 1))
+        .transactionId((short) -1)
         .build();
 
     assertThrows(IllegalArgumentException.class, () -> converter().fromRawTransaction(tx));
@@ -72,10 +77,9 @@ class CreateCounterTxIntegrationTest {
     CreateCounterTx tx = new CreateCounterTx(name);
 
     RawTransaction raw = converter().toRawTransaction(tx);
-    // Review: txFromRaw — here and elsewhere in tests!
-    CreateCounterTx txFromMessage = converter().fromRawTransaction(raw);
+    CreateCounterTx txFromRaw = converter().fromRawTransaction(raw);
 
-    assertThat(txFromMessage, equalTo(tx));
+    assertThat(txFromRaw, equalTo(tx));
   }
 
   @Test
@@ -97,20 +101,19 @@ class CreateCounterTxIntegrationTest {
     try (Database db = MemoryDb.newInstance();
         Cleaner cleaner = new Cleaner()) {
       Fork view = db.createFork(cleaner);
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
 
       // Execute the transaction
+      TransactionContext context = spy(newContext(view).create());
       tx.execute(context);
+      // Review: Here and elsewhere — why?
+      verify(context).getFork();
 
       // Check it has added entries in both maps.
       QaSchema schema = new QaSchema(view);
       MapIndex<HashCode, Long> counters = schema.counters();
       MapIndex<HashCode, String> counterNames = schema.counterNames();
 
-      HashCode nameHash = defaultHashFunction()
-          .hashString(name, UTF_8);
+      HashCode nameHash = defaultHashFunction().hashString(name, UTF_8);
 
       assertThat(counters.get(nameHash), equalTo(0L));
       assertThat(counterNames.get(nameHash), equalTo(name));
@@ -133,14 +136,9 @@ class CreateCounterTxIntegrationTest {
 
       // Execute the transaction, that has the same name.
       CreateCounterTx tx = new CreateCounterTx(name);
-      /*
-      Review: Shan't we create a tests-wide method aContext(Fork) -> TransactionContext.Builder
-      or even createContext(Fork) -> TransactionContext that sets defaults?
-       */
-      TransactionContext context = TransactionContext.builder()
-          .fork(view)
-          .build();
+      TransactionContext context = spy(newContext(view).create());
       tx.execute(context);
+      verify(context).getFork();
 
       // Check it has not changed the entries in the maps.
       QaSchema schema = new QaSchema(view);
@@ -151,6 +149,22 @@ class CreateCounterTxIntegrationTest {
       assertThat(counters.get(nameHash), equalTo(value));
     }
   }
+
+  @Test
+  void info() {
+    String name = "counter";
+    CreateCounterTx tx = new CreateCounterTx(name);
+
+    String info = tx.info();
+
+    AnyTransaction<CreateCounterTx> txParams = json().fromJson(info,
+        new TypeToken<AnyTransaction<CreateCounterTx>>(){}.getType()
+    );
+    assertThat(txParams.service_id, equalTo(QaService.ID));
+    assertThat(txParams.message_id, equalTo(CREATE_COUNTER.id()));
+    assertThat(txParams.body, equalTo(tx));
+  }
+
 
   @Test
   void equals() {

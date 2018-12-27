@@ -1,32 +1,33 @@
-extern crate exonum_testkit;
 extern crate integration_tests;
 extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
+extern crate exonum_testkit;
 #[macro_use]
 extern crate serde_derive;
-
-use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::Arc;
-
-use exonum_testkit::TestKitBuilder;
 
 use integration_tests::{
     mock::{service::ServiceMockBuilder, transaction::create_empty_raw_transaction},
     test_service::{create_test_map, create_test_service, INITIAL_ENTRY_KEY, INITIAL_ENTRY_VALUE},
     vm::create_vm_for_tests_with_fake_classes,
 };
+
 use java_bindings::{
     exonum::{
         blockchain::Service,
         crypto::hash,
         storage::{Database, MemoryDB},
     },
-    jni::{JavaVM, objects::JObject},
-    JniExecutor,
-    MainExecutor,
-    serde_json::{self, Value}, utils::{any_to_string, convert_to_string, unwrap_jni},
+    jni::{objects::JObject, JavaVM},
+    serde_json::{self, Value},
+    utils::{any_to_string, convert_to_string, unwrap_jni},
+    JniExecutor, MainExecutor,
 };
+
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::Arc;
+
+use exonum_testkit::TestKitBuilder;
 
 lazy_static! {
     static ref VM: Arc<JavaVM> = create_vm_for_tests_with_fake_classes();

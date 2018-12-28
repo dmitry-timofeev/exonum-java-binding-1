@@ -16,6 +16,7 @@
 
 package com.exonum.binding.transaction;
 
+import com.exonum.binding.blockchain.Blockchain;
 import com.exonum.binding.common.crypto.CryptoFunctions;
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
@@ -41,7 +42,13 @@ Also, please add that
   in the blockchain (link Blockchain#getMessages) and can be fetched by this hash.
    */
   /**
-   * Returns SHA-256 hash of the transaction message.
+   * Returns SHA-256 hash of the transaction message
+   * {@linkplain com.exonum.binding.common.message.BinaryTransactionMessage}
+   * that carried the payload from which the transaction was created
+   * {@linkplain com.exonum.binding.service.TransactionConverter}.
+   * Each transaction message is uniquely identified by its hash.
+   * The messages are persisted in the blockchain {@link Blockchain#getTxMessages()}
+   * and can be fetched by this hash.
    */
   HashCode getTransactionMessageHash();
 

@@ -15,47 +15,29 @@
  *
  */
 
-package com.exonum.binding.cryptocurrency.transactions;
+package com.exonum.binding.qaservice.transactions;
 
 import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.storage.database.Fork;
 import com.exonum.binding.transaction.TransactionContext;
 
-final class TestContextBuilder {
+/**
+ * Helper class to provide preconfigured context with default values.
+ */
+public final class ContextUtils {
   private static final HashCode DEFAULT_HASH = HashCode.fromString("a0b0c0d0");
   private static final PublicKey DEFAULT_AUTHOR_KEY = PublicKey.fromHexString("abcd");
 
-  private final TransactionContext.Builder builder;
-
-  /*
-  Review: I am not sure I understand why this class is needed as a builder and not
-  as a single method newContext that returns a preconfigured `TransactionContext.Builder`
-  that already has all required methods.
+  /**
+   * Returns new context with default values for a given view.
    */
-  private TestContextBuilder(Fork view) {
-    this.builder = TransactionContext.builder()
+  public static TransactionContext newContext(Fork view) {
+    return TransactionContext.builder()
         .fork(view)
         .txMessageHash(DEFAULT_HASH)
-        .authorPk(DEFAULT_AUTHOR_KEY);
-  }
-
-  static TestContextBuilder newContext(Fork view) {
-    return new TestContextBuilder(view);
-  }
-
-  TransactionContext create() {
-    return builder.build();
-  }
-
-  TestContextBuilder withTxMessageHash(HashCode hash) {
-    builder.txMessageHash(hash);
-    return this;
-  }
-
-  TestContextBuilder withAuthorKey(PublicKey key) {
-    builder.authorPk(key);
-    return this;
+        .authorPk(DEFAULT_AUTHOR_KEY)
+        .build();
   }
 
 }

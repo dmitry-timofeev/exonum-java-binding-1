@@ -19,7 +19,6 @@ package com.exonum.binding.service;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.exonum.binding.common.hash.HashCode;
-import com.exonum.binding.common.hash.Hashing;
 import com.exonum.binding.proxy.Cleaner;
 import com.exonum.binding.proxy.CloseFailuresException;
 import com.exonum.binding.storage.database.MemoryDb;
@@ -90,8 +89,8 @@ public final class NodeFake implements Node {
   @Override
   public HashCode submitTransaction(RawTransaction transaction) {
     checkNotNull(transaction);
-    // Review: I'd use a 32-byte HashCode as the default.
-    return null;
+    // Review: `HashCode.fromBytes(new byte[32]);`
+    return HashCode.fromString("00000000000000000000000000000000");
   }
 
   @Override

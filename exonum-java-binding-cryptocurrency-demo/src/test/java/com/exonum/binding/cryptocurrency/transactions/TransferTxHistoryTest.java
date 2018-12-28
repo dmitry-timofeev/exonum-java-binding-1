@@ -57,13 +57,6 @@ class TransferTxHistoryTest {
     try (Database db = MemoryDb.newInstance();
         Cleaner cleaner = new Cleaner()) {
       Fork view = db.createFork(cleaner);
-      /*
-      Review: it is generally not OK to reuse a context for two different transactions:
-      (1) The hash is the same, but two different txs can't have the same hash.
-      (2) The signer is the same, which, again, with two different txs is not possible.
-
-      Why is the same hash used for different transactions?
-       */
 
 
       // Create wallets with the given initial balances

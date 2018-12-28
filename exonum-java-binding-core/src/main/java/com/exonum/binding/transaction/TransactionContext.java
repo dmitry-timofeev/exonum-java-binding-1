@@ -42,13 +42,11 @@ Also, please add that
   in the blockchain (link Blockchain#getMessages) and can be fetched by this hash.
    */
   /**
-   * Returns SHA-256 hash of the transaction message
-   * {@linkplain com.exonum.binding.common.message.BinaryTransactionMessage}
-   * that carried the payload from which the transaction was created
-   * {@linkplain com.exonum.binding.service.TransactionConverter}.
-   * Each transaction message is uniquely identified by its hash.
-   * The messages are persisted in the blockchain {@link Blockchain#getTxMessages()}
-   * and can be fetched by this hash.
+   * Returns SHA-256 hash of the {@linkplain com.exonum.binding.common.message.TransactionMessage
+   * transaction message} that carried the payload from which the transaction was
+   * {@linkplain com.exonum.binding.service.TransactionConverter created}.
+   * Each transaction message is uniquely identified by its hash; the messages are persisted
+   * in the {@linkplain Blockchain#getTxMessages() blockchain} and can be fetched by this hash.
    */
   HashCode getTransactionMessageHash();
 
@@ -66,9 +64,6 @@ Also, please add that
     return new Builder();
   }
 
-  /*
-   Review: (nit) It's good, but I'd consider autogenerating InternalTransactionContext and its builder.
-   */
   /**
    * Transaction context builder.
    */

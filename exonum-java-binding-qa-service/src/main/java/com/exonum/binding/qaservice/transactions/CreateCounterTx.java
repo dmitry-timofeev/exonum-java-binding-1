@@ -70,7 +70,6 @@ public final class CreateCounterTx implements Transaction {
     return QaTransactionJson.toJson(ID, this);
   }
 
-  // Review: (to self) Why is it needed?
   public RawTransaction toRawTransaction() {
     return converter().toRawTransaction(this);
   }
@@ -96,7 +95,6 @@ public final class CreateCounterTx implements Transaction {
     return Converter.INSTANCE;
   }
 
-  /* Review: (to self) Why is it needed? */
   private enum Converter implements BiDirectionTransactionConverter<CreateCounterTx> {
     INSTANCE;
 

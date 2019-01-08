@@ -57,15 +57,10 @@ class SetEntryTransactionIntegrationTest {
       Fork fork = database.createFork(cleaner);
 
       SetEntryTransaction tx = new SetEntryTransaction(value, "");
-      // Review: Shan't this test also test new behaviours (verify is sloppy)?
 
       // Execute the transaction
       TransactionContext context = newContext(fork);
       tx.execute(context);
-
-      /* Review: These verifies are off. Below is a proper test of the behaviour of this transaction —
-that it writes the expected entries in the database.
-       */
 
       database.merge(fork);
 

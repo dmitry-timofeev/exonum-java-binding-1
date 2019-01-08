@@ -132,8 +132,6 @@ class IncrementCounterTxIntegrationTest {
       TransactionContext context = newContext(view);
       tx.execute(context);
 
-      // Review: What, why don't we execute this tx?
-
       // Check there isn’t such a counter after tx execution
       QaSchema schema = new QaSchema(view);
       MapIndex<HashCode, Long> counters = schema.counters();

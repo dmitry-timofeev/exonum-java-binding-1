@@ -26,6 +26,7 @@ enum SchemaType {
 
 /// Returns pointer to created TimeSchemaProxy object
 #[no_mangle]
+// Review: Why is this needed at all if this object does not have _any_ operations?
 pub extern "system" fn Java_com_exonum_binding_time_TimeSchemaProxy_nativeCreate(
     env: JNIEnv,
     _: JClass,

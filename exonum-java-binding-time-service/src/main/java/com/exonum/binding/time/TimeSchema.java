@@ -27,6 +27,7 @@ import java.util.List;
 /**
  * Exonum time service database schema.
  */
+// Review: Why does it extend the Schema?
 public interface TimeSchema extends Schema {
 
   /**

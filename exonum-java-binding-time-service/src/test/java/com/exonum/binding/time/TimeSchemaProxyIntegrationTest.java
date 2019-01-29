@@ -47,6 +47,7 @@ class TimeSchemaProxyIntegrationTest {
   }
 
   private static void assertSchema(Consumer<TimeSchemaProxy> assertion) {
+    // Review: Please do not put several statements in a single line: https://google.github.io/styleguide/javaguide.html#s4.3-one-statement-per-line
     try (MemoryDb db = MemoryDb.newInstance(); Cleaner cleaner = new Cleaner()) {
       Snapshot view = db.createSnapshot(cleaner);
       assertion.accept(TimeSchemaProxy.newInstance(view));

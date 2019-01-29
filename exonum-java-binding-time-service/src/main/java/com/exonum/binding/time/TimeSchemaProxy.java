@@ -41,6 +41,8 @@ public class TimeSchemaProxy implements TimeSchema {
     this.dbView = dbView;
   }
 
+  // Review: Why does it need to be a proxy of a native object, if that native object does not provide any
+  // useful operations?
   /**
    * Constructs a schema proxy for a given dbView.
    */

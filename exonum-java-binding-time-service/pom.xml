@@ -14,12 +14,13 @@
     <name>Exonum Time Service</name>
     <url>https://exonum.com/doc/version/latest/advanced/time/</url>
 
+ <!-- Review: This POM does not seem to be formatted according to our conventions (use 2 spaces, and apply tidy-pom). -->
     <properties>
         <ejb-core.nativeLibPath>${project.parent.basedir}/exonum-java-binding-core/rust/target/debug
         </ejb-core.nativeLibPath>
         <junit.jupiter.version>5.3.2</junit.jupiter.version>
     </properties>
-
+<!-- Review: Why do we need 'depManagement' and EJB-BOM? Aren't all dependencies listed in 'depManagement' in the parent? -->
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -69,5 +70,6 @@
                 </configuration>
             </plugin>
         </plugins>
+        <!-- Review: Just to confirm: this project won't be released if we do it now, will it? -->
     </build>
 </project>

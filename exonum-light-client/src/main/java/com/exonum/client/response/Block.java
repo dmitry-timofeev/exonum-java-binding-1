@@ -80,6 +80,8 @@ public class Block {
    * Can be empty if show time parameter is not specified in the request.
    */
   public Optional<ZonedDateTime> getCommitTime() {
+    // Review: I assume from this that lombok allows all references to be null by default?
+    //   If that's the case, please change that for hashes so that they are non-null.
     return Optional.ofNullable(commitTime);
   }
 

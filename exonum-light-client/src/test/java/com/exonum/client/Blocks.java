@@ -23,6 +23,7 @@ import java.time.ZonedDateTime;
 final class Blocks {
   static final String BLOCK_1_JSON = "{\n"
       + "        'proposer_id': 3,\n"
+      // Review: As they usually go as 1, 2, 3, I'd set heights accordingly (now they are 1, 21, 16, but must be in desc order, mustn't they?)
       + "        'height': 1,\n"
       + "        'tx_count': 1,\n"
       + "        'prev_hash': 'abc8',\n"

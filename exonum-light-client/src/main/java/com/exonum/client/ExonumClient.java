@@ -87,6 +87,7 @@ public interface ExonumClient {
    * of blocks plus one.
    *
    * <p>For example, the "genesis" block has height {@code h = 0}. The latest committed block
+   * Review: What is getBlockHashes?
    * has height {@code h = getBlockHashes().size() - 1}.
    *
    * @throws RuntimeException if the client is unable to complete a request
@@ -101,6 +102,7 @@ public interface ExonumClient {
    * @throws RuntimeException if the client is unable to complete a request
    *        (e.g., in case of connectivity problems)
    * @throws RuntimeException if block is not found by the requested height,
+   * Review: than
    *        i.e. the requested height is greater then actual blockchain height
    * @throws IllegalArgumentException if the given height is negative
    */
@@ -109,11 +111,13 @@ public interface ExonumClient {
   /**
    * Returns blockchain blocks information for the requested range.
    * @param count Number of blocks to return.
+   *  Review: there must be an error.
    *        It should not be negative and should not be greater then
    *        It should be in range [1, {@linkplain ExonumApi#MAX_BLOCKS_PER_REQUEST}]
    * @param skipEmpty if {@code true}, then only non-empty blocks will be returned
    * @param heightMax maximum height of the returned blocks. The blocks are returned
    *        in reverse order, starting from the <b>heightMax</b> and
+   *  Review: at least up to the — I don't like the wording.
    *        at least up to the <b>heightMax - count + 1</b>.
    *        If the <b>heightMax</b> is greater than actual blockchain height then
    *        the actual height will be used
@@ -149,6 +153,7 @@ public interface ExonumClient {
   /**
    * Returns the last block in the blockchain.
    * @param withTime if {@code true}, then includes block commit times in the response;
+   * Review: or an empty times — ?
    *        or an empty times {@code false}. See {@linkplain Block#getCommitTime()}.
    *        The time value corresponds to the average time of submission of precommits by the
    *        validators for every returned block

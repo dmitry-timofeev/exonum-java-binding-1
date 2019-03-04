@@ -131,6 +131,11 @@ class ExonumHttpClient implements ExonumClient {
         .build();
     Request request = get(url);
 
+    /*
+     Review:
+Shall we check after parsing that height == requestedHeight? Or will we get an exception as specified in the docs with the present code?
+      */
+
     return blockingExecuteAndParse(request, ExplorerApiHelper::parseGetBlockResponse);
   }
 

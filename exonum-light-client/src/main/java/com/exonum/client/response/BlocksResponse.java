@@ -36,5 +36,6 @@ public class BlocksResponse {
    * The largest height of the returned blocks that match the search criteria.
    * if blocks have gaps then: {@code blocksRangeEnd - blocksRangeStart != blocks.size}
    */
+  // Review: If some blocks in the range does not (match the search criteria) then…
   long blocksRangeEnd;
 }

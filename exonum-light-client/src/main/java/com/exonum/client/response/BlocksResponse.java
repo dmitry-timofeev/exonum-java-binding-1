@@ -37,6 +37,5 @@ public class BlocksResponse {
    * If some blocks in the range do not match the search criteria then:
    * {@code blocksRangeEnd - blocksRangeStart != blocks.size}.
    */
-  // Review: If some blocks in the range does not (match the search criteria) then…
   long blocksRangeEnd;
 }

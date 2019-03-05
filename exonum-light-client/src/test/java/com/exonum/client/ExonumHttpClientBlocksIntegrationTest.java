@@ -182,37 +182,6 @@ class ExonumHttpClientBlocksIntegrationTest {
   @ValueSource(ints = {Integer.MIN_VALUE, -1, 0, MAX_BLOCKS_PER_REQUEST + 1, Integer.MAX_VALUE})
   void getLastBlocksWrongBlocksCount(int blocksCount) {
     assertThrows(IllegalArgumentException.class,
-        /*
-        Review:
-Such number of flags makes me wonder if we can do better.
-```java
-enum BlockRequestOption {
-  SKIP_EMPTY_BLOCKS,
-  INCLUDE_COMMIT_TIME,
-}
-
-getLastBlocks(long blocksCount, BlockRequestOption options...)
-// or
-getLastBlocks(long blocksCount, EnumSet<BlockRequestOption> options)
-
-// But what are defaults?
-```
-
-or
-
-```java
-enum BlockFilteringOption {
-  SKIP_EMPTY,
-  INCLUDE_EMPTY,
-}
-
-enum BlockRequestOption {
-  NO_COMMIT_TIME,
-  INCLUDE_COMMIT_TIME,
-}
-getLastBlocks(long blocksCount, BlockFilteringOption filterOption, BlockRequestOption requestOption)
-```
-         */
         () -> exonumClient.getLastBlocks(blocksCount, false, false));
   }
 

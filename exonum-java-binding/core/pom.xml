@@ -374,6 +374,7 @@
               <goal>build-classpath</goal>
             </goals>
           </execution>
+<!-- Review: Please document these executions -->
           <execution>
             <id>copy-core-jar</id>
             <phase>install</phase>
@@ -398,11 +399,17 @@ Also, why is this needed, if the code in packaging does a similar thing?
           </execution>
           <execution>
             <id>copy-core-dependencies</id>
+            <!--
+Review: Why bound to 'process-classes'? How is it different from ^?
+            -->
             <phase>process-classes</phase>
             <goals>
               <goal>copy-dependencies</goal>
             </goals>
             <configuration>
+<!--
+Review: A named property.
+-->
               <outputDirectory>${project.basedir}/rust/target/debug/lib/java</outputDirectory>
               <overWriteReleases>true</overWriteReleases>
               <overWriteSnapshots>true</overWriteSnapshots>

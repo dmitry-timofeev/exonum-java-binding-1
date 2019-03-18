@@ -384,6 +384,11 @@
               <outputDirectory>${project.basedir}/rust/target/debug/lib/java</outputDirectory>
               <artifactItems>
                 <artifactItem>
+                  <!--
+Review: Here and elsewhere, use properties please: `${project.groupId}`, etc.
+
+Also, why is this needed, if the code in packaging does a similar thing?
+-->
                   <groupId>com.exonum.binding</groupId>
                   <artifactId>exonum-java-binding-core</artifactId>
                   <version>0.5-SNAPSHOT</version>

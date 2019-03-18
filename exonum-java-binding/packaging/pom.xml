@@ -11,6 +11,9 @@
 
   <artifactId>exonum-java-binding-packaging</artifactId>
   <version>0.5-SNAPSHOT</version>
+  <!-- Review:
+If it's POM, then we don't seem to need skipping JAR (it's not bound): https://maven.apache.org/ref/3.6.0/maven-core/default-bindings.html#Plugin_bindings_for_pom_packaging
+-->
   <packaging>pom</packaging>
 
   <properties>
@@ -23,6 +26,7 @@
     <dependency>
       <groupId>com.exonum.binding</groupId>
       <artifactId>exonum-java-binding-core</artifactId>
+      <!-- Review: Here and elsewhere: ${project.version} -->
       <version>0.5-SNAPSHOT</version>
       <type>pom</type>
     </dependency>
@@ -30,6 +34,7 @@
     <dependency>
       <groupId>com.exonum.binding</groupId>
       <artifactId>exonum-time-oracle</artifactId>
+      <!-- Review: ${project.version} -->
       <version>0.5-SNAPSHOT</version>
       <type>pom</type>
     </dependency>
@@ -38,6 +43,13 @@
   <build>
     <plugins>
       <plugin><!--Do not create Jar-->
+        <!-- Review:
+I see that it is required because this project uses 'jar' packaging, which
+binds jar and install plugins by default. I'd add an issue to define a custom packaging
+for our use-case and *not* abuse the 'jar' packaging.
+
+It seems to be quite straightforward: https://stackoverflow.com/questions/1427722/how-do-i-create-a-new-packaging-type-for-maven
+-->
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
@@ -96,6 +108,11 @@
                 <id>copy-java-dependencies</id>
                 <phase>prepare-package</phase>
                 <goals>
+                  <!-- Review:
+> Goal that copies the project dependencies from the repository to a defined location.
+
+Why then we copy core and time-oracle explicitly above?
+                  -->
                   <goal>copy-dependencies</goal>
                 </goals>
                 <configuration>

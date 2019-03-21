@@ -16,10 +16,16 @@
   <description>A fake module used for packaging EJB App</description>
 
   <properties>
+    <!-- Review: What are 'immediate' files? -->
     <!--A directory used for storing immediate files while packaging the App-->
     <packaging.basedir>${project.parent.basedir}/core/rust/target/prepackage</packaging.basedir>
+    <!-- Review:
+This comment does not seem correct. Also, I don't see it being used. Maybe the other two properties
+shall use it?
+    -->
     <!--A directory containing Java dependencies of the App-->
     <packaging.rust>${project.parent.basedir}/core/rust</packaging.rust>
+<!-- Review: The comment does not seem correct. -->
     <!--A directory containing native dynamic libraries used by the App-->
     <packaging.java>${project.parent.basedir}/core/rust/target/debug/lib/java</packaging.java>
   </properties>

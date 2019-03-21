@@ -5,11 +5,11 @@
   <parent>
     <groupId>com.exonum.binding</groupId>
     <artifactId>exonum-java-binding-parent</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.6.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>exonum-java-binding-core</artifactId>
-  <version>0.5-SNAPSHOT</version>
+  <version>0.6.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Exonum Java Binding: Core</name>
@@ -25,8 +25,10 @@
     <rust.compiler.version>1.32.0</rust.compiler.version>
     <rust.compiler.features>resource-manager</rust.compiler.features>
     <rust.itSubCrate>integration_tests</rust.itSubCrate>
+    <!--A directory containing libjava_bindings native library-->
     <build.nativeLibPath>${project.basedir}/rust/target/debug</build.nativeLibPath>
-    <packaging.basedir>${project.basedir}/rust/target/prepackage</packaging.basedir>
+    <!--A directory containing native dynamic libraries used by the App-->
+    <packaging.native>${project.basedir}/rust/target/debug/lib/native</packaging.native>
     <auto-value.version>1.6.3</auto-value.version>
     <!-- Disable ITs that run during 'verify' phase as most of them require the native library. -->
     <skipITs>${project.skipJavaITs}</skipITs>
@@ -272,6 +274,7 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
         <executions>
+          <!--We need to copy libjava_bindings dynamic library to the <ejb-app-location>/lib/native directory-->
           <execution>
             <id>copy-native-lib</id>
             <phase>package</phase>
@@ -279,10 +282,10 @@
               <goal>copy-resources</goal>
             </goals>
             <configuration>
-              <outputDirectory>${project.basedir}/rust/target/debug/lib/native</outputDirectory>
+              <outputDirectory>${packaging.native}</outputDirectory>
               <resources>
                 <resource>
-                  <directory>${project.basedir}/rust/target/debug</directory>
+                  <directory>${build.nativeLibPath}</directory>
                   <includes>
                     <include>libjava_bindings.so</include>
                     <include>libjava_bindings.dylib</include>
@@ -367,55 +370,6 @@
           <outputFile>${project.build.directory}/ejb-core-classpath.txt</outputFile>
           <includeScope>runtime</includeScope>
         </configuration>
-        <executions>
-          <execution>
-            <id>generate-classpath-file</id>
-            <goals>
-              <goal>build-classpath</goal>
-            </goals>
-          </execution>
-<!-- Review: Please document these executions -->
-          <execution>
-            <id>copy-core-jar</id>
-            <phase>install</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.basedir}/rust/target/debug/lib/java</outputDirectory>
-              <artifactItems>
-                <artifactItem>
-                  <!--
-Review: Here and elsewhere, use properties please: `${project.groupId}`, etc.
-
-Also, why is this needed, if the code in packaging does a similar thing?
--->
-                  <groupId>com.exonum.binding</groupId>
-                  <artifactId>exonum-java-binding-core</artifactId>
-                  <version>0.5-SNAPSHOT</version>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
-          </execution>
-          <execution>
-            <id>copy-core-dependencies</id>
-            <!--
-Review: Why bound to 'process-classes'? How is it different from ^?
-            -->
-            <phase>process-classes</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-<!--
-Review: A named property.
--->
-              <outputDirectory>${project.basedir}/rust/target/debug/lib/java</outputDirectory>
-              <overWriteReleases>true</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
 
       <plugin>

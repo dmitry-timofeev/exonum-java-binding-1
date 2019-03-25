@@ -42,6 +42,10 @@ pub fn create() -> fabric::NodeBuilder {
 }
 
 // Prepares vector of `ServiceFactory` from services configuration file located at given path.
+/*
+Review: Will there be a *proper* error message for users in case this code panics?
+Shall panics be used in such a case?
+*/
 // Panics in case of problems with reading/validating of service configuration file.
 fn prepare_service_factories<P: AsRef<Path>>(path: P) -> Vec<Box<dyn ServiceFactory>> {
     // Read services definition from file.
@@ -68,6 +72,11 @@ fn prepare_service_factories<P: AsRef<Path>>(path: P) -> Vec<Box<dyn ServiceFact
     // Process system services first
     let mut all_system_service_factories = service_factories();
     for service_name in system_services {
+        /*
+Review:
+(Again) I find this code unreadable and unnatural, because it removes elements for no
+apparent reason when it needs to check if a factory is needed.
+        */
         match all_system_service_factories.remove(&service_name) {
             Some(factory) => {
                 resulting_factories.push(factory);
@@ -115,6 +124,9 @@ mod tests {
     use tempfile::{Builder, TempPath};
 
     #[test]
+    /*
+    Review: If that's it, such user-facing error message is not good enough.
+    */
     #[should_panic(expected = "Unable to load services definition")]
     fn nonexistent_file() {
         prepare_service_factories("nonexistent");
@@ -123,6 +135,9 @@ mod tests {
     #[test]
     #[should_panic(expected = "At least one user service should be defined")]
     fn missing_user_services() {
+        /*
+        Review: As it is *not* a config, but a path to it, please name accordingly.
+        */
         let cfg = create_config(
             "no_user_services.toml",
             r#"
@@ -150,6 +165,10 @@ mod tests {
     #[test]
     fn missing_system_services() {
         let cfg = create_config(
+            /*
+            Review: The file name is misleading. Why do we pass it at all if this method
+            returns a path?
+            */
             "no_user_services.toml",
             r#"
                 [user_services]
@@ -181,6 +200,9 @@ mod tests {
             .iter()
             .map(|factory| factory.service_name().to_string())
             .collect::<Vec<String>>();
+        /*
+        Review: Is it a temporary code?
+        */
         dbg!(f);
         assert!(contains_service(CONFIGURATION_SERVICE, &factories));
         assert!(contains_service(BTC_ANCHORING_SERVICE, &factories));

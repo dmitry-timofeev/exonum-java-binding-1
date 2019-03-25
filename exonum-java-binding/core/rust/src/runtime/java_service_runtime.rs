@@ -110,6 +110,12 @@ impl JavaServiceRuntime {
         unwrap_jni(self.executor.with_attached(|env| {
             let artifact_path = artifact_path.as_ref().to_str().unwrap();
             let artifact_path_obj: JObject = env.new_string(artifact_path)?.into();
+            /* Review:
+Why check_error_on_exception is used? It has a limited use when you need to distinguish
+`j.l.Error`s and `j.l.Exception`s. I don't see why this method shall handle them separately.
+
+Please also add that to the method documentation if its purpose is not clear.
+            */
             let artifact_id = check_error_on_exception(
                 env,
                 env.call_method(

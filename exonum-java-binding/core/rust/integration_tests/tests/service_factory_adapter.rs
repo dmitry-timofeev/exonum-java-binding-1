@@ -33,6 +33,10 @@ fn test_callbacks() {
     assert!(factory_adapter.command("run-dev").is_none());
     assert!(factory_adapter.command("generate-template").is_none());
 
+    /* Review: I suppose among several instances of such factories _first_ must *always* return Some,
+other — None: https://docs.rs/exonum/0.11.0/exonum/helpers/fabric/trait.ServiceFactory.html#method.command
+The trait spec does not say "I will only call this method once".
+*/
     // Make sure it returns Some for the `Run` command for the first time and `None` for any other call.
     let run_command_ext = factory_adapter.command("run");
     assert!(run_command_ext.is_some());

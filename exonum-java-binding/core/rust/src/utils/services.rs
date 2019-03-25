@@ -19,6 +19,12 @@ use toml;
 
 pub const PATH_TO_SERVICES_DEFINITION: &str = "ejb_app_services.toml";
 pub const CONFIGURATION_SERVICE: &str = "configuration";
+/* Review:
+Why this change, requiring all docs updates?
+I think the former are just as good (also, _ is not used in Java artifact names).
+
+time is good too.
+*/
 pub const BTC_ANCHORING_SERVICE: &str = "btc_anchoring";
 pub const TIME_SERVICE: &str = "exonum_time";
 
@@ -62,6 +68,10 @@ mod tests {
     use std::io::Write;
     use tempfile::{Builder, TempPath};
 
+    /*
+Review: At the moment it is unclear from method names if they test `parse_services` or
+the whole load definition. Could the thing under test be clarified?
+    */
     #[test]
     fn missed_system_services_section() {
         let cfg = r#"

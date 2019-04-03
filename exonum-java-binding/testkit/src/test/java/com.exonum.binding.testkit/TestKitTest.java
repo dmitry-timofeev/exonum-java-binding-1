@@ -32,12 +32,18 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+
 class TestKitTest {
 
   @Test
   void createTestKitForSingleService() {
     TestKit testKit = TestKit.forService(TestServiceModule.class);
     Service service = testKit.getService(TestService.SERVICE_ID, TestService.class);
+    /*
+Review: Shan't we test the other side-effects of creating a testkit (= service initialization, mounting of web handlers)?
+I think we can do that with a service implementation that produces some effects in its #initialize and returns
+some value.
+     */
     assertEquals(service.getId(), TestService.SERVICE_ID);
     assertEquals(service.getName(), TestService.SERVICE_NAME);
   }
@@ -55,6 +61,7 @@ class TestKitTest {
   @Test
   void createTestKitWithBuilderForMultipleSameServices() {
     List<Class<? extends ServiceModule>> serviceModules = new ArrayList<>();
+    // Review: Shall we allow that? With the present framework version it will not work.
     serviceModules.add(TestServiceModule.class);
     serviceModules.add(TestServiceModule.class);
     TestKit testKit = TestKit.builder(EmulatedNodeType.VALIDATOR)

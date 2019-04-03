@@ -20,6 +20,11 @@ import java.time.ZonedDateTime;
 
 public class FakeTimeProvider implements TimeProvider {
 
+  /*
+  Review:
+I'd add documentation (here and elsewhere). Or is it decided that it is better to add this just as
+a placeholder and implement in a separate PR, as originally planned?
+   */
   public FakeTimeProvider create(ZonedDateTime time) {
     throw new UnsupportedOperationException();
   }

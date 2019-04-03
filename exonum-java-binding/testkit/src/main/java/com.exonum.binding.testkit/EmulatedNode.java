@@ -44,12 +44,20 @@ public class EmulatedNode {
   }
 
   /**
+   * Review: if an auditor node.
    * Returns a validator id if this node is a validator or {@link OptionalInt.EMPTY} is this is a validator node.
    */
   public OptionalInt getValidatorId() {
     return validatorId;
   }
 
+  /*
+Review: I wonder if there is a good place to link in this case (Node#getPublicKey — but it only returns the public key;
+Node#submitTransaction — it signs a transaction with the service public key; or ValidatorKey#consensusKey — but its
+documentation is not particularly detailed).
+
+At least, I'd add here in which operations this key pair is used.
+   */
   /**
    * Returns a service key pair of this node.
    */
@@ -57,6 +65,9 @@ public class EmulatedNode {
     return serviceKeyPair;
   }
 
+/*
+Review: I'd add that this key pair is used to sign consensus message of this node.
+ */
   /**
    * Returns a consensus key pair of this node.
    */

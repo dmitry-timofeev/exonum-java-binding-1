@@ -16,6 +16,7 @@
   <url>https://exonum.com/doc/version/latest/get-started/test-service/</url>
 
   <properties>
+    <!-- Review: @vitvakatu and release builds? -->
     <ejb-core.nativeLibPath>${project.parent.basedir}/core/rust/target/debug
     </ejb-core.nativeLibPath>
   </properties>

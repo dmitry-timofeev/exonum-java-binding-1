@@ -21,11 +21,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.exonum.binding.blockchain.Block;
 import com.exonum.binding.proxy.NativeHandle;
+import com.exonum.binding.service.AbstractServiceModule;
 import com.exonum.binding.service.BlockCommittedEvent;
 import com.exonum.binding.service.Service;
 import com.exonum.binding.service.ServiceModule;
 import com.exonum.binding.service.adapters.UserServiceAdapter;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -41,6 +43,8 @@ import javax.annotation.Nullable;
 /**
  * TestKit for testing blockchain services. It offers simple network configuration emulation
  * (with no real network setup). Although it is possible to add several validator nodes to this
+ * Review:
+ * ... only one node will create the service instances and will execute their operations
  * network, only one node (either validator or auditor) would be truly emulated and execute its
  * {@link Service#afterCommit(BlockCommittedEvent)} method logic.
  *
@@ -50,6 +54,10 @@ public final class TestKit {
 
   @VisibleForTesting
   final static short MAX_SERVICE_NUMBER = 256;
+  /*
+  Review: Shall we really create a static instance of the testkit injector (and have all testkit instances,
+  potentially, working in parallel, reuse the same bindings)?
+   */
   private final static Injector frameworkInjector = Guice.createInjector(new TestKitFrameworkModule());
 
   private final NativeHandle nativeHandle;
@@ -64,7 +72,10 @@ public final class TestKit {
       services.put(serviceAdapter.getId(), serviceAdapter.getService());
     }
     boolean isAuditorNode = nodeType == EmulatedNodeType.AUDITOR;
-    UserServiceAdapter[] userServiceAdapters = serviceAdapters.stream().toArray(UserServiceAdapter[]::new);
+    /*
+    Review: serviceAdapters.toArray(new UserServiceAdapter[0]);
+     */
+    UserServiceAdapter[] userServiceAdapters = serviceAdapters.toArray(new UserServiceAdapter[0]);
     // TODO: fix after native implementation
     nativeHandle = null;
 //    nativeHandle = new NativeHandle(
@@ -80,11 +91,14 @@ public final class TestKit {
         (short) 0, null);
   }
 
+  // Review: documentation?
   @SuppressWarnings("unchecked")
   public <T extends Service> T getService(short serviceId, Class<T> serviceClass) {
     Service service = services.get(serviceId);
+    // Review: I'd also add the actual class, something like "Service (id=%s, class=%s) cannot be cast to %s"
     checkArgument(service.getClass().equals(serviceClass), "Service with id %s is not of expected class %s",
         serviceId, serviceClass.getCanonicalName());
+    // Review: return serviceClass.cast(service); — and no unchecked operations.
     return (T) services.get(serviceId);
   }
 
@@ -93,6 +107,7 @@ public final class TestKit {
    *
    * @param moduleClass a class of the user service module
    */
+  // Review: (to self) Isn't there something in multiple-services that does that (and better)?
   private static UserServiceAdapter createUserModule(Class<? extends ServiceModule> moduleClass) {
     try {
       Constructor constructor = moduleClass.getDeclaredConstructor();
@@ -144,11 +159,13 @@ public final class TestKit {
     private TimeProvider timeProvider;
 
     private Builder(EmulatedNodeType nodeType) {
+      // Review: shan't we set the default validatorCount to, say, 1 (as >1 is unneeded in most scenarios)?
       this.nodeType = nodeType;
     }
 
     /**
      * Sets number of additional validator nodes in the TestKit network. Note that
+     * Review: ... regardless of the configured number of validators, only a single service will be instantiated.
      * {@link Service#afterCommit(BlockCommittedEvent)} logic will only be called on the main TestKit node.
      */
     public Builder withValidators(short validatorCount) {
@@ -168,11 +185,18 @@ public final class TestKit {
      * Adds a list of services with which the TestKit would be instantiated. Several services can
      * be added.
      */
+    /* Review: Iterable? Also, a vararg seems to be more useful in our case because it is not expected
+that more than a handful of services will commonly be added. Surely, we can add methods with both signatures.
+     */
     public Builder withServices(List<Class<? extends ServiceModule>> serviceModules) {
       services.addAll(serviceModules);
       return this;
     }
 
+    /* Review:
+If called, will create a TestKit with time service enabled. The time service will use the given TimeProvider
+as a time source.
+     */
     /**
      * If called, will create a TestKit with time service with given TimeProvider.
      */
@@ -183,6 +207,9 @@ public final class TestKit {
 
     /**
      * Creates the TestKit instance.
+     * Review: as it not just creates a test network, but involves a lot of other (potentially failing) things,
+     * I'd document precisely what happens (i.e., service instances are created, services are initialized (link to
+     * #initialize), public API handlers are created (link to #mountPublicApiHandlers).
      */
     public TestKit build() {
       checkMaxServiceNumber(services);
@@ -190,6 +217,8 @@ public final class TestKit {
     }
 
     private void checkMaxServiceNumber(List<Class<? extends ServiceModule>> serviceModules) {
+      // Review: ... but x added.
+      // Review: Is there anything else that must be validated? E.g., non-empty list of services?
       checkArgument(serviceModules.size() < MAX_SERVICE_NUMBER,
           "There shouldn't be more than %s services in the TestKit", MAX_SERVICE_NUMBER);
     }

@@ -29,7 +29,6 @@ import com.exonum.binding.service.Service;
 import com.exonum.binding.service.ServiceModule;
 import com.exonum.binding.service.adapters.UserServiceAdapter;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.ArrayList;
@@ -37,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -45,6 +45,8 @@ import javax.annotation.Nullable;
  * network, only one node will create the service instances and will execute their operations
  * (e.g., {@link Service#afterCommit(BlockCommittedEvent)} method logic).
  *
+ * Review: @vitvakatu, Would you clarify please what is the exact order? Do we initialize after
+ * genesis block? When do we create public API handlers?
  * <p>When TestKit is created, Exonum blockchain instance with given services is initialized and
  * genesis block is committed. The service instances are created and their
  * {@linkplain UserServiceAdapter#initialize(long)}  initialization} methods are called and
@@ -83,8 +85,12 @@ public final class TestKit {
 
   /**
    * Returns an instance of a service with the given service id and service class.
+   * Review: Only user-defined services can be requested, i.e., you can't get an instance of
+   *   built-in services such as the time oracle.
    *
    * @return the service instance or null if there is no service with such id
+   * Review: It is not appropriate to throw NPE when it is not the client passing `null`s.
+   *   IllegalArgumentException would be more appropriate (`checkArgument(services.containsKey…`)
    * @throws NullPointerException if the service with given id was not found
    * @throws IllegalArgumentException if the service could not be cast to given class
    */
@@ -98,6 +104,8 @@ public final class TestKit {
   }
 
   /**
+   * Review: Instantiates a service given its module and wraps in a UserServiceAdapter
+   * for the native code. (we don't create a USA from the module, but a service, and then wrap it).
    * Creates a user service adapter from the service module.
    *
    * @param moduleClass a class of the user service module
@@ -141,13 +149,19 @@ public final class TestKit {
   /**
    * Returns a list of user service adapters created from given service modules.
    */
+  /*
+   Review:
+These methods are used by the constructor only, therefore, I'd move them closer to it
+ - ctor
+   - toUserServiceAdapters
+     - createUserServiceAdapter
+   - populateServiceMap
+   */
   private List<UserServiceAdapter> toUserServiceAdapters(List<Class<? extends ServiceModule>> serviceModules) {
-    List<UserServiceAdapter> serviceAdapters = new ArrayList<>(serviceModules.size());
-    for (Class<? extends ServiceModule> moduleClass : serviceModules) {
-      UserServiceAdapter serviceAdapter = createUserServiceAdapter(moduleClass);
-      serviceAdapters.add(serviceAdapter);
-    }
-    return serviceAdapters;
+    // Review:
+    return serviceModules.stream()
+        .map(this::createUserServiceAdapter)
+        .collect(Collectors.toList());
   }
 
   /**
@@ -155,15 +169,18 @@ public final class TestKit {
    */
   private void populateServiceMap(List<UserServiceAdapter> serviceAdapters) {
     for (UserServiceAdapter serviceAdapter: serviceAdapters) {
+      checkForDuplicateService(serviceAdapter);
       short serviceId = serviceAdapter.getId();
-      checkForDuplicateService(serviceId);
       services.put(serviceId, serviceAdapter.getService());
     }
   }
 
-  private void checkForDuplicateService(short serviceId) {
+  // Review:
+  private void checkForDuplicateService(UserServiceAdapter newService) {
+    short serviceId = newService.getId();
     checkArgument(!services.containsKey(serviceId),
-        "Service with id %s was added to the TestKit twice");
+        "Service with id %s was added to the TestKit twice: %s and %s",
+        serviceId, services.get(serviceId), newService.getService());
   }
 
   /**
@@ -202,9 +219,15 @@ public final class TestKit {
       return this;
     }
 
+    /*
+    Review: Here and below: omit the type (below it is no longer correct as any iterable is allowed),
+    saying: Adds services with which the TestKit would be instantiated.
+     */
+
     /**
      * Adds a variable number of services with which the TestKit would be instantiated.
      */
+    // Review: @SafeVarargs
     public Builder withServices(Class<? extends ServiceModule> serviceModule,
                                 Class<? extends ServiceModule>... serviceModules) {
       List<Class<? extends ServiceModule>> services = asList(serviceModule, serviceModules);
@@ -212,14 +235,11 @@ public final class TestKit {
       return this;
     }
 
-    /* Review:
-If called, will create a TestKit with time service enabled. The time service will use the given TimeProvider
-as a time source.
-     */
     /**
      * Adds a list of services with which the TestKit would be instantiated.
      */
     public Builder withServices(Iterable<Class<? extends ServiceModule>> serviceModules) {
+      // Review: Iterables.addAll(services, serviceModules);
       serviceModules.forEach(services::add);
       return this;
     }

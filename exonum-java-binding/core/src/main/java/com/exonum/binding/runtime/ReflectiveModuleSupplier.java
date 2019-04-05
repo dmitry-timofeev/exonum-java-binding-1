@@ -24,18 +24,24 @@ import java.lang.invoke.MethodType;
 import java.util.function.Supplier;
 
 // todo: such implementation is nicer in terms of error handling (it happens upfront), but
-//   does not allow package-private module until Java 9 with MethodHandles#privateLookupIn
-//   [ECR-3008]
+//   does not allow package-private modules until Java 9 with MethodHandles#privateLookupIn
+//   [ECR-3008, ECR-521]
 
 /**
  * A reflective supplier of service modules that instantiates them with a no-arg constructor.
  */
-final class ReflectiveModuleSupplier implements Supplier<ServiceModule> {
+public final class ReflectiveModuleSupplier implements Supplier<ServiceModule> {
 
   private final Class<? extends ServiceModule> moduleClass;
   private final MethodHandle moduleConstructor;
 
-  ReflectiveModuleSupplier(Class<? extends ServiceModule> moduleClass)
+  /**
+   * Creates a module supplier for a given service module class.
+   *
+   * @throws NoSuchMethodException if the constructor of given service module class does not exist
+   * @throws IllegalAccessException if accessing the no-arg module constructor failed
+   */
+  public ReflectiveModuleSupplier(Class<? extends ServiceModule> moduleClass)
       throws NoSuchMethodException, IllegalAccessException {
     this.moduleClass = moduleClass;
     MethodHandles.Lookup lookup = MethodHandles.lookup();

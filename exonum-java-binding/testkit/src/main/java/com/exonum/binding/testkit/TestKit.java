@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -158,6 +157,7 @@ public final class TestKit {
     return new Builder(nodeType);
   }
 
+  /* Review: And this one ^ */
   private void checkForDuplicateService(UserServiceAdapter newService) {
     short serviceId = newService.getId();
     checkArgument(!services.containsKey(serviceId),
@@ -201,20 +201,14 @@ public final class TestKit {
       return this;
     }
 
-    /*
-    Review: Here and below: omit the type (below it is no longer correct as any iterable is allowed),
-    saying: Adds services with which the TestKit would be instantiated.
-     */
-
     /**
      * Adds services with which the TestKit would be instantiated.
      */
     @SafeVarargs
     public final Builder withServices(Class<? extends ServiceModule> serviceModule,
                                       Class<? extends ServiceModule>... serviceModules) {
-      List<Class<? extends ServiceModule>> services = asList(serviceModule, serviceModules);
-      this.services.addAll(services);
-      return this;
+      // Review:
+      return withServices(asList(serviceModule, serviceModules));
     }
 
     /**

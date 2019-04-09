@@ -46,12 +46,10 @@ import javax.annotation.Nullable;
  * network, only one node will create the service instances and will execute their operations
  * (e.g., {@link Service#afterCommit(BlockCommittedEvent)} method logic).
  *
- * Review: @vitvakatu, Would you clarify please what is the exact order? Do we initialize after
- * genesis block? When do we create public API handlers?
- * <p>When TestKit is created, Exonum blockchain instance with given services is initialized and
- * genesis block is committed. The service instances are created and their
- * {@linkplain UserServiceAdapter#initialize(long)}  initialization} methods are called and
- * {@linkplain UserServiceAdapter#mountPublicApiHandler(long)} public API handlers} are created.
+ * <p>When TestKit is created, Exonum blockchain instance is initialized - service instances are
+ * {@linkplain UserServiceAdapter#initialize(long)} initialized} and genesis block is committed.
+ * Then the {@linkplain UserServiceAdapter#mountPublicApiHandler(long)} public API handlers} are
+ * created.
  *
  * @see <a href="https://exonum.com/doc/version/0.10/get-started/test-service/">TestKit documentation</a>
  */
@@ -109,6 +107,13 @@ public final class TestKit {
     }
   }
 
+  private void checkForDuplicateService(UserServiceAdapter newService) {
+    short serviceId = newService.getId();
+    checkArgument(!services.containsKey(serviceId),
+        "Service with id %s was added to the TestKit twice: %s and %s",
+        serviceId, services.get(serviceId), newService.getService());
+  }
+
   /**
    * Creates a TestKit network with a single validator node for a single service.
    */
@@ -157,14 +162,6 @@ public final class TestKit {
     return new Builder(nodeType);
   }
 
-  /* Review: And this one ^ */
-  private void checkForDuplicateService(UserServiceAdapter newService) {
-    short serviceId = newService.getId();
-    checkArgument(!services.containsKey(serviceId),
-        "Service with id %s was added to the TestKit twice: %s and %s",
-        serviceId, services.get(serviceId), newService.getService());
-  }
-
   /**
    * Builder for the TestKit.
    */
@@ -207,7 +204,6 @@ public final class TestKit {
     @SafeVarargs
     public final Builder withServices(Class<? extends ServiceModule> serviceModule,
                                       Class<? extends ServiceModule>... serviceModules) {
-      // Review:
       return withServices(asList(serviceModule, serviceModules));
     }
 

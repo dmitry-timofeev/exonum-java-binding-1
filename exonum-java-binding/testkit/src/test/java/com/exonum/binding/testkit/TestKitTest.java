@@ -40,6 +40,7 @@ import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.transaction.Transaction;
 import com.exonum.binding.util.LibraryLoader;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.inject.Singleton;
 import io.vertx.ext.web.Router;
@@ -57,12 +58,26 @@ class TestKitTest {
     LibraryLoader.load();
   }
 
+  /*( Review:
+  Where do we test that:
+    - A genesis block is created *upon test network instantiation*.
+    - A service gets its APIs mounted?
+      -  and is provided with a Node that has the same identifiers as EmulatedNode.
+    - Error reporting on transactions that (a) do not belong to any service; (b) fail to deserialize?
+    - Arguments passed to afterCommit (BlockCommitEvent)?
+
+    For some of these a ServiceModule providing a mock might be useful.
+   */
   @Test
   void createTestKitForSingleService() {
     TestKit testKit = TestKit.forService(TestServiceModule.class);
     Service service = testKit.getService(TestService.SERVICE_ID, TestService.class);
     assertThat(service.getId()).isEqualTo(TestService.SERVICE_ID);
     assertThat(service.getName()).isEqualTo(TestService.SERVICE_NAME);
+    // Review: Can we (here and below) verify for each service that it is properly initialized:
+    //  - its initialize is called
+    //  - its API is mounted
+    //  - anything else?
   }
 
   @Test
@@ -157,6 +172,10 @@ class TestKitTest {
       ProofMapIndexProxy<HashCode, String> proofMapIndexProxy = testSchema.testMap();
       return toMap(proofMapIndexProxy);
     });
+    /* Review:
+    Map<HashCode, String> expected = ImmutableMap.of(.., ...);
+    assertThat(map).isEqualTo(expected);
+    */
     assertThat(map).hasSize(1);
     String initialValue = map.get(TestService.INITIAL_ENTRY_KEY);
     assertThat(initialValue).isEqualTo(TestService.INITIAL_ENTRY_VALUE);
@@ -180,6 +199,7 @@ class TestKitTest {
   void afterCommitSubmitsTransaction() {
     TestKit testKit = TestKit.forService(TestServiceModule.class);
 
+// Review: It is unclear why this is invoked.
     Block block = testKit.createBlock();
     List<TransactionMessage> inPoolTransactions = testKit
         .findTransactionsInPool(tx -> tx.getServiceId() == TestService.SERVICE_ID);
@@ -201,7 +221,7 @@ class TestKitTest {
   @Test
   void createBlockWithTransactionIgnoresInPoolTransactions() {
     TestKit testKit = TestKit.forService(TestServiceModule.class);
-
+// Review: It is unclear why this is invoked.
     testKit.createBlock();
 
     TransactionMessage message = constructTestTransactionMessage("Test message");
@@ -216,6 +236,7 @@ class TestKitTest {
 
   @Test
   void createBlockWithTransaction() {
+    // Review: Why do all these tests leak the native object?
     TestKit testKit = TestKit.forService(TestServiceModule.class);
 
     TransactionMessage message = constructTestTransactionMessage("Test message");
@@ -261,6 +282,7 @@ class TestKitTest {
 
   @Test
   void createBlockWithTransactionsVarargs() {
+    // Review: The code below seems to be the same as above. I'd consider de-duplicating.
     TestKit testKit = TestKit.forService(TestServiceModule.class);
 
     TransactionMessage message = constructTestTransactionMessage("Test message");

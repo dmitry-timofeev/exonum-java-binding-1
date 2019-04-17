@@ -43,6 +43,7 @@ import com.exonum.binding.storage.indices.ProofMapIndexProxy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.ArrayList;
@@ -74,6 +75,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
   private static final Serializer<Block> BLOCK_SERIALIZER = BlockSerializer.INSTANCE;
+  // Review: Why is it static?
   private static final Injector frameworkInjector =
       Guice.createInjector(new TestKitFrameworkModule());
 
@@ -103,8 +105,20 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     Set<Short> serviceIds = new HashSet<>();
     return serviceModules.stream()
         .map(TestKit::createUserServiceAdapter)
+            // Review: That is not a right use of streams because it relies on some
+            // side-effects. I'd rather split it in two independent operations:
+            // create the services; verify there are no duplicates.
         .peek(s -> checkForDuplicateService(s, serviceIds))
         .collect(toList());
+
+    /* Review: As an alternative, this operation will produce an error message including as many duplicates
+    as are in the list: "Multiple entries with same key: 3=bar and 3=foo". It however, won't be in terms
+    of services but in terms of map entries.
+    List<UserServiceAdapter> services = serviceModules.stream()
+            .map(TestKit::createUserServiceAdapter)
+            .collect(toList());
+    return Maps.uniqueIndex(services, UserServiceAdapter::getId);
+    */
   }
 
   private static void checkForDuplicateService(UserServiceAdapter service, Set<Short> serviceIds) {
@@ -166,15 +180,30 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     return serviceClass.cast(service);
   }
 
+  /* Review: Will they be ignored? Why? It seems deficient: can't I commit a block
+  that includes both in-pool and some incoming transactions?
+   */
   /**
    * Creates a block with the given transaction. In-pool transactions will be ignored.
    *
+   * Review: What would happen if:
+   *   - the transaction does not belong to any service?
+   *   - the transaction belongs to a running service, but it is incorrectly serialized (TransactionConverter rejects it for any reason)?
    * @return created block
+   * // Review: Regarding references, it does not make sense to include in each operation, but it is required
+   to document why this pool is important in operations of this class.
    * @see <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
    */
   public Block createBlockWithTransaction(TransactionMessage transaction) {
     return createBlockWithTransactions(transaction);
   }
+
+  /*
+   Review: I'd merge these two methods into one accepting a single vararg because there does not
+   seem to be an important distinction between one and several transaction.
+
+   Also, does it make sense to rename all of these in createBlock(*)?
+   */
 
   /**
    * Creates a block with the given transaction(s). In-pool transactions will be ignored.
@@ -226,6 +255,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       // transactions
       ProofMapIndexProxy<HashCode, TransactionResult> txResults = blockchain.getTxResults();
       List<TransactionMessage> messages = ImmutableList.copyOf(txMessages.values());
+      /*
+       Review: It is a little weird that we shall go over all transactions. I'd submit an issue to consider
+       providing access to transaction_pool in Blockchain (or separately).
+       */
       return messages.stream()
           .filter(predicate)
           .filter(tx -> !txResults.containsKey(tx.hash()))
@@ -234,12 +267,14 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   /**
+   * Review: How the current database state is defined? Does it correspond to the latest committed block?
    * Performs a given function with a snapshot of the current database state.
    *
    * @param snapshotFunction a function to execute
    * @param <ResultT> a type the function returns
    * @return the result of applying the given function to the database state
    */
+  // Review: Shall we allow Forks?
   public <ResultT> ResultT withSnapshot(Function<Snapshot, ResultT> snapshotFunction) {
     try (Cleaner cleaner = new Cleaner("TestKit#withSnapshot")) {
       long snapshotHandle = nativeCreateSnapshot(nativeHandle.get());
@@ -251,6 +286,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   /**
+   * Review: Returns the context of the node that the testkit emulates (i.e., on which instantiates and executes
+   * services).
+   *
+   * Also, I would explain what "emulated" means in EmulatedNode documentation.
    * Returns the emulated TestKit node context.
    */
   public EmulatedNode getEmulatedNode() {
@@ -355,6 +394,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     public TestKit build() {
       checkCorrectServiceNumber(services.size());
       if (nodeType == EmulatedNodeType.VALIDATOR) {
+        // Review: I don't understand this code.
         validatorCount += 1;
       }
       return newInstance(services, nodeType, validatorCount, timeProvider);

@@ -141,6 +141,7 @@ class TestKitTest {
     testKit.withSnapshot((view) -> {
       // Check that initialization changed database state
       TestSchema testSchema = service.createDataSchema(view);
+      // Review: testProofMap and testMap?
       ProofMapIndexProxy<HashCode, String> proofMapIndexProxy = testSchema.testMap();
       Map<HashCode, String> map = toMap(proofMapIndexProxy);
       Map<HashCode, String> expected = ImmutableMap.of(
@@ -307,6 +308,9 @@ class TestKitTest {
 
   @Test
   void createBlockWithTransactionIgnoresInPoolTransactions() {
+    /*
+    Review: Why don't we declare these variables inside try-catch and initialize immediately?
+     */
     List<TransactionMessage> inPoolTransactions;
     try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
       // Create a block so that afterCommit transaction is submitted
@@ -406,6 +410,23 @@ class TestKitTest {
           .transactionId(TestTransaction.ID)
           .payload("Test message".getBytes(BODY_CHARSET))
           .sign(KEY_PAIR, CRYPTO_FUNCTION);
+      /*
+      Review:
+(1) The thrown exception type is on the wrong abstraction level, RuntimeException communicates nothing. Since it is a testkit,
+ I would expect either IllegalArgumentException or https://ota4j-team.github.io/opentest4j/docs/current/api/org/opentest4j/AssertionFailedError.html
+(2) As we established in the requirements, the error messages must be user-friendly and tell exactly what
+the problem is (or which problems are possible). In this case I think there are two possible problems:
+   - A test developer passed an incorrectly serialized transaction (they intended to pass a proper one).
+     The implementation of the service is fine.
+   - A test dev passed a correctly serialized transaction, but the implementation of the service
+     (particularly, TransactionConverter) does not handle that transaction correctly.
+
+In both cases, the actual thrown exception *and* the details about the transaction message are quite useful
+to understand what is broken.
+
+Speaking of the implementation, it might be more convenient to check that each tx message is correct and create
+a proper exception _in Java_, before passing them to the native code.
+       */
       assertThrows(exceptionType, () -> testKit.createBlockWithTransactions(message));
     }
   }

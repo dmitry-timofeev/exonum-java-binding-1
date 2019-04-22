@@ -368,7 +368,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     public TestKit build() {
       checkCorrectServiceNumber(services.size());
       if (nodeType == EmulatedNodeType.VALIDATOR) {
-        // Review: I don't understand this code.
+        // Review: I (still) don't understand this code. Why don't we just set the total number of validators, and
+        // assume "1" by default?
         // If the main node is a validator, increment the number of validator nodes in the network
         validatorCount += 1;
       }

@@ -169,9 +169,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * Creates a block with the given transaction(s). Transactions are applied in the lexicographical
    * order of their hashes. In-pool transactions will be ignored.
    *
-   * Review: What would happen if:
-   *   - the transaction does not belong to any service?
-   *   - the transaction belongs to a running service, but it is incorrectly serialized (TransactionConverter rejects it for any reason)?
    * @return created block
    * // Review: Regarding references, it does not make sense to include in each operation, but it is required
    to document why this pool is important in operations of this class.
@@ -183,7 +180,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   /*
-   Review: I'd merge these two methods into one accepting a single vararg because there does not
+   Review: [x] I'd merge these two methods into one accepting a single vararg because there does not
    seem to be an important distinction between one and several transaction.
 
    Also, does it make sense to rename all of these in createBlock(*)?
@@ -262,9 +259,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   /**
    * Returns the context of the node that the TestKit emulates (i.e., on which it instantiates and
    * executes services).
-   *
-   * Review: Also, I would explain what "emulated" means in EmulatedNode documentation.
-   * Returns the emulated TestKit node context.
    */
   public EmulatedNode getEmulatedNode() {
     return nativeGetEmulatedNode(nativeHandle.get());

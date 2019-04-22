@@ -18,7 +18,7 @@ package com.exonum.binding.testkit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.asList;
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 
@@ -43,15 +43,14 @@ import com.exonum.binding.storage.indices.ProofMapIndexProxy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -60,8 +59,10 @@ import javax.annotation.Nullable;
 /**
  * TestKit for testing blockchain services. It offers simple network configuration emulation
  * (with no real network setup). Although it is possible to add several validator nodes to this
- * network, only one node will create the service instances and will execute their operations
- * (e.g., {@link Service#afterCommit(BlockCommittedEvent)} method logic).
+ * network, only one node will create the service instances, provide access to its
+ * <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">pool of unconfirmed transactions</a>
+ * and will execute their operations (e.g., {@link Service#afterCommit(BlockCommittedEvent)} method
+ * logic).
  *
  * <p>When TestKit is created, Exonum blockchain instance is initialized - service instances are
  * {@linkplain UserServiceAdapter#initialize(long)} initialized} and genesis block is committed.
@@ -75,13 +76,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
   private static final Serializer<Block> BLOCK_SERIALIZER = BlockSerializer.INSTANCE;
-  // Review: Why is it static?
-  private static final Injector frameworkInjector =
-      Guice.createInjector(new TestKitFrameworkModule());
 
   private final Map<Short, Service> services = new HashMap<>();
 
-  private TestKit(long nativeHandle, List<UserServiceAdapter> serviceAdapters) {
+  private TestKit(long nativeHandle, Map<Short, UserServiceAdapter> serviceAdapters) {
     super(nativeHandle, true);
     populateServiceMap(serviceAdapters);
   }
@@ -89,9 +87,19 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   private static TestKit newInstance(List<Class<? extends ServiceModule>> serviceModules,
                                      EmulatedNodeType nodeType, short validatorCount,
                                      @Nullable TimeProvider timeProvider) {
-    List<UserServiceAdapter> serviceAdapters = toUserServiceAdapters(serviceModules);
+    Injector frameworkInjector = Guice.createInjector(new TestKitFrameworkModule());
+    return newInstanceWithInjector(serviceModules, nodeType, validatorCount, timeProvider,
+        frameworkInjector);
+  }
+
+  private static TestKit newInstanceWithInjector(
+      List<Class<? extends ServiceModule>> serviceModules, EmulatedNodeType nodeType,
+      short validatorCount, @Nullable TimeProvider timeProvider, Injector frameworkInjector) {
+    Map<Short, UserServiceAdapter> serviceAdapters = toUserServiceAdapters(
+        serviceModules, frameworkInjector);
     boolean isAuditorNode = nodeType == EmulatedNodeType.AUDITOR;
-    UserServiceAdapter[] userServiceAdapters = serviceAdapters.toArray(new UserServiceAdapter[0]);
+    UserServiceAdapter[] userServiceAdapters = serviceAdapters.values()
+        .toArray(new UserServiceAdapter[0]);
     long nativeHandle = nativeCreateTestKit(userServiceAdapters, isAuditorNode, validatorCount,
         timeProvider);
     return new TestKit(nativeHandle, serviceAdapters);
@@ -100,43 +108,19 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   /**
    * Returns a list of user service adapters created from given service modules.
    */
-  private static List<UserServiceAdapter> toUserServiceAdapters(
-      List<Class<? extends ServiceModule>> serviceModules) {
-    Set<Short> serviceIds = new HashSet<>();
-    return serviceModules.stream()
-        .map(TestKit::createUserServiceAdapter)
-            // Review: That is not a right use of streams because it relies on some
-            // side-effects. I'd rather split it in two independent operations:
-            // create the services; verify there are no duplicates.
-        .peek(s -> checkForDuplicateService(s, serviceIds))
-        .collect(toList());
-
-    /* Review: As an alternative, this operation will produce an error message including as many duplicates
-    as are in the list: "Multiple entries with same key: 3=bar and 3=foo". It however, won't be in terms
-    of services but in terms of map entries.
+  private static Map<Short, UserServiceAdapter> toUserServiceAdapters(
+      List<Class<? extends ServiceModule>> serviceModules, Injector frameworkInjector) {
     List<UserServiceAdapter> services = serviceModules.stream()
-            .map(TestKit::createUserServiceAdapter)
-            .collect(toList());
+        .map(s -> createUserServiceAdapter(s, frameworkInjector))
+        .collect(toList());
     return Maps.uniqueIndex(services, UserServiceAdapter::getId);
-    */
-  }
-
-  private static void checkForDuplicateService(UserServiceAdapter service, Set<Short> serviceIds) {
-    short serviceId = service.getId();
-    if (serviceIds.contains(serviceId)) {
-      String message =
-          String.format("Service with id %s was added to the TestKit twice: %s",
-              serviceId, service.getService());
-      throw new IllegalArgumentException(message);
-    }
-    serviceIds.add(serviceId);
   }
 
   /**
    * Instantiates a service given its module and wraps in a UserServiceAdapter for the native code.
    */
   private static UserServiceAdapter createUserServiceAdapter(
-      Class<? extends ServiceModule> moduleClass) {
+      Class<? extends ServiceModule> moduleClass, Injector frameworkInjector) {
     try {
       Supplier<ServiceModule> moduleSupplier = new ReflectiveModuleSupplier(moduleClass);
       ServiceModule serviceModule = moduleSupplier.get();
@@ -149,10 +133,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     }
   }
 
-  private void populateServiceMap(List<UserServiceAdapter> serviceAdapters) {
-    for (UserServiceAdapter serviceAdapter: serviceAdapters) {
-      services.put(serviceAdapter.getId(), serviceAdapter.getService());
-    }
+  private void populateServiceMap(Map<Short, UserServiceAdapter> serviceAdapters) {
+    serviceAdapters.forEach((id, serviceAdapter) -> services.put(id, serviceAdapter.getService()));
   }
 
   /**
@@ -184,7 +166,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   that includes both in-pool and some incoming transactions?
    */
   /**
-   * Creates a block with the given transaction. In-pool transactions will be ignored.
+   * Creates a block with the given transaction(s). Transactions are applied in the lexicographical
+   * order of their hashes. In-pool transactions will be ignored.
    *
    * Review: What would happen if:
    *   - the transaction does not belong to any service?
@@ -192,10 +175,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * @return created block
    * // Review: Regarding references, it does not make sense to include in each operation, but it is required
    to document why this pool is important in operations of this class.
-   * @see <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
+   * @throws RuntimeException if transactions are malformed or don't belong to this
+   *     service
    */
-  public Block createBlockWithTransaction(TransactionMessage transaction) {
-    return createBlockWithTransactions(transaction);
+  public Block createBlockWithTransactions(TransactionMessage... transactions) {
+    return createBlockWithTransactions(asList(transactions));
   }
 
   /*
@@ -206,21 +190,12 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    */
 
   /**
-   * Creates a block with the given transaction(s). In-pool transactions will be ignored.
+   * Creates a block with the given transactions. Transactions are applied in the lexicographical
+   * order of their hashes. In-pool transactions will be ignored.
    *
    * @return created block
-   * @see <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
-   */
-  public Block createBlockWithTransactions(TransactionMessage transaction,
-                                           TransactionMessage... transactions) {
-    return createBlockWithTransactions(asList(transaction, transactions));
-  }
-
-  /**
-   * Creates a block with the given transactions. In-pool transactions will be ignored.
-   *
-   * @return created block
-   * @see <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
+   * @throws RuntimeException if transactions are malformed or don't belong to this
+   *     service
    */
   public Block createBlockWithTransactions(Iterable<TransactionMessage> transactions) {
     List<TransactionMessage> messageList = ImmutableList.copyOf(transactions);
@@ -232,10 +207,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   /**
-   * Creates a block with all in-pool transactions.
+   * Creates a block with all in-pool transactions. Transactions are applied in the lexicographical
+   * order of their hashes.
    *
    * @return created block
-   * @see <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
    */
   public Block createBlock() {
     byte[] block = nativeCreateBlock(nativeHandle.get());
@@ -244,8 +219,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
   /**
    * Returns a list of in-pool transactions that match the given predicate.
-   *
-   * @see <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
    */
   public List<TransactionMessage> findTransactionsInPool(Predicate<TransactionMessage> predicate) {
     return withSnapshot((view) -> {
@@ -267,8 +240,9 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   /**
-   * Review: How the current database state is defined? Does it correspond to the latest committed block?
-   * Performs a given function with a snapshot of the current database state.
+   * Performs a given function with a snapshot of the current database state (i.e., the one that
+   * corresponds to the latest committed block). In-pool (not yet processed) transactions are also
+   * accessible with it in {@linkplain Blockchain#getTxMessages() blockchain}.
    *
    * @param snapshotFunction a function to execute
    * @param <ResultT> a type the function returns
@@ -286,10 +260,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   /**
-   * Review: Returns the context of the node that the testkit emulates (i.e., on which instantiates and executes
-   * services).
+   * Returns the context of the node that the TestKit emulates (i.e., on which it instantiates and
+   * executes services).
    *
-   * Also, I would explain what "emulated" means in EmulatedNode documentation.
+   * Review: Also, I would explain what "emulated" means in EmulatedNode documentation.
    * Returns the emulated TestKit node context.
    */
   public EmulatedNode getEmulatedNode() {
@@ -368,7 +342,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     @SafeVarargs
     public final Builder withServices(Class<? extends ServiceModule> serviceModule,
                                       Class<? extends ServiceModule>... serviceModules) {
-      return withServices(asList(serviceModule, serviceModules));
+      return withServices(Lists.asList(serviceModule, serviceModules));
     }
 
     /**
@@ -395,6 +369,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       checkCorrectServiceNumber(services.size());
       if (nodeType == EmulatedNodeType.VALIDATOR) {
         // Review: I don't understand this code.
+        // If the main node is a validator, increment the number of validator nodes in the network
         validatorCount += 1;
       }
       return newInstance(services, nodeType, validatorCount, timeProvider);

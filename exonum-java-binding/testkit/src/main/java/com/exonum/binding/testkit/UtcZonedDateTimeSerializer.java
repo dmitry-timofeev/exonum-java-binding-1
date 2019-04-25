@@ -27,6 +27,10 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 
 // TODO: duplicate of serializer in time-oracle - move to core? make it public in time-oracle?
+/*
+ Review: I think it is fine to make it public in _time-oracle_ with appropriate documentation
+ (UTC-only, etc)
+ */
 /**
  * ZonedDateTime serializer. Only serializes values with UTC zones, throws an exception otherwise.
  */

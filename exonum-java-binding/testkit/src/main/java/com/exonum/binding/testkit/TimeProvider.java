@@ -24,7 +24,7 @@ import java.time.ZonedDateTime;
 public interface TimeProvider {
 
   /**
-   * Returns time that is stored in this time provider.
+   * Review: Returns the current time of this time provider in UTC time zone.
    */
   ZonedDateTime getTime();
 }

@@ -25,8 +25,20 @@ import java.time.temporal.TemporalAmount;
 /**
  * Fake time provider for service testing. Allows to manually manipulate time that is returned
  * by TestKit time service.
+ *
+ * Review: If you need to set results of different consecutive calls on (link) getTime,
+ * consider using a mock of TimeProvider instead.
  */
 public class FakeTimeProvider implements TimeProvider {
+
+  /*
+   Review: I think this class must be thread-safe (more precisely, must ensure
+that writes made in Java are visible by whatever native thread executes transactions
+of Time Oracle).
+
+We can either put `volatile` here (with an explanation of why that's enough for our use-case)
+or make the operations synchronized (also with an explanation :upside_down)
+   */
 
   private ZonedDateTime time;
 
@@ -39,6 +51,7 @@ public class FakeTimeProvider implements TimeProvider {
    *
    * @throws IllegalArgumentException if value has time zone other than UTC
    */
+  // Review: initialTime?
   public static FakeTimeProvider create(ZonedDateTime time) {
     checkTimeZone(time);
     return new FakeTimeProvider(time);

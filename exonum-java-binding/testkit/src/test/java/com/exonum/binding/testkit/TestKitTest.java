@@ -469,8 +469,22 @@ class TestKitTest {
       // Update time in time provider
       ZonedDateTime newTime = TIME.plusDays(1);
       timeProvider.setTime(newTime);
+      // Review: Why two blocks (why one isn't enough)? Don't we have a single validator here?
       testKit.createBlock();
       testKit.createBlock();
+
+      /*
+       Review: I see withSnapshot is often used with Consumers, not Functions (unlike
+`Node#withSnapshot`). We can't have them as overloaded parameters if I remember correctly
+(there might be ambiguities for the compiler). Can anyone think of a better name?
+- `withSnapshot(Function)` vs `verifyWithSnapshot(Consumer)` (we are testkit, aren't we?)
+- `apply(Function)` vs `consume(Consumer)` (but won't apply give a false impression we modify
+the state?)
+- `testkit.snapshot().apply(Function)` vs `testkit.snapshot().consume(Function)` (might be too wordy).
+
+I'd submit an issue.
+       */
+
       testKit.withSnapshot((view) -> {
         TimeSchema timeSchema = TimeSchema.newInstance(view);
         Optional<ZonedDateTime> consolidatedTime = timeSchema.getTime().toOptional();
@@ -480,6 +494,12 @@ class TestKitTest {
     }
   }
 
+  /*
+   Review: If it is not a bug, it is a very unfortunate peculiarity that, I think,
+   needs to be documented briefly.
+
+   @vitvakatu, Have you managed to identify the cause?
+   */
   @Test
   void timeServiceWithManyValidatorsDoesNotReturnConsolidatedTime() {
     TimeProvider timeProvider = FakeTimeProvider.create(TIME);
@@ -504,6 +524,7 @@ class TestKitTest {
     }
   }
 
+  // Review: Shan't we pass `time` as an argument, so that it is explicit?
   private void checkValidatorsTimes(TimeSchema timeSchema, TestKit testKit) {
     Map<PublicKey, ZonedDateTime> validatorsTimes = toMap(timeSchema.getValidatorsTimes());
     EmulatedNode emulatedNode = testKit.getEmulatedNode();

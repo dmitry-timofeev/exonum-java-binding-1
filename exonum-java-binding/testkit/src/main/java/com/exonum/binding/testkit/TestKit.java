@@ -226,6 +226,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
   private void checkTransaction(TransactionMessage transactionMessage) {
     short serviceId = transactionMessage.getServiceId();
+    // REview: Clarification will help
     if (serviceId == TIME_SERVICE_ID) {
       return;
     }

@@ -400,6 +400,8 @@ class TestKitTest {
           + " and the service's TransactionConverter implementation is correct and handles this"
           + " transaction as expected.",
           TestService.SERVICE_NAME, TestService.SERVICE_ID, rawTransaction);
+      // Review: assertTrue shall not be used where matchers are available because you won't get expected/actual
+      // in case of failure in the output.
       assertTrue(thrownException.getMessage().contains(expectedMessage));
     }
   }

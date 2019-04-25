@@ -277,6 +277,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   private <T> Set<T> toSet(KeySetIndexProxy<T> setIndex) {
+    // Review: I would suggest using LinkedHashSet to preserve iteration order (= the order in which tx will be
+    // committed.
     return Sets.newHashSet(setIndex.iterator());
   }
 

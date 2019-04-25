@@ -20,6 +20,7 @@ import static com.exonum.binding.testkit.TestService.constructAfterCommitTransac
 import static com.exonum.binding.testkit.TestTransaction.BODY_CHARSET;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.exonum.binding.blockchain.Block;
 import com.exonum.binding.blockchain.Blockchain;
@@ -70,11 +71,10 @@ class TestKitTest {
 
   @Test
   void createTestKitWithBuilderForSingleService() {
-    TestService service;
     try (TestKit testKit = TestKit.builder(EmulatedNodeType.VALIDATOR)
         .withService(TestServiceModule.class)
         .build()) {
-      service = testKit.getService(TestService.SERVICE_ID, TestService.class);
+      TestService service = testKit.getService(TestService.SERVICE_ID, TestService.class);
       checkTestServiceInitialization(testKit, service);
     }
   }
@@ -127,12 +127,11 @@ class TestKitTest {
     testKit.withSnapshot((view) -> {
       // Check that initialization changed database state
       TestSchema testSchema = service.createDataSchema(view);
-      // Review: testProofMap and testMap?
-      ProofMapIndexProxy<HashCode, String> proofMapIndexProxy = testSchema.testMap();
-      Map<HashCode, String> map = toMap(proofMapIndexProxy);
+      ProofMapIndexProxy<HashCode, String> testProofMap = testSchema.testMap();
+      Map<HashCode, String> testMap = toMap(testProofMap);
       Map<HashCode, String> expected = ImmutableMap.of(
           TestService.INITIAL_ENTRY_KEY, TestService.INITIAL_ENTRY_VALUE);
-      assertThat(map).isEqualTo(expected);
+      assertThat(testMap).isEqualTo(expected);
 
       // Check that genesis block was committed
       Blockchain blockchain = Blockchain.newInstance(view);
@@ -160,18 +159,16 @@ class TestKitTest {
   }
 
   @Test
-  void createTestKitWithValidatorAndAdditionalValidators() {
-    short additionalValidatorsCount = 2;
+  void createTestKitWithSeveralValidators() {
+    short validatorCount = 2;
     try (TestKit testKit = TestKit.builder(EmulatedNodeType.VALIDATOR)
         .withService(TestServiceModule.class)
-        .withValidators(additionalValidatorsCount)
+        .withValidators(validatorCount)
         .build()) {
       testKit.withSnapshot((view) -> {
         Blockchain blockchain = Blockchain.newInstance(view);
-        // Number of validator keys is equal to number of validator nodes - in this case one
-        // emulated validator node plus additional nodes
         assertThat(blockchain.getActualConfiguration().validatorKeys().size())
-            .isEqualTo(additionalValidatorsCount + 1);
+            .isEqualTo(validatorCount);
         return null;
       });
     }
@@ -179,20 +176,27 @@ class TestKitTest {
 
   @Test
   void createTestKitWithAuditorAndAdditionalValidators() {
-    short additionalValidatorsCount = 2;
+    short validatorCount = 2;
     try (TestKit testKit = TestKit.builder(EmulatedNodeType.AUDITOR)
         .withService(TestServiceModule.class)
-        .withValidators(additionalValidatorsCount)
+        .withValidators(validatorCount)
         .build()) {
       testKit.withSnapshot((view) -> {
         Blockchain blockchain = Blockchain.newInstance(view);
-        // Number of validator keys is equal to number of validators - in this case only additional
-        // nodes, as main emulated node is an auditor
         assertThat(blockchain.getActualConfiguration().validatorKeys().size())
-            .isEqualTo(additionalValidatorsCount);
+            .isEqualTo(validatorCount);
         return null;
       });
     }
+  }
+
+  @Test
+  void setInvalidValidatorCount() {
+    Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
+    short invalidValidatorCount = 0;
+    TestKit.Builder testKitBuilder = TestKit.builder(EmulatedNodeType.VALIDATOR)
+        .withService(TestServiceModule.class);
+    assertThrows(exceptionType, () -> testKitBuilder.withValidators(invalidValidatorCount));
   }
 
   @Test
@@ -250,7 +254,6 @@ class TestKitTest {
 
   @Test
   void afterCommitSubmitsTransaction() {
-    Block nextBlock;
     try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
       // Create a block so that afterCommit transaction is submitted
     Block block = testKit.createBlock();
@@ -266,18 +269,14 @@ class TestKitTest {
           .isEqualTo(afterCommitTransaction.getTransactionId());
       assertThat(inPoolTransaction.getPayload()).isEqualTo(afterCommitTransaction.getPayload());
 
-      nextBlock = testKit.createBlock();
+      Block nextBlock = testKit.createBlock();
+      assertThat(nextBlock.getNumTransactions()).isEqualTo(1);
+      assertThat(nextBlock.getHeight()).isEqualTo(2);
     }
-    assertThat(nextBlock.getNumTransactions()).isEqualTo(1);
-    assertThat(nextBlock.getHeight()).isEqualTo(2);
   }
 
   @Test
   void createBlockWithTransactionIgnoresInPoolTransactions() {
-    /*
-    Review: Why don't we declare these variables inside try-catch and initialize immediately?
-     */
-    List<TransactionMessage> inPoolTransactions;
     try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
       // Create a block so that afterCommit transaction is submitted
       testKit.createBlock();
@@ -286,10 +285,10 @@ class TestKitTest {
       assertThat(block.getNumTransactions()).isEqualTo(0);
 
       // Two blocks were created, so two afterCommit transactions should be submitted into pool
-      inPoolTransactions = testKit
+      List<TransactionMessage> inPoolTransactions = testKit
           .findTransactionsInPool(tx -> tx.getServiceId() == TestService.SERVICE_ID);
+      assertThat(inPoolTransactions).hasSize(2);
     }
-    assertThat(inPoolTransactions).hasSize(2);
   }
 
   @Test
@@ -368,7 +367,6 @@ class TestKitTest {
 
   @Test
   void createBlockWithTransactionWithWrongServiceId() {
-    Class<RuntimeException> exceptionType = RuntimeException.class;
     try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
       short wrongServiceId = (short) (TestService.SERVICE_ID + 1);
       TransactionMessage message = TransactionMessage.builder()
@@ -376,30 +374,17 @@ class TestKitTest {
           .transactionId(TestTransaction.ID)
           .payload("Test message".getBytes(BODY_CHARSET))
           .sign(KEY_PAIR, CRYPTO_FUNCTION);
-      /*
-      Review:
-(1) The thrown exception type is on the wrong abstraction level, RuntimeException communicates nothing. Since it is a testkit,
- I would expect either IllegalArgumentException or https://ota4j-team.github.io/opentest4j/docs/current/api/org/opentest4j/AssertionFailedError.html
-(2) As we established in the requirements, the error messages must be user-friendly and tell exactly what
-the problem is (or which problems are possible). In this case I think there are two possible problems:
-   - A test developer passed an incorrectly serialized transaction (they intended to pass a proper one).
-     The implementation of the service is fine.
-   - A test dev passed a correctly serialized transaction, but the implementation of the service
-     (particularly, TransactionConverter) does not handle that transaction correctly.
-
-In both cases, the actual thrown exception *and* the details about the transaction message are quite useful
-to understand what is broken.
-
-Speaking of the implementation, it might be more convenient to check that each tx message is correct and create
-a proper exception _in Java_, before passing them to the native code.
-       */
-      assertThrows(exceptionType, () -> testKit.createBlockWithTransactions(message));
+      IllegalArgumentException thrownException = assertThrows(IllegalArgumentException.class,
+          () -> testKit.createBlockWithTransactions(message));
+      RawTransaction rawTransaction = TestKit.toRawTransaction(message);
+      String expectedMessage = String.format("Unknown service id (%s) in transaction (%s)",
+          wrongServiceId, rawTransaction);
+      assertTrue(thrownException.getMessage().contains(expectedMessage));
     }
   }
 
   @Test
   void createBlockWithTransactionWithWrongTransactionId() {
-    Class<RuntimeException> exceptionType = RuntimeException.class;
     try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
       short wrongTransactionId = (short) (TestTransaction.ID + 1);
       TransactionMessage message = TransactionMessage.builder()
@@ -407,32 +392,38 @@ a proper exception _in Java_, before passing them to the native code.
           .transactionId(wrongTransactionId)
           .payload("Test message".getBytes(BODY_CHARSET))
           .sign(KEY_PAIR, CRYPTO_FUNCTION);
-      assertThrows(exceptionType, () -> testKit.createBlockWithTransactions(message));
+      IllegalArgumentException thrownException = assertThrows(IllegalArgumentException.class,
+          () -> testKit.createBlockWithTransactions(message));
+      RawTransaction rawTransaction = TestKit.toRawTransaction(message);
+      String expectedMessage = String.format("Service (%s) with id=%s failed to convert"
+          + " transaction (%s). Make sure that the submitted transaction is correctly serialized,"
+          + " and the service's TransactionConverter implementation is correct and handles this"
+          + " transaction as expected.",
+          TestService.SERVICE_NAME, TestService.SERVICE_ID, rawTransaction);
+      assertTrue(thrownException.getMessage().contains(expectedMessage));
     }
   }
 
   @Test
   void getValidatorEmulatedNode() {
-    EmulatedNode node;
     try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
-      node = testKit.getEmulatedNode();
+      EmulatedNode node = testKit.getEmulatedNode();
+      assertThat(node.getNodeType()).isEqualTo(EmulatedNodeType.VALIDATOR);
+      assertThat(node.getValidatorId()).isNotEmpty();
+      assertThat(node.getServiceKeyPair()).isNotNull();
     }
-    assertThat(node.getNodeType()).isEqualTo(EmulatedNodeType.VALIDATOR);
-    assertThat(node.getValidatorId()).isNotEmpty();
-    assertThat(node.getServiceKeyPair()).isNotNull();
   }
 
   @Test
   void getAuditorEmulatedNode() {
-    EmulatedNode node;
     try (TestKit testKit = TestKit.builder(EmulatedNodeType.AUDITOR)
         .withService(TestServiceModule.class)
         .build()) {
-      node = testKit.getEmulatedNode();
+      EmulatedNode node = testKit.getEmulatedNode();
+      assertThat(node.getNodeType()).isEqualTo(EmulatedNodeType.AUDITOR);
+      assertThat(node.getValidatorId()).isEmpty();
+      assertThat(node.getServiceKeyPair()).isNotNull();
     }
-    assertThat(node.getNodeType()).isEqualTo(EmulatedNodeType.AUDITOR);
-    assertThat(node.getValidatorId()).isEmpty();
-    assertThat(node.getServiceKeyPair()).isNotNull();
   }
 
   private <K, V> Map<K, V> toMap(MapIndex<K, V> mapIndex) {

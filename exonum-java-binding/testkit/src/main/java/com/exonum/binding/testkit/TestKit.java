@@ -25,7 +25,6 @@ import static java.util.stream.Collectors.toList;
 import com.exonum.binding.blockchain.Block;
 import com.exonum.binding.blockchain.Blockchain;
 import com.exonum.binding.blockchain.serialization.BlockSerializer;
-import com.exonum.binding.common.blockchain.TransactionResult;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.message.TransactionMessage;
 import com.exonum.binding.common.serialization.Serializer;
@@ -34,23 +33,27 @@ import com.exonum.binding.proxy.Cleaner;
 import com.exonum.binding.proxy.CloseFailuresException;
 import com.exonum.binding.runtime.ReflectiveModuleSupplier;
 import com.exonum.binding.service.BlockCommittedEvent;
+import com.exonum.binding.service.Node;
 import com.exonum.binding.service.Service;
 import com.exonum.binding.service.ServiceModule;
 import com.exonum.binding.service.adapters.UserServiceAdapter;
 import com.exonum.binding.storage.database.Snapshot;
+import com.exonum.binding.storage.indices.KeySetIndexProxy;
 import com.exonum.binding.storage.indices.MapIndex;
-import com.exonum.binding.storage.indices.ProofMapIndexProxy;
+import com.exonum.binding.transaction.RawTransaction;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -59,10 +62,14 @@ import javax.annotation.Nullable;
 /**
  * TestKit for testing blockchain services. It offers simple network configuration emulation
  * (with no real network setup). Although it is possible to add several validator nodes to this
- * network, only one node will create the service instances, provide access to its
- * <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">pool of unconfirmed transactions</a>
- * and will execute their operations (e.g., {@link Service#afterCommit(BlockCommittedEvent)} method
- * logic).
+ * network, only one node will create the service instances, execute their operations (e.g.,
+ * {@linkplain Service#afterCommit(BlockCommittedEvent)} method logic), and provide access to its
+ * state.
+ *
+ * <p>Only the emulated node has a pool of unconfirmed transactions where a service can submit new
+ * transaction messages through {@linkplain Node#submitTransaction(RawTransaction)}; or the test
+ * code through {@link #createBlockWithTransactions(TransactionMessage...)}. All transactions
+ * from the pool are committed when a new block is created with {@link #createBlock()}.
  *
  * <p>When TestKit is created, Exonum blockchain instance is initialized - service instances are
  * {@linkplain UserServiceAdapter#initialize(long)} initialized} and genesis block is committed.
@@ -70,6 +77,7 @@ import javax.annotation.Nullable;
  * created.
  *
  * @see <a href="https://exonum.com/doc/version/0.10/get-started/test-service/">TestKit documentation</a>
+ *      <a href="https://exonum.com/doc/version/0.10/advanced/consensus/specification/#pool-of-unconfirmed-transactions">Pool of Unconfirmed Transactions</a>
  */
 public final class TestKit extends AbstractCloseableNativeProxy {
 
@@ -172,7 +180,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * @return created block
    * // Review: Regarding references, it does not make sense to include in each operation, but it is required
    to document why this pool is important in operations of this class.
-   * @throws RuntimeException if transactions are malformed or don't belong to this
+   * @throws IllegalArgumentException if transactions are malformed or don't belong to this
    *     service
    */
   public Block createBlockWithTransactions(TransactionMessage... transactions) {
@@ -191,11 +199,12 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * order of their hashes. In-pool transactions will be ignored.
    *
    * @return created block
-   * @throws RuntimeException if transactions are malformed or don't belong to this
+   * @throws IllegalArgumentException if transactions are malformed or don't belong to this
    *     service
    */
   public Block createBlockWithTransactions(Iterable<TransactionMessage> transactions) {
     List<TransactionMessage> messageList = ImmutableList.copyOf(transactions);
+    checkTransactions(messageList);
     byte[][] transactionMessagesArr = messageList.stream()
         .map(TransactionMessage::toBytes)
         .toArray(byte[][]::new);
@@ -210,8 +219,46 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * @return created block
    */
   public Block createBlock() {
+    List<TransactionMessage> inPoolTransactions =
+        findTransactionsInPool(transactionMessage -> true);
+    checkTransactions(inPoolTransactions);
     byte[] block = nativeCreateBlock(nativeHandle.get());
     return BLOCK_SERIALIZER.fromBytes(block);
+  }
+
+  private void checkTransactions(List<TransactionMessage> transactionMessages) {
+    for (TransactionMessage transactionMessage: transactionMessages) {
+      checkTransaction(transactionMessage);
+    }
+  }
+
+  private void checkTransaction(TransactionMessage transactionMessage) {
+    short serviceId = transactionMessage.getServiceId();
+    RawTransaction rawTransaction = toRawTransaction(transactionMessage);
+    if (!services.containsKey(serviceId)) {
+      String message = String.format("Unknown service id (%s) in transaction (%s)",
+          serviceId, rawTransaction);
+      throw new IllegalArgumentException(message);
+    }
+    Service service = services.get(serviceId);
+    try {
+      service.convertToTransaction(rawTransaction);
+    } catch (Throwable conversionError) {
+      String message = String.format("Service (%s) with id=%s failed to convert transaction (%s)."
+          + " Make sure that the submitted transaction is correctly serialized, and the service's"
+          + " TransactionConverter implementation is correct and handles this transaction as"
+          + " expected.", service.getName(), serviceId, rawTransaction);
+      throw new IllegalArgumentException(message, conversionError);
+    }
+  }
+
+  @VisibleForTesting
+  static RawTransaction toRawTransaction(TransactionMessage transactionMessage) {
+    return RawTransaction.newBuilder()
+        .serviceId(transactionMessage.getServiceId())
+        .transactionId(transactionMessage.getTransactionId())
+        .payload(transactionMessage.getPayload())
+        .build();
   }
 
   /**
@@ -221,19 +268,16 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     return withSnapshot((view) -> {
       Blockchain blockchain = Blockchain.newInstance(view);
       MapIndex<HashCode, TransactionMessage> txMessages = blockchain.getTxMessages();
-      // As only executed transactions are stored in TxResults, it wouldn't contain in-pool
-      // transactions
-      ProofMapIndexProxy<HashCode, TransactionResult> txResults = blockchain.getTxResults();
-      List<TransactionMessage> messages = ImmutableList.copyOf(txMessages.values());
-      /*
-       Review: It is a little weird that we shall go over all transactions. I'd submit an issue to consider
-       providing access to transaction_pool in Blockchain (or separately).
-       */
-      return messages.stream()
-          .filter(predicate)
-          .filter(tx -> !txResults.containsKey(tx.hash()))
+      KeySetIndexProxy<HashCode> poolTxsHashes = blockchain.getTransactionPool();
+      Set<HashCode> poolTxsHashesSet = toSet(poolTxsHashes);
+      return poolTxsHashesSet.stream()
+          .map(txMessages::get)
           .collect(toList());
     });
+  }
+
+  private <T> Set<T> toSet(KeySetIndexProxy<T> setIndex) {
+    return Sets.newHashSet(setIndex.iterator());
   }
 
   /**
@@ -300,24 +344,23 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   public static final class Builder {
 
     private EmulatedNodeType nodeType;
-    private short validatorCount;
+    private short validatorCount = 1;
     private List<Class<? extends ServiceModule>> services = new ArrayList<>();
     private TimeProvider timeProvider;
 
     private Builder(EmulatedNodeType nodeType) {
-      // TestKit network should have at least one validator node
-      if (nodeType == EmulatedNodeType.AUDITOR) {
-        validatorCount = 1;
-      }
       this.nodeType = nodeType;
     }
 
     /**
-     * Sets number of additional validator nodes in the TestKit network. Note that
+     * Sets number of validator nodes in the TestKit network, should be positive. Note that
      * regardless of the configured number of validators, only a single service will be
-     * instantiated.
+     * instantiated. Equal to one by default.
+     *
+     * @throws IllegalArgumentException if validatorCount is less than one
      */
     public Builder withValidators(short validatorCount) {
+      checkArgument(validatorCount > 0, "TestKit network should have at least one validator node");
       this.validatorCount = validatorCount;
       return this;
     }
@@ -361,12 +404,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      */
     public TestKit build() {
       checkCorrectServiceNumber(services.size());
-      if (nodeType == EmulatedNodeType.VALIDATOR) {
-        // Review: I (still) don't understand this code. Why don't we just set the total number of validators, and
-        // assume "1" by default?
-        // If the main node is a validator, increment the number of validator nodes in the network
-        validatorCount += 1;
-      }
       return newInstance(services, nodeType, validatorCount, timeProvider);
     }
 

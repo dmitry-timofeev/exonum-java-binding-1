@@ -394,6 +394,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      * consolidated.
      */
     public Builder withTimeService(TimeProvider timeProvider) {
+      /*
+       Review: I think it must be simply forbidden to create a network with four+ validators
+in `build` as it makes no sense with the present testkit.
+       */
       this.timeProvider = timeProvider;
       return this;
     }

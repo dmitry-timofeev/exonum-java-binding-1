@@ -53,8 +53,6 @@ class FakeTimeProviderTest {
     assertThat(timeProvider.getTime()).isEqualTo(newTime);
   }
 
-  // Review: setTimeRejectsInvalidTimeZone?
-
   @Test
   void setTimeRejectsInvalidTimeZone() {
     FakeTimeProvider timeProvider = FakeTimeProvider.create(TIME);

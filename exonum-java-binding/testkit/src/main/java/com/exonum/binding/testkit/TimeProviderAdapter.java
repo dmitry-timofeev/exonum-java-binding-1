@@ -19,13 +19,15 @@ package com.exonum.binding.testkit;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.exonum.binding.common.serialization.Serializer;
+import com.exonum.binding.time.UtcZonedDateTimeSerializer;
 import java.time.ZonedDateTime;
 
 /**
  * An adapter of a {@link TimeProvider} for native code.
  */
 final class TimeProviderAdapter {
-  private static final Serializer<ZonedDateTime> ZDT_SERIALIZER = UtcZonedDateTimeSerializer.INSTANCE;
+  private static final Serializer<ZonedDateTime> ZDT_SERIALIZER =
+      UtcZonedDateTimeSerializer.INSTANCE;
 
   private final TimeProvider timeProvider;
 
@@ -33,6 +35,7 @@ final class TimeProviderAdapter {
     this.timeProvider = checkNotNull(timeProvider, "TimeProvider must not be null");
   }
 
+  @SuppressWarnings("unused") // Used in native code
   byte[] getTime() {
     return ZDT_SERIALIZER.toBytes(timeProvider.getTime());
   }

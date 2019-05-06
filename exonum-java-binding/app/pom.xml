@@ -21,11 +21,11 @@
   <parent>
     <groupId>com.exonum.binding</groupId>
     <artifactId>exonum-java-binding-parent</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0-SNAPSHOT</version>
   </parent>
 
   <artifactId>exonum-java-app</artifactId>
-  <version>0.6.0-SNAPSHOT</version>
+  <version>0.7.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Exonum Java Binding: App</name>
@@ -51,6 +51,19 @@
       <groupId>com.exonum.binding</groupId>
       <artifactId>exonum-time-oracle</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <!-- Use Log4J 2 as the backend -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+
+    <!-- One of our dependencies uses SLF4J (PF4J). This SLF4J binding allows
+         applications coded to the SLF4J API to use Log4j 2 as the implementation. -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j18-impl</artifactId>
     </dependency>
 
     <dependency>

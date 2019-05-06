@@ -20,7 +20,6 @@ import static com.exonum.binding.testkit.TestService.constructAfterCommitTransac
 import static com.exonum.binding.testkit.TestTransaction.BODY_CHARSET;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.exonum.binding.blockchain.Block;
 import com.exonum.binding.blockchain.Blockchain;
@@ -398,7 +397,7 @@ class TestKitTest {
       RawTransaction rawTransaction = TestKit.toRawTransaction(message);
       String expectedMessage = String.format("Unknown service id (%s) in transaction (%s)",
           wrongServiceId, rawTransaction);
-      assertTrue(thrownException.getMessage().contains(expectedMessage));
+      assertThat(thrownException).hasMessageContaining(expectedMessage);
     }
   }
 
@@ -419,7 +418,7 @@ class TestKitTest {
           + " and the service's TransactionConverter implementation is correct and handles this"
           + " transaction as expected.",
           TestService.SERVICE_NAME, TestService.SERVICE_ID, rawTransaction);
-      assertTrue(thrownException.getMessage().contains(expectedMessage));
+      assertThat(thrownException).hasMessageContaining(expectedMessage);
     }
   }
 
@@ -462,7 +461,7 @@ class TestKitTest {
 
         // Check that validatorsTimes contains one exactly entry with TestKit emulated node's
         // public key and time provider's time
-        checkValidatorsTimes(timeSchema, testKit);
+        checkValidatorsTimes(timeSchema, testKit, TIME);
         return null;
       });
 
@@ -518,18 +517,18 @@ I'd submit an issue.
 
         // Check that validatorsTimes contains one exactly entry with TestKit emulated node's
         // public key and time provider's time
-        checkValidatorsTimes(timeSchema, testKit);
+        checkValidatorsTimes(timeSchema, testKit, TIME);
         return null;
       });
     }
   }
 
-  // Review: Shan't we pass `time` as an argument, so that it is explicit?
-  private void checkValidatorsTimes(TimeSchema timeSchema, TestKit testKit) {
+  private void checkValidatorsTimes(
+      TimeSchema timeSchema, TestKit testKit, ZonedDateTime expectedTime) {
     Map<PublicKey, ZonedDateTime> validatorsTimes = toMap(timeSchema.getValidatorsTimes());
     EmulatedNode emulatedNode = testKit.getEmulatedNode();
     PublicKey nodePublicKey = emulatedNode.getServiceKeyPair().getPublicKey();
-    Map<PublicKey, ZonedDateTime> expected = ImmutableMap.of(nodePublicKey, TIME);
+    Map<PublicKey, ZonedDateTime> expected = ImmutableMap.of(nodePublicKey, expectedTime);
     assertThat(validatorsTimes).isEqualTo(expected);
   }
 

@@ -152,6 +152,16 @@ class QaServiceImplIntegrationTest {
       service.submitCreateCounter(counterName);
       testKit.createBlock();
 
+      /*
+       Review: (here and below) Actually, these tests now verify the results
+not only of submitting a transaction, but of its execution. They became more complex.
+As the results of an execution are verified in transaction tests, I would consider simplifying
+these.
+
+Also, how can we verify that a certain transaction was submitted with the current testkit API?
+Would it be simpler? If not, how can it be simplified?
+       */
+
       testKit.withSnapshot((view) -> {
         QaSchema schema = new QaSchema(view);
         MapIndex<HashCode, Long> counters = schema.counters();
@@ -195,6 +205,11 @@ class QaServiceImplIntegrationTest {
       service.submitValidThrowingTx(1L);
       testKit.createBlock();
 
+      /*
+      Review: No, it is not acceptable to test like that. This code must verify that a _QA service_
+submits a _certain_ transaction. This test, however, verifies that an implementation of TransactionAdapter,
+given the log configuration of this module, adds a certain log message.
+       */
       List<String> logMessages = logAppender.getMessages();
 
       // Logger contains three messages as #getStateHashes is called during service instantiation
@@ -219,6 +234,7 @@ class QaServiceImplIntegrationTest {
       assertThrows(exceptionType, testKit::createBlock);
       List<String> logMessages = logAppender.getMessages();
 
+      // Review: Same as above, it does not work.
       // Logger contains two messages as #getStateHashes is called during service instantiation
       int expectedNumMessages = 2;
       assertThat(logMessages).hasSize(expectedNumMessages);
@@ -259,6 +275,7 @@ class QaServiceImplIntegrationTest {
   void getHeight() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+      // Review: What connection does this transaction have with getHeight?
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Height expectedHeight = new Height(1L);
@@ -270,6 +287,7 @@ class QaServiceImplIntegrationTest {
   void getBlockHashes() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+      // Review: What connection does this transaction have with getBlockHashes?
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       Block block = testKit.createBlockWithTransactions(createCounterTransaction);
       List<HashCode> hashes = service.getBlockHashes();
@@ -286,6 +304,7 @@ class QaServiceImplIntegrationTest {
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       List<HashCode> transactionHashes = service.getBlockTransactions(1L);
+      // Review: transactionHashes).equalsTo(List.of(createCounterTransaction.hash());?
       assertThat(transactionHashes).hasSize(1);
       assertThat(transactionHashes.get(0)).isEqualTo(createCounterTransaction.hash());
     }
@@ -327,6 +346,7 @@ class QaServiceImplIntegrationTest {
       List<ValidatorKey> validatorKeys = configuration.validatorKeys();
 
       assertThat(validatorKeys).hasSize(validatorCount);
+      // Review: It is not readable, please fix it.
       assertThat(emulatedNodeServicePublicKey).matches(pk -> validatorKeys.stream()
           .anyMatch(v -> v.serviceKey().equals(pk)));
     }
@@ -351,6 +371,7 @@ class QaServiceImplIntegrationTest {
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionMessage> txMessages = service.getTxMessages();
+      // Review: Why does it have such size?
       assertThat(txMessages).hasSize(2);
       assertThat(txMessages.get(createCounterTransaction.hash()))
           .isEqualTo(createCounterTransaction);
@@ -364,6 +385,7 @@ class QaServiceImplIntegrationTest {
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionResult> txResults = service.getTxResults();
+      // REview: isEqualTo(Map.of(createCounterTransaction.hash(), TransactionResult.successful());
       assertThat(txResults).hasSize(1);
       assertThat(txResults.get(createCounterTransaction.hash()))
           .isEqualTo(TransactionResult.successful());
@@ -388,7 +410,14 @@ class QaServiceImplIntegrationTest {
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionLocation> txLocations = service.getTxLocations();
+      // REview: isEqualTo(Map.of(createCounterTransaction.hash(), expectedTransactionLocation);
       assertThat(txLocations).hasSize(1);
+      /*
+Review: Is it correct that TransactionLocation has index in the block as long (we can't usually
+have more than a couple of thousands transactions per block, but > 2^31-1 is impossible).
+
+Why `uint64 position_in_block = 2;`?
+       */
       TransactionLocation expectedTransactionLocation = TransactionLocation.valueOf(1L, 0L);
       assertThat(txLocations.get(createCounterTransaction.hash()))
           .isEqualTo(expectedTransactionLocation);
@@ -404,6 +433,7 @@ class QaServiceImplIntegrationTest {
       Optional<TransactionLocation> txLocation =
           service.getTxLocation(createCounterTransaction.hash());
       TransactionLocation expectedTransactionLocation = TransactionLocation.valueOf(1L, 0L);
+      // REview: I'd suggest using `hasValue` for Optionals to avoid confusion with collections.
       assertThat(txLocation).contains(expectedTransactionLocation);
     }
   }
@@ -412,6 +442,7 @@ class QaServiceImplIntegrationTest {
   void getBlocks() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+      // Review: Why redundant transaction?
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       Block block = testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, Block> blocks = service.getBlocks();
@@ -424,6 +455,7 @@ class QaServiceImplIntegrationTest {
   void getBlockByHeight() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+      // Review: Why redundant transaction?
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       Block block = testKit.createBlockWithTransactions(createCounterTransaction);
       Block actualBlock = service.getBlockByHeight(block.getHeight());
@@ -435,6 +467,7 @@ class QaServiceImplIntegrationTest {
   void getBlockById() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+      // Review: Why redundant transaction?
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       Block block = testKit.createBlockWithTransactions(createCounterTransaction);
       Optional<Block> actualBlock = service.getBlockById(block.getBlockHash());
@@ -446,6 +479,7 @@ class QaServiceImplIntegrationTest {
   void getLastBlock() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+      // Review: Why redundant transaction?
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       Block block = testKit.createBlockWithTransactions(createCounterTransaction);
       Block lastBlock = service.getLastBlock();

@@ -35,18 +35,27 @@ import com.exonum.binding.common.crypto.PublicKey;
 import com.exonum.binding.common.hash.HashCode;
 import com.exonum.binding.common.message.TransactionMessage;
 import com.exonum.binding.qaservice.transactions.CreateCounterTx;
+import com.exonum.binding.qaservice.transactions.QaTransaction;
+import com.exonum.binding.qaservice.transactions.UnknownTx;
 import com.exonum.binding.service.Schema;
 import com.exonum.binding.storage.indices.MapIndex;
 import com.exonum.binding.test.RequiresNativeLibrary;
 import com.exonum.binding.testkit.EmulatedNode;
 import com.exonum.binding.testkit.EmulatedNodeType;
+import com.exonum.binding.testkit.FakeTimeProvider;
 import com.exonum.binding.testkit.TestKit;
+import com.exonum.binding.testkit.TimeProvider;
 import com.exonum.binding.transaction.RawTransaction;
 import com.exonum.binding.util.LibraryLoader;
+
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configuration;
@@ -150,7 +159,6 @@ class QaServiceImplIntegrationTest {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
       String counterName = "bids";
       service.submitCreateCounter(counterName);
-      testKit.createBlock();
 
       /*
        Review: (here and below) Actually, these tests now verify the results
@@ -160,18 +168,16 @@ these.
 
 Also, how can we verify that a certain transaction was submitted with the current testkit API?
 Would it be simpler? If not, how can it be simplified?
+
+----
+
+Review: (Here and below) These verifications seem too loose. How shall we verify it propertly?
+Construct an expected message (but it requires the key)? An expected 'RawTransaction'?
        */
-
-      testKit.withSnapshot((view) -> {
-        QaSchema schema = new QaSchema(view);
-        MapIndex<HashCode, Long> counters = schema.counters();
-        MapIndex<HashCode, String> counterNames = schema.counterNames();
-        HashCode counterId = sha256().hashString(counterName, UTF_8);
-
-        assertThat(counters.get(counterId)).isEqualTo(0L);
-        assertThat(counterNames.get(counterId)).isEqualTo(counterName);
-        return null;
-      });
+      List<TransactionMessage> inPoolTransactions =
+          testKit.findTransactionsInPool(tx -> tx.getServiceId() == QaService.ID
+              && tx.getTransactionId() == QaTransaction.CREATE_COUNTER.id());
+      assertThat(inPoolTransactions).hasSize(1);
     }
   }
 
@@ -185,16 +191,12 @@ Would it be simpler? If not, how can it be simplified?
 
       HashCode counterId = sha256().hashString(counterName, UTF_8);
       service.submitIncrementCounter(1L, counterId);
-      testKit.createBlock();
-      testKit.withSnapshot((view) -> {
-        QaSchema schema = new QaSchema(view);
-        MapIndex<HashCode, Long> counters = schema.counters();
-        MapIndex<HashCode, String> counterNames = schema.counterNames();
-
-        assertThat(counters.get(counterId)).isEqualTo(1L);
-        assertThat(counterNames.get(counterId)).isEqualTo(counterName);
-        return null;
-      });
+      List<TransactionMessage> inPoolTransactions =
+          testKit.findTransactionsInPool(tx -> tx.getServiceId() == QaService.ID
+              && tx.getTransactionId() == QaTransaction.INCREMENT_COUNTER.id());
+      // Pool should contain two transactions - one was manually submitted above and another one
+      // was submitted in afterCommit
+      assertThat(inPoolTransactions).hasSize(2);
     }
   }
 
@@ -203,47 +205,28 @@ Would it be simpler? If not, how can it be simplified?
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
       service.submitValidThrowingTx(1L);
-      testKit.createBlock();
-
-      /*
-      Review: No, it is not acceptable to test like that. This code must verify that a _QA service_
-submits a _certain_ transaction. This test, however, verifies that an implementation of TransactionAdapter,
-given the log configuration of this module, adds a certain log message.
-       */
-      List<String> logMessages = logAppender.getMessages();
-
-      // Logger contains three messages as #getStateHashes is called during service instantiation
-      // and block creation
-      int expectedNumMessages = 3;
-      assertThat(logMessages).hasSize(expectedNumMessages);
-
-      String expectedExceptionMessage =
-          "java.lang.IllegalStateException: #execute of this transaction always throws";
-      assertThat(logMessages.get(1))
-          .contains("ERROR")
-          .contains(expectedExceptionMessage);
+      List<TransactionMessage> inPoolTransactions =
+          testKit.findTransactionsInPool(tx -> tx.getServiceId() == QaService.ID
+              && tx.getTransactionId() == QaTransaction.VALID_THROWING.id());
+      assertThat(inPoolTransactions).hasSize(1);
     }
   }
 
   @Test
   void submitUnknownTx() {
-    Class<RuntimeException> exceptionType = RuntimeException.class;
+    Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
       service.submitUnknownTx();
-      assertThrows(exceptionType, testKit::createBlock);
-      List<String> logMessages = logAppender.getMessages();
 
-      // Review: Same as above, it does not work.
-      // Logger contains two messages as #getStateHashes is called during service instantiation
-      int expectedNumMessages = 2;
-      assertThat(logMessages).hasSize(expectedNumMessages);
-
-      String expectedExceptionMessage =
-          "java.lang.IllegalArgumentException: Unknown transaction id: 9999";
-      assertThat(logMessages.get(1))
-          .contains("WARN")
-          .contains(expectedExceptionMessage);
+      IllegalArgumentException e = assertThrows(exceptionType, testKit::createBlock);
+      String expectedMessage =
+          String.format("Service (%s) with id=%s failed to convert transaction"
+              + " (RawTransaction{serviceId=%s, transactionId=%s, payload=[]}). Make sure that"
+              + " the submitted transaction is correctly serialized, and the service's"
+              + " TransactionConverter implementation is correct and handles this transaction as"
+              + " expected.", QaService.NAME, QaService.ID, QaService.ID, UnknownTx.ID);
+      assertThat(e).hasMessageContaining(expectedMessage);
     }
   }
 
@@ -275,9 +258,7 @@ given the log configuration of this module, adds a certain log message.
   void getHeight() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
-      // Review: What connection does this transaction have with getHeight?
-      TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
-      testKit.createBlockWithTransactions(createCounterTransaction);
+      testKit.createBlock();
       Height expectedHeight = new Height(1L);
       assertThat(service.getHeight()).isEqualTo(expectedHeight);
     }
@@ -287,9 +268,7 @@ given the log configuration of this module, adds a certain log message.
   void getBlockHashes() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
-      // Review: What connection does this transaction have with getBlockHashes?
-      TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
-      Block block = testKit.createBlockWithTransactions(createCounterTransaction);
+      Block block = testKit.createBlock();
       List<HashCode> hashes = service.getBlockHashes();
       // Should contain genesis and created block hashes
       assertThat(hashes).hasSize(2);
@@ -304,9 +283,7 @@ given the log configuration of this module, adds a certain log message.
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       List<HashCode> transactionHashes = service.getBlockTransactions(1L);
-      // Review: transactionHashes).equalsTo(List.of(createCounterTransaction.hash());?
-      assertThat(transactionHashes).hasSize(1);
-      assertThat(transactionHashes.get(0)).isEqualTo(createCounterTransaction.hash());
+      assertThat(transactionHashes).isEqualTo(ImmutableList.of(createCounterTransaction.hash()));
     }
   }
 
@@ -346,9 +323,10 @@ given the log configuration of this module, adds a certain log message.
       List<ValidatorKey> validatorKeys = configuration.validatorKeys();
 
       assertThat(validatorKeys).hasSize(validatorCount);
-      // Review: It is not readable, please fix it.
-      assertThat(emulatedNodeServicePublicKey).matches(pk -> validatorKeys.stream()
-          .anyMatch(v -> v.serviceKey().equals(pk)));
+      // Review: It is not readable, please fix it. (still not — map!)
+      boolean emulatedNodeValidatorKeyIsInConfig = validatorKeys.stream()
+          .anyMatch(vk -> vk.serviceKey().equals(emulatedNodeServicePublicKey));
+      assertThat(emulatedNodeValidatorKeyIsInConfig).isTrue();
     }
   }
 
@@ -371,7 +349,7 @@ given the log configuration of this module, adds a certain log message.
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionMessage> txMessages = service.getTxMessages();
-      // Review: Why does it have such size?
+      // Contains two transactions - one submitted above and the second committed in afterCommit
       assertThat(txMessages).hasSize(2);
       assertThat(txMessages.get(createCounterTransaction.hash()))
           .isEqualTo(createCounterTransaction);
@@ -385,10 +363,8 @@ given the log configuration of this module, adds a certain log message.
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionResult> txResults = service.getTxResults();
-      // REview: isEqualTo(Map.of(createCounterTransaction.hash(), TransactionResult.successful());
-      assertThat(txResults).hasSize(1);
-      assertThat(txResults.get(createCounterTransaction.hash()))
-          .isEqualTo(TransactionResult.successful());
+      assertThat(txResults)
+          .isEqualTo(ImmutableMap.of(createCounterTransaction.hash(), TransactionResult.successful()));
     }
   }
 
@@ -399,7 +375,7 @@ given the log configuration of this module, adds a certain log message.
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Optional<TransactionResult> txResult = service.getTxResult(createCounterTransaction.hash());
-      assertThat(txResult).contains(TransactionResult.successful());
+      assertThat(txResult).hasValue(TransactionResult.successful());
     }
   }
 
@@ -410,17 +386,10 @@ given the log configuration of this module, adds a certain log message.
       TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionLocation> txLocations = service.getTxLocations();
-      // REview: isEqualTo(Map.of(createCounterTransaction.hash(), expectedTransactionLocation);
-      assertThat(txLocations).hasSize(1);
-      /*
-Review: Is it correct that TransactionLocation has index in the block as long (we can't usually
-have more than a couple of thousands transactions per block, but > 2^31-1 is impossible).
-
-Why `uint64 position_in_block = 2;`?
-       */
       TransactionLocation expectedTransactionLocation = TransactionLocation.valueOf(1L, 0L);
-      assertThat(txLocations.get(createCounterTransaction.hash()))
-          .isEqualTo(expectedTransactionLocation);
+      assertThat(txLocations)
+          .isEqualTo(ImmutableMap.of(createCounterTransaction.hash(),
+              expectedTransactionLocation));
     }
   }
 
@@ -433,8 +402,7 @@ Why `uint64 position_in_block = 2;`?
       Optional<TransactionLocation> txLocation =
           service.getTxLocation(createCounterTransaction.hash());
       TransactionLocation expectedTransactionLocation = TransactionLocation.valueOf(1L, 0L);
-      // REview: I'd suggest using `hasValue` for Optionals to avoid confusion with collections.
-      assertThat(txLocation).contains(expectedTransactionLocation);
+      assertThat(txLocation).hasValue(expectedTransactionLocation);
     }
   }
 
@@ -442,9 +410,7 @@ Why `uint64 position_in_block = 2;`?
   void getBlocks() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
-      // Review: Why redundant transaction?
-      TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
-      Block block = testKit.createBlockWithTransactions(createCounterTransaction);
+      Block block = testKit.createBlock();
       Map<HashCode, Block> blocks = service.getBlocks();
       assertThat(blocks).hasSize(2);
       assertThat(blocks.get(block.getBlockHash())).isEqualTo(block);
@@ -455,9 +421,7 @@ Why `uint64 position_in_block = 2;`?
   void getBlockByHeight() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
-      // Review: Why redundant transaction?
-      TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
-      Block block = testKit.createBlockWithTransactions(createCounterTransaction);
+      Block block = testKit.createBlock();
       Block actualBlock = service.getBlockByHeight(block.getHeight());
       assertThat(actualBlock).isEqualTo(block);
     }
@@ -467,11 +431,9 @@ Why `uint64 position_in_block = 2;`?
   void getBlockById() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
-      // Review: Why redundant transaction?
-      TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
-      Block block = testKit.createBlockWithTransactions(createCounterTransaction);
+      Block block = testKit.createBlock();
       Optional<Block> actualBlock = service.getBlockById(block.getBlockHash());
-      assertThat(actualBlock).contains(block);
+      assertThat(actualBlock).hasValue(block);
     }
   }
 
@@ -479,9 +441,7 @@ Why `uint64 position_in_block = 2;`?
   void getLastBlock() {
     try (TestKit testKit = TestKit.forService(QaServiceModule.class)) {
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
-      // Review: Why redundant transaction?
-      TransactionMessage createCounterTransaction = createCreateCounterTransaction("counterName");
-      Block block = testKit.createBlockWithTransactions(createCounterTransaction);
+      Block block = testKit.createBlock();
       Block lastBlock = service.getLastBlock();
       assertThat(lastBlock).isEqualTo(block);
     }
@@ -489,14 +449,45 @@ Why `uint64 position_in_block = 2;`?
 
   @Test
   void getTime() {
-    // TODO: merge Time Service support in TestKit first
-    // withNodeFake(() -> assertThat(service.getTime()).isEmpty());
+    ZonedDateTime time = ZonedDateTime.of(2000, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
+    TimeProvider timeProvider = FakeTimeProvider.create(time);
+    try (TestKit testKit = TestKit.builder(EmulatedNodeType.VALIDATOR)
+        .withService(QaServiceModule.class)
+        .withTimeService(timeProvider)
+        .build()) {
+      QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+
+      // Commit two blocks for time oracle to update consolidated time. Two blocks are needed as
+      // after the first block time transactions are generated and after the second one they are
+      // processed
+      testKit.createBlock();
+      testKit.createBlock();
+      Optional<ZonedDateTime> consolidatedTime = service.getTime();
+      assertThat(consolidatedTime).hasValue(time);
+    }
   }
 
   @Test
   void getValidatorsTime() {
-    // TODO: merge Time Service support in TestKit first
-    // withNodeFake(() -> assertThat(service.getValidatorsTimes()).isEmpty());
+    ZonedDateTime time = ZonedDateTime.of(2000, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
+    TimeProvider timeProvider = FakeTimeProvider.create(time);
+    try (TestKit testKit = TestKit.builder(EmulatedNodeType.VALIDATOR)
+        .withService(QaServiceModule.class)
+        .withTimeService(timeProvider)
+        .build()) {
+      QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
+
+      // Commit two blocks for time oracle to update consolidated time. Two blocks are needed as
+      // after the first block time transactions are generated and after the second one they are
+      // processed
+      testKit.createBlock();
+      testKit.createBlock();
+      Map<PublicKey, ZonedDateTime> validatorsTimes = service.getValidatorsTimes();
+      EmulatedNode emulatedNode = testKit.getEmulatedNode();
+      PublicKey nodePublicKey = emulatedNode.getServiceKeyPair().getPublicKey();
+      Map<PublicKey, ZonedDateTime> expected = ImmutableMap.of(nodePublicKey, time);
+      assertThat(validatorsTimes).isEqualTo(expected);
+    }
   }
 
   private TransactionMessage createCreateCounterTransaction(String counterName) {

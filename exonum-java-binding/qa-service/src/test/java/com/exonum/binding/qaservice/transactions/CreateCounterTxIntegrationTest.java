@@ -149,6 +149,18 @@ class CreateCounterTxIntegrationTest {
       testKit.createBlockWithTransactions(transactionMessage);
       testKit.createBlockWithTransactions(transactionMessage2);
 
+      /*
+       Review:
+Is this code supposed to test the execution result? com.exonum.binding.blockchain.Blockchain.getTxResult ?
+
+The **only** appropriate place to test log messages is where it is a *requirement*
+to log a certain message, like in
+`com.exonum.binding.qaservice.QaServiceImplIntegrationTest.getStateHashesLogsThem`.
+
+If something cannot be tested without that — the code is broken (either client or API),
+or the testkit is broken.
+       */
+
       List<String> logMessages = logAppender.getMessages();
       // Logger contains two #getStateHashes messages and an exception message
       int expectedNumMessages = 3;

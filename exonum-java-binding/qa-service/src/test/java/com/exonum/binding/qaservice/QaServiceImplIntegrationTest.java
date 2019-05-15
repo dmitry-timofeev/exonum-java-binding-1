@@ -319,7 +319,10 @@ Construct an expected message (but it requires the key)? An expected 'RawTransac
       QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
       StoredConfiguration configuration = service.getActualConfiguration();
       EmulatedNode emulatedNode = testKit.getEmulatedNode();
-      // Review (START patch)
+      List<ValidatorKey> validatorKeys = configuration.validatorKeys();
+
+      assertThat(validatorKeys).hasSize(validatorCount);
+
       PublicKey emulatedNodeServiceKey = emulatedNode.getServiceKeyPair().getPublicKey();
       List<PublicKey> serviceKeys = configuration.validatorKeys().stream()
           .map(ValidatorKey::serviceKey)
@@ -327,7 +330,6 @@ Construct an expected message (but it requires the key)? An expected 'RawTransac
 
       assertThat(serviceKeys).hasSize(validatorCount);
       assertThat(serviceKeys).contains(emulatedNodeServiceKey);
-      // Review (END patch)
     }
   }
 
@@ -365,7 +367,8 @@ Construct an expected message (but it requires the key)? An expected 'RawTransac
       testKit.createBlockWithTransactions(createCounterTransaction);
       Map<HashCode, TransactionResult> txResults = service.getTxResults();
       assertThat(txResults)
-          .isEqualTo(ImmutableMap.of(createCounterTransaction.hash(), TransactionResult.successful()));
+          .isEqualTo(ImmutableMap.of(createCounterTransaction.hash(),
+              TransactionResult.successful()));
     }
   }
 
@@ -448,17 +451,16 @@ Construct an expected message (but it requires the key)? An expected 'RawTransac
     }
   }
 
-  // Review: PS
   @Nested
   class WithTime {
 
-    private final ZonedDateTime EXPECTED_TIME = ZonedDateTime
+    private final ZonedDateTime expectedTime = ZonedDateTime
         .of(2000, 1, 1, 1, 1, 1, 1, ZoneOffset.UTC);
     private TestKit testKit;
 
     @BeforeEach
     void setUpConsolidatedTime() {
-      TimeProvider timeProvider = FakeTimeProvider.create(EXPECTED_TIME);
+      TimeProvider timeProvider = FakeTimeProvider.create(expectedTime);
       testKit = TestKit.builder(EmulatedNodeType.VALIDATOR)
           .withService(QaServiceModule.class)
           .withTimeService(timeProvider)
@@ -472,28 +474,27 @@ Construct an expected message (but it requires the key)? An expected 'RawTransac
     }
 
     @AfterEach
-    void destroyTestkit() {
+    void destroyTestKit() {
       testKit.close();
     }
 
     @Test
     void getTime() {
-      QaService service = testKit.getService(QaService.ID, QaService.class);
+      QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
       Optional<ZonedDateTime> consolidatedTime = service.getTime();
-      assertThat(consolidatedTime).hasValue(EXPECTED_TIME);
+      assertThat(consolidatedTime).hasValue(expectedTime);
     }
 
     @Test
     void getValidatorsTime() {
-      QaService service = testKit.getService(QaService.ID, QaService.class);
+      QaServiceImpl service = testKit.getService(QaService.ID, QaServiceImpl.class);
       Map<PublicKey, ZonedDateTime> validatorsTimes = service.getValidatorsTimes();
       EmulatedNode emulatedNode = testKit.getEmulatedNode();
       PublicKey nodePublicKey = emulatedNode.getServiceKeyPair().getPublicKey();
-      Map<PublicKey, ZonedDateTime> expected = ImmutableMap.of(nodePublicKey, EXPECTED_TIME);
+      Map<PublicKey, ZonedDateTime> expected = ImmutableMap.of(nodePublicKey, expectedTime);
       assertThat(validatorsTimes).isEqualTo(expected);
     }
   }
-  // Review: PE
 
   private TransactionMessage createCreateCounterTransaction(String counterName) {
     CreateCounterTx createCounterTx = new CreateCounterTx(counterName);

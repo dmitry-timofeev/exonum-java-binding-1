@@ -103,6 +103,10 @@ class ThrowingTxIntegrationTest {
     return toTransactionMessage(rawTransaction);
   }
 
+  /*
+   Review: This code is duplicated in every test — could be extracted in a separate utility
+class.
+   */
   private TransactionMessage toTransactionMessage(RawTransaction rawTransaction) {
     return TransactionMessage.builder()
         .serviceId(rawTransaction.getServiceId())

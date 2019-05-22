@@ -39,6 +39,7 @@ public class TransactionUtils {
    * with given service key pair.
    */
   static TransactionMessage createCreateWalletTransaction(
+      // Review: emulatedNodeKeyPair makes no sense here
       long initialBalance, KeyPair emulatedNodeKeyPair) {
     RawTransaction rawTransaction = createCreateWalletRawTransaction(initialBalance);
     return toTransactionMessage(rawTransaction, emulatedNodeKeyPair);
@@ -59,10 +60,13 @@ public class TransactionUtils {
   }
 
   /**
+   * Review: given default initial balance?
    * Returns a TransferTx transaction message with given default initial balance and signed
    * with given service key pair.
    */
   static TransactionMessage createTransferTransaction(
+      // Review: emulatedNodeKeyPair makes no sense here
+      // Review: Such things usually go from left (source or sender) to right (destination or recipient). It is very confusing to read the client code.
       long seed, PublicKey toWallet, long sum, KeyPair emulatedNodeKeyPair) {
     RawTransaction rawTransaction = createTransferRawTransaction(seed, toWallet, sum);
     return toTransactionMessage(rawTransaction, emulatedNodeKeyPair);

@@ -74,6 +74,10 @@ class CreateWalletTxTest {
   @RequiresNativeLibrary
   void executeCreateWalletTx() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
+      /* Review:
+Is there a reason to use the emulated node key instead of a predefined key? It is unclear why it is
+needed (if it is).
+       */
       KeyPair emulatedNodeKeyPair = testKit.getEmulatedNode().getServiceKeyPair();
       TransactionMessage transactionMessage =
           createCreateWalletTransaction(DEFAULT_INITIAL_BALANCE, emulatedNodeKeyPair);
@@ -97,13 +101,19 @@ class CreateWalletTxTest {
   @RequiresNativeLibrary
   void executeAlreadyExistingWalletTx() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
+      // Review: This code lacks some comments and structure to make the scenario easy to understand
+      // Create a new wallet
       TransactionMessage transactionMessage =
           createCreateWalletTransaction(DEFAULT_INITIAL_BALANCE, OWNER_KEY_PAIR);
+      testKit.createBlockWithTransactions(transactionMessage);
+
+      // Attempt to execute a transaction with the same owner public key.
+      // Use different balance so that it is not rejected as a duplicate
       TransactionMessage transactionMessage2 =
           createCreateWalletTransaction(DEFAULT_INITIAL_BALANCE * 2, OWNER_KEY_PAIR);
-      testKit.createBlockWithTransactions(transactionMessage);
       testKit.createBlockWithTransactions(transactionMessage2);
 
+      // Check the second tx failed
       testKit.withSnapshot((view) -> {
         Blockchain blockchain = Blockchain.newInstance(view);
         Optional<TransactionResult> txResult = blockchain.getTxResult(transactionMessage2.hash());

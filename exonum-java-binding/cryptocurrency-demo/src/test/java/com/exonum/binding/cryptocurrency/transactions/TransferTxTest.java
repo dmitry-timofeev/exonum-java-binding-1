@@ -63,10 +63,12 @@ class TransferTxTest {
   void fromRawTransaction() {
     long seed = 1;
     long amount = 50L;
+    // Review: Why is 'from' passed as a recipient’s key (here and elsewhere)?
     RawTransaction raw = createTransferRawTransaction(seed, FROM_KEY_PAIR.getPublicKey(), amount);
 
     TransferTx tx = TransferTx.fromRawTransaction(raw);
 
+    // Review: [TBD] FROM_KEY_PAIR.getPublicKey() is used somewhat often.
     assertThat(tx).isEqualTo(new TransferTx(seed, FROM_KEY_PAIR.getPublicKey(), amount));
   }
 
@@ -93,10 +95,12 @@ class TransferTxTest {
   @RequiresNativeLibrary
   void executeTransfer() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
+      // Review: With the same initial balance.
       // Create source and target wallets with the given initial balances
       long initialBalance = 100L;
       TransactionMessage createFromWalletTx1 =
           createCreateWalletTransaction(initialBalance, FROM_KEY_PAIR);
+      // Review: toWallet I suppose. + drop numbers
       TransactionMessage createFromWalletTx2 =
           createCreateWalletTransaction(initialBalance, TO_KEY_PAIR);
       testKit.createBlockWithTransactions(createFromWalletTx1, createFromWalletTx2);
@@ -107,6 +111,7 @@ class TransferTxTest {
       TransactionMessage transferTx = createTransferTransaction(
           seed, TO_KEY_PAIR.getPublicKey(), transferSum, FROM_KEY_PAIR);
       testKit.createBlockWithTransactions(transferTx);
+      // Review: New line
       testKit.withSnapshot((view) -> {
         // Check that wallets have correct balances
         CryptocurrencySchema schema = new CryptocurrencySchema(view);
@@ -134,6 +139,7 @@ class TransferTxTest {
   void executeTransfer_NoSuchFromWallet() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
       // Create a receiver’s wallet with the given initial balance
+      // Review: This test uses invalid constants (NoSuch **From** Wallet), please fix them.
       long initialBalance = 50L;
       TransactionMessage createFromWalletTx =
           createCreateWalletTransaction(initialBalance, FROM_KEY_PAIR);
@@ -208,6 +214,7 @@ class TransferTxTest {
   @RequiresNativeLibrary
   void executeTransfer_InsufficientFunds() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
+      // Review: this comment is incomplete (two wallets).
       // Create a receiver’s wallet with the given initial balance
       long initialBalance = 50L;
       TransactionMessage createFromWalletTx1 =
@@ -216,6 +223,7 @@ class TransferTxTest {
           createCreateWalletTransaction(initialBalance, TO_KEY_PAIR);
       testKit.createBlockWithTransactions(createFromWalletTx1, createFromWalletTx2);
 
+      // Review: Why is that comment < removed?
       long seed = 1L;
       long transferSum = initialBalance + 50L;
       TransactionMessage transferTx = createTransferTransaction(
@@ -236,6 +244,7 @@ class TransferTxTest {
   @Test
   void info() {
     long seed = Long.MAX_VALUE - 1L;
+    // Review: to.
     TransferTx tx =  new TransferTx(seed, FROM_KEY_PAIR.getPublicKey(), 50L);
 
     String info = tx.info();

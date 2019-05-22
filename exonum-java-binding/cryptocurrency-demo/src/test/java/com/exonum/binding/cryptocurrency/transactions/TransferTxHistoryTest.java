@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 @RequiresNativeLibrary
 class TransferTxHistoryTest {
 
+  // Review: If bidi transfers are performed in the test, does it make sense to use to/from?
   private static final KeyPair TO_KEY_PAIR = PredefinedOwnerKeys.FIRST_OWNER_KEY_PAIR;
   private static final KeyPair FROM_KEY_PAIR = PredefinedOwnerKeys.SECOND_OWNER_KEY_PAIR;
 
@@ -86,6 +87,12 @@ class TransferTxHistoryTest {
         HashCode messageHash1 = transferTx1.hash();
         HashCode messageHash2 = transferTx2.hash();
         assertThat(schema.transactionsHistory(TO_KEY_PAIR.getPublicKey()))
+            /*
+             Review:
+> [contains] Verifies that the actual group contains the given values, **in any order**.
+
+It is too loose. containsExactly?
+             */
             .contains(messageHash1, messageHash2);
         assertThat(schema.transactionsHistory(FROM_KEY_PAIR.getPublicKey()))
             .contains(messageHash1, messageHash2);

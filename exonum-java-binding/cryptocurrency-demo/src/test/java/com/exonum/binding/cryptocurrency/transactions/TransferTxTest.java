@@ -63,13 +63,13 @@ class TransferTxTest {
   void fromRawTransaction() {
     long seed = 1;
     long amount = 50L;
-    // Review: Why is 'from' passed as a recipient’s key (here and elsewhere)?
-    RawTransaction raw = newTransferRawTransaction(seed, amount, TO_KEY_PAIR.getPublicKey());
+    // Review: Patch
+    PublicKey recipient = TO_KEY_PAIR.getPublicKey();
+    RawTransaction raw = newTransferRawTransaction(seed, amount, recipient);
 
     TransferTx tx = TransferTx.fromRawTransaction(raw);
 
-    // Review: [TBD] FROM_KEY_PAIR.getPublicKey() is used somewhat often.
-    assertThat(tx).isEqualTo(new TransferTx(seed, TO_KEY_PAIR.getPublicKey(), amount));
+    assertThat(tx).isEqualTo(new TransferTx(seed, recipient, amount));
   }
 
   @ParameterizedTest

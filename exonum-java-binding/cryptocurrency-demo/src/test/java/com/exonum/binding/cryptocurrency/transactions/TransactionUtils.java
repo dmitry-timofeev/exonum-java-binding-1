@@ -63,6 +63,11 @@ public class TransactionUtils {
    * signed with given owner key pair.
    */
   static TransactionMessage newTransferTransaction(
+      /*
+Review: Nit: It might be beneficial to separate args of the same type (long) to
+ensure they are not accidentally swapped: `newTransferTx(seed, ownerKeyPair, toWallet/receiverKey, sum)`
+
+       */
       long seed, long sum, KeyPair ownerKeyPair, PublicKey toWallet) {
     RawTransaction rawTransaction = newTransferRawTransaction(seed, sum, toWallet);
     return toTransactionMessage(rawTransaction, ownerKeyPair);

@@ -19,8 +19,8 @@ package com.exonum.binding.cryptocurrency.transactions;
 import static com.exonum.binding.common.serialization.json.JsonSerializer.json;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionError.WALLET_ALREADY_EXISTS;
 import static com.exonum.binding.cryptocurrency.transactions.TransactionUtils.DEFAULT_INITIAL_BALANCE;
-import static com.exonum.binding.cryptocurrency.transactions.TransactionUtils.createCreateWalletRawTransaction;
-import static com.exonum.binding.cryptocurrency.transactions.TransactionUtils.createCreateWalletTransaction;
+import static com.exonum.binding.cryptocurrency.transactions.TransactionUtils.newCreateWalletRawTransaction;
+import static com.exonum.binding.cryptocurrency.transactions.TransactionUtils.newCreateWalletTransaction;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -53,7 +53,7 @@ class CreateWalletTxTest {
   @Test
   void fromRawTransaction() {
     long initialBalance = 100L;
-    RawTransaction raw = createCreateWalletRawTransaction(initialBalance);
+    RawTransaction raw = newCreateWalletRawTransaction(initialBalance);
 
     CreateWalletTx tx = CreateWalletTx.fromRawTransaction(raw);
 
@@ -74,13 +74,8 @@ class CreateWalletTxTest {
   @RequiresNativeLibrary
   void executeCreateWalletTx() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
-      /* Review:
-Is there a reason to use the emulated node key instead of a predefined key? It is unclear why it is
-needed (if it is).
-       */
-      KeyPair emulatedNodeKeyPair = testKit.getEmulatedNode().getServiceKeyPair();
       TransactionMessage transactionMessage =
-          createCreateWalletTransaction(DEFAULT_INITIAL_BALANCE, emulatedNodeKeyPair);
+          newCreateWalletTransaction(DEFAULT_INITIAL_BALANCE, OWNER_KEY_PAIR);
       testKit.createBlockWithTransactions(transactionMessage);
 
       testKit.withSnapshot((view) -> {
@@ -88,7 +83,7 @@ needed (if it is).
         CryptocurrencySchema schema = new CryptocurrencySchema(view);
         MapIndex<PublicKey, Wallet> wallets = schema.wallets();
 
-        PublicKey emulatedNodePublicKey = emulatedNodeKeyPair.getPublicKey();
+        PublicKey emulatedNodePublicKey = OWNER_KEY_PAIR.getPublicKey();
         assertThat(wallets.containsKey(emulatedNodePublicKey)).isTrue();
         assertThat(wallets.get(emulatedNodePublicKey).getBalance())
             .isEqualTo(DEFAULT_INITIAL_BALANCE);
@@ -101,19 +96,18 @@ needed (if it is).
   @RequiresNativeLibrary
   void executeAlreadyExistingWalletTx() {
     try (TestKit testKit = TestKit.forService(CryptocurrencyServiceModule.class)) {
-      // Review: This code lacks some comments and structure to make the scenario easy to understand
       // Create a new wallet
       TransactionMessage transactionMessage =
-          createCreateWalletTransaction(DEFAULT_INITIAL_BALANCE, OWNER_KEY_PAIR);
+          newCreateWalletTransaction(DEFAULT_INITIAL_BALANCE, OWNER_KEY_PAIR);
       testKit.createBlockWithTransactions(transactionMessage);
 
       // Attempt to execute a transaction with the same owner public key.
       // Use different balance so that it is not rejected as a duplicate
       TransactionMessage transactionMessage2 =
-          createCreateWalletTransaction(DEFAULT_INITIAL_BALANCE * 2, OWNER_KEY_PAIR);
+          newCreateWalletTransaction(DEFAULT_INITIAL_BALANCE * 2, OWNER_KEY_PAIR);
       testKit.createBlockWithTransactions(transactionMessage2);
 
-      // Check the second tx failed
+      // Check that the second tx has failed
       testKit.withSnapshot((view) -> {
         Blockchain blockchain = Blockchain.newInstance(view);
         Optional<TransactionResult> txResult = blockchain.getTxResult(transactionMessage2.hash());

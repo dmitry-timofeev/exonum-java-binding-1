@@ -24,6 +24,7 @@ import java.lang.annotation.Target;
 /**
  * Changes main TestKit node type to validator for injected TestKit.
  *
+ * Review: Method ref is off
  * @see TestKit.Builder#withNodeType(EmulatedNodeType)
  *      <a href="https://exonum.com/doc/version/0.11/glossary/#validator">Validator Node</a>
  */

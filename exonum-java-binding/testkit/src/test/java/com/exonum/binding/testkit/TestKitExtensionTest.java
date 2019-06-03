@@ -159,6 +159,7 @@ class TestKitExtensionTest {
     static TestKitExtension testKitExtension = new TestKitExtension(defaultBuilder);
 
     @AfterEach
+    // REview: I suggest using value (IIRC) for this parameter. This way one could write `@VC(8)`
     void afterEach(@ValidatorCount(validatorCount = 8) TestKit testKit) {
       // Shouldn't be executed
     }
@@ -169,6 +170,7 @@ class TestKitExtensionTest {
     }
   }
 
+  // Review: Is it needed if the extension is already in `static` field?
   @TestInstance(TestInstance.Lifecycle.PER_CLASS)
   static class BeforeAllInstantiationTestCase {
 

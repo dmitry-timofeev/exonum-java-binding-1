@@ -55,6 +55,7 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * instead of:
  *
  * <pre><code>
+ *   Review: It is not needed
  * static {
  *   LibraryLoader.load();
  * }
@@ -62,7 +63,10 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * @Test
  * void test() {
  *   try (TestKit testKit = TestKit.forService(TestServiceModule.class)) {
+ *     // Review: That is not an honest comparison. If we include @BeforeEach in the first,
+ *     // than there is absolutely no problem including @BeforeEach **and** @AfterEach in the example.
  *     // Set up logic
+ *
  *     // Test logic
  *   }
  * }
@@ -71,6 +75,7 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * <p>As different tests might need slightly different TestKit configuration, following
  * parameterization annotations are available:
  * <ul>
+ *   Review: Do we need validator? Won't you use validator by default, and configure Auditors if needed?
  *   <li>{@link Validator} sets main TestKit validator node type to validator</li>
  *   <li>{@link Auditor} sets main TestKit validator node type to auditor</li>
  *   <li>{@link ValidatorCount} sets number of validator nodes in the TestKit network</li>
@@ -148,6 +153,7 @@ public class TestKitExtension implements ParameterResolver {
    */
   private void checkExtensionContext(ExtensionContext extensionContext) {
     Optional<Method> testMethod = extensionContext.getTestMethod();
+    // Review: comment + RException
     testMethod.orElseThrow(() ->
         new RuntimeException("TestKit can't be injected in @BeforeAll or @AfterAll"));
   }

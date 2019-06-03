@@ -17,7 +17,6 @@
 package com.exonum.binding.testkit;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -353,6 +352,21 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      * Returns a copy of this TestKit builder.
      */
     public Builder copy() {
+      /*
+       Review: I'd suggest copyFrom(other) because the following pattern more clearly separates them:
+
+      Foo.builder()
+          .copyFrom(source)
+          .setBar(newBar)
+          .build();
+
+      than
+
+      source.copy()
+          .setBar(newBar)
+          .build();
+
+       */
       return new Builder()
           .withNodeType(nodeType)
           .withServices(services)

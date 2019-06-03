@@ -54,15 +54,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestInstance.Lifecycle;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+// Review: Why O_O?
 @TestInstance(Lifecycle.PER_CLASS)
 class TestKitTest {
 
+  // REview: Shall we use the extension in the test of testkit?
   @RegisterExtension
   static TestKitExtension testKitExtension = new TestKitExtension(
       TestKit.builder()
@@ -77,6 +78,7 @@ class TestKitTest {
     LibraryLoader.load();
   }
 
+  // Review: It is probably no longer needed, isn't it?
   @Test
   void createTestKitForSingleService(TestKit testKit) {
     TestService service = testKit.getService(TestService.SERVICE_ID, TestService.class);
@@ -204,6 +206,12 @@ class TestKitTest {
   void createTestKitWithAuditorAndAdditionalValidators() {
     short validatorCount = 2;
     try (TestKit testKit = TestKit.builder()
+        /*
+         Review: Why `with` prefix everywhere? I would either drop it (e.g., `nodeType`)
+or add usual `set`/`add`. On the other hand, if used consistently, it slightly helps with
+discoverability (if **all** use `with`, you can type `wit` and see what you could do).
+         */
+
         .withNodeType(EmulatedNodeType.AUDITOR)
         .withService(TestServiceModule.class)
         .withValidators(validatorCount)

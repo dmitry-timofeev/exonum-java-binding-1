@@ -19,6 +19,8 @@ package com.exonum.binding.testkit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.exonum.binding.blockchain.Blockchain;
+import com.exonum.binding.storage.database.Snapshot;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -31,14 +33,14 @@ class TestKitParameterizationTest {
 
   @Test
   void testDefaultTestKit(TestKit testKit) {
+    /*
+     Review: 'validator`.
+     Also, as this test relies on that and the num of validators, please set that explicitly
+     on the builder (as TEMPLATE_NODE_TYPE, TEMPLATE_NUM_VALIDATORS).
+     */
     // Check that main TestKit node is an auditor
     assertThat(testKit.getEmulatedNode().getValidatorId()).isNotEmpty();
-    testKit.withSnapshot((view) -> {
-      Blockchain blockchain = Blockchain.newInstance(view);
-      assertThat(blockchain.getActualConfiguration().validatorKeys().size())
-          .isEqualTo(1);
-      return null;
-    });
+    testKit.withSnapshot(verifyNumValidators(1));
   }
 
   @Test
@@ -49,11 +51,16 @@ class TestKitParameterizationTest {
 
   @Test
   void testTestKitValidatorCount(@ValidatorCount(validatorCount = 8) TestKit testKit) {
-    testKit.withSnapshot((view) -> {
+    testKit.withSnapshot(verifyNumValidators(8));
+  }
+
+  // Review: PS
+  private static Function<Snapshot, Void> verifyNumValidators(int expected) {
+    return (view) -> {
       Blockchain blockchain = Blockchain.newInstance(view);
       assertThat(blockchain.getActualConfiguration().validatorKeys().size())
-          .isEqualTo(8);
+          .isEqualTo(expected);
       return null;
-    });
+    };
   }
 }

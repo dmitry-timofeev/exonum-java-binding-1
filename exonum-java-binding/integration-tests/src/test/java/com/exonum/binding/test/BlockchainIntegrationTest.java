@@ -351,6 +351,10 @@ class BlockchainIntegrationTest {
     });
   }
 
+  /*
+  Review: Wouldn't it be better to keep testkit as a field if it is needed to pass it between
+methods?
+   */
   private void testKitTest(TestKit testKit, Consumer<Blockchain> test) {
     testKit.withSnapshot((view) -> {
       Blockchain blockchain = Blockchain.newInstance(view);

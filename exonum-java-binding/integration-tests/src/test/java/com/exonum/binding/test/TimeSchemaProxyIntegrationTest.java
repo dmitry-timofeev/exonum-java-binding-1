@@ -48,6 +48,7 @@ class TimeSchemaProxyIntegrationTest {
       TestKit.builder()
           .withService(TestServiceModule.class)
           .withTimeService(timeProvider));
+  // Review: Same here — it is used by every method.
 
   @Test
   void getTime(TestKit testKit) {

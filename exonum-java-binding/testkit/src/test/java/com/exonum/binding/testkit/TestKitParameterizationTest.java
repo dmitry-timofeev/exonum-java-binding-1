@@ -26,35 +26,35 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 class TestKitParameterizationTest {
 
+  private static final short TEMPLATE_VALIDATOR_COUNT = 1;
+  private static final EmulatedNodeType TEMPLATE_NODE_TYPE = EmulatedNodeType.VALIDATOR;
+  private static final short NEW_VALIDATOR_COUNT = 8;
+
   @RegisterExtension
   static TestKitExtension testKitExtension = new TestKitExtension(
       TestKit.builder()
-          .withService(TestServiceModule.class));
+          .withNodeType(TEMPLATE_NODE_TYPE)
+          .withService(TestServiceModule.class)
+          .withValidators(TEMPLATE_VALIDATOR_COUNT));
 
   @Test
   void testDefaultTestKit(TestKit testKit) {
-    /*
-     Review: 'validator`.
-     Also, as this test relies on that and the num of validators, please set that explicitly
-     on the builder (as TEMPLATE_NODE_TYPE, TEMPLATE_NUM_VALIDATORS).
-     */
-    // Check that main TestKit node is an auditor
-    assertThat(testKit.getEmulatedNode().getValidatorId()).isNotEmpty();
-    testKit.withSnapshot(verifyNumValidators(1));
+    // Check that main TestKit node is a validator
+    assertThat(testKit.getEmulatedNode().getNodeType()).isEqualTo(TEMPLATE_NODE_TYPE);
+    testKit.withSnapshot(verifyNumValidators(TEMPLATE_VALIDATOR_COUNT));
   }
 
   @Test
   void testTestKitAuditor(@Auditor TestKit testKit) {
     // Check that main TestKit node is an auditor
-    assertThat(testKit.getEmulatedNode().getValidatorId()).isEmpty();
+    assertThat(testKit.getEmulatedNode().getNodeType()).isEqualTo(EmulatedNodeType.AUDITOR);
   }
 
   @Test
-  void testTestKitValidatorCount(@ValidatorCount(validatorCount = 8) TestKit testKit) {
-    testKit.withSnapshot(verifyNumValidators(8));
+  void testTestKitValidatorCount(@ValidatorCount(NEW_VALIDATOR_COUNT) TestKit testKit) {
+    testKit.withSnapshot(verifyNumValidators(NEW_VALIDATOR_COUNT));
   }
 
-  // Review: PS
   private static Function<Snapshot, Void> verifyNumValidators(int expected) {
     return (view) -> {
       Blockchain blockchain = Blockchain.newInstance(view);

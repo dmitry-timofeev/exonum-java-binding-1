@@ -34,10 +34,10 @@
     </dependency>
 
     <dependency>
-<!--      Review: It can't be correct, it is 4. -->
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
+<!--      Review: Or API? -->
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.jupiter.version}</version>
       <scope>provided</scope>
     </dependency>
 
@@ -47,11 +47,11 @@
       <scope>test</scope>
     </dependency>
 
-<!--    Review: test-only? -->
     <dependency>
       <groupId>org.junit.platform</groupId>
       <artifactId>junit-platform-testkit</artifactId>
       <version>${junit-platform-testkit.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

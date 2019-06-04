@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  *
  * Review: double @see?
  * @see TestKit.Builder#withNodeType(EmulatedNodeType)
- *      <a href="https://exonum.com/doc/version/0.11/glossary/#auditor">Auditor Node</a>
+ * @see <a href="https://exonum.com/doc/version/0.11/glossary/#auditor">Auditor Node</a>
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)

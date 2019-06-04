@@ -199,12 +199,6 @@ class TestKitTest {
   void createTestKitWithAuditorAndAdditionalValidators() {
     short validatorCount = 2;
     try (TestKit testKit = TestKit.builder()
-        /*
-         Review: Why `with` prefix everywhere? I would either drop it (e.g., `nodeType`)
-or add usual `set`/`add`. On the other hand, if used consistently, it slightly helps with
-discoverability (if **all** use `with`, you can type `wit` and see what you could do).
-         */
-
         .withNodeType(EmulatedNodeType.AUDITOR)
         .withService(TestServiceModule.class)
         .withValidators(validatorCount)

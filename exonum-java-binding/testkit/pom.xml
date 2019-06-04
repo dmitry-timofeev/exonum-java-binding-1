@@ -34,7 +34,7 @@
     </dependency>
 
     <dependency>
-<!--      Review: Or API? -->
+<!-- Review: The extension must not depend on the aggregate thing, but on junit-jupiter-api. -->
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.jupiter.version}</version>

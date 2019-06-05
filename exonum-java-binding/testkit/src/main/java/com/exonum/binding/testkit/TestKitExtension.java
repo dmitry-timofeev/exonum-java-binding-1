@@ -73,7 +73,6 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * <p>As different tests might need slightly different TestKit configuration, following
  * parameterization annotations are available:
  * <ul>
- *   Review: Do we need validator? Won't you use validator by default, and configure Auditors if needed?
  *   <li>{@link Validator} sets main TestKit validator node type to validator</li>
  *   <li>{@link Auditor} sets main TestKit validator node type to auditor</li>
  *   <li>{@link ValidatorCount} sets number of validator nodes in the TestKit network</li>
@@ -145,7 +144,6 @@ public class TestKitExtension implements ParameterResolver {
    */
   private void checkExtensionContext(ExtensionContext extensionContext) {
     Optional<Method> testMethod = extensionContext.getTestMethod();
-    // Review: comment + RException
     testMethod.orElseThrow(() ->
         new ParameterResolutionException("TestKit can't be injected in @BeforeAll or @AfterAll"
             + " because it is a stateful, mutable object and sharing it between all tests is"

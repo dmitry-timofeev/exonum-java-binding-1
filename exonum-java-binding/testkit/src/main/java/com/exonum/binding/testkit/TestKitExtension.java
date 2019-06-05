@@ -31,11 +31,11 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 /**
  * Extension that injects TestKit into service tests and destroys afterwards. Register this
  * extension with TestKit builder and a TestKit will be injected as a parameter, instantiated from
- * given builder. Example usage:
+ * given builder. Note that this extension shouldn't be static. Example usage:
  *
  * <pre><code>
  * &#64;RegisterExtension
- * static TestKitExtension testKitExtension = new TestKitExtension(
+ * TestKitExtension testKitExtension = new TestKitExtension(
  *     TestKit.builder()
  *         .withService(TestServiceModule.class));
  *
@@ -81,7 +81,7 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * These annotations should be applied on TestKit parameter:
  * <pre><code>
  * &#64;RegisterExtension
- * static TestKitExtension testKitExtension = new TestKitExtension(
+ * TestKitExtension testKitExtension = new TestKitExtension(
  *     TestKit.builder()
  *         .withService(TestServiceModule.class));
  *
@@ -147,9 +147,9 @@ public class TestKitExtension implements ParameterResolver {
     Optional<Method> testMethod = extensionContext.getTestMethod();
     // Review: comment + RException
     testMethod.orElseThrow(() ->
-        new RuntimeException("TestKit can't be injected in @BeforeAll or @AfterAll because it is"
-            + " a stateful, mutable object and sharing it between all tests is error-prone."
-            + " Consider injecting it in @BeforeEach instead.\n"
+        new ParameterResolutionException("TestKit can't be injected in @BeforeAll or @AfterAll"
+            + " because it is a stateful, mutable object and sharing it between all tests is"
+            + " error-prone. Consider injecting it in @BeforeEach instead.\n"
             + " If you do need the same instance for all tests — just use `TestKit#builder`"
             + " directly. Don't forget to destroy it in @AfterEach."));
   }

@@ -60,7 +60,7 @@ class TestKitTest {
 
   // REview: Shall we use the extension in the test of testkit?
   @RegisterExtension
-  static TestKitExtension testKitExtension = new TestKitExtension(
+  TestKitExtension testKitExtension = new TestKitExtension(
       TestKit.builder()
           .withService(TestServiceModule.class));
 

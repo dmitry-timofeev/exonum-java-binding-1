@@ -51,8 +51,4 @@ it by modifying the provider in any test, it is their problem.
 3. Forbid `static` extensions — we seem to have found a good reason :-)
 
    */
-  /**
-   * Returns a copy of this time provider.
-   */
-  TimeProvider copy();
 }

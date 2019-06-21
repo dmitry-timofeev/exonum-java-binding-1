@@ -36,6 +36,14 @@ fn bootstrap() {
         log_config_path: log4j_path(),
         port: 6300,
         system_lib_path: None,
+        /*
+        Review: This confirms the confusing nature of this parameter and its handling:
+None is passed, but that will make JavaServiceRuntime use 'lib/native' under the hood
+(it didn't use to do that).
+
+I don't think though we shall ever skip 'java.library.path' — I don't know why it was made
+conditional.
+        */
     };
 
     let config = Config {

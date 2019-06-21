@@ -55,6 +55,16 @@ pub struct RuntimeConfig {
     /// A port of the HTTP server for Java services.
     /// Must be distinct from the ports used by Exonum.
     pub port: i32,
+    /*
+     Review: It either has the wrong name: override_system_lib_path/custom_system_lib_path
+or it must not be an Option.
+
+I am a little confused by which code shall set up the library path to the
+default (application) value of "lib/native" — it used to happen in ServiceFactoryAdapter,
+currently ServiceRuntime does it itself. Is it the right responsibility for ServiceRuntime?
+
+As it looks rather confusing, I'd improve the thing.
+     */
     /// EJB library path.
     pub system_lib_path: Option<String>,
 }

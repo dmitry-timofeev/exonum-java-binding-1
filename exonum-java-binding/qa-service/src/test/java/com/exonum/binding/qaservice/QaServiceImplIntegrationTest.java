@@ -55,8 +55,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
 
 @RequiresNativeLibrary
+// todo: Remove once https://github.com/junit-team/junit5/issues/1925 is released (in 5.5)
+@Execution(ExecutionMode.SAME_THREAD)
 class QaServiceImplIntegrationTest {
 
   @RegisterExtension
@@ -92,7 +96,6 @@ class QaServiceImplIntegrationTest {
     assertThat(counterNames.get(defaultCounterId)).isEqualTo(DEFAULT_COUNTER_NAME);
     assertThat(counters.get(afterCommitCounterId)).isEqualTo(0L);
     assertThat(counterNames.get(afterCommitCounterId)).isEqualTo(AFTER_COMMIT_COUNTER_NAME);
-;  //Review: ! — here and elsewhere
   }
 
   @Test
@@ -178,7 +181,6 @@ class QaServiceImplIntegrationTest {
 
     assertThat(counters.get(counterId)).isEqualTo(1L);
     assertThat(counterNames.get(counterId)).isEqualTo(AFTER_COMMIT_COUNTER_NAME);
-;
   }
 
   @Test

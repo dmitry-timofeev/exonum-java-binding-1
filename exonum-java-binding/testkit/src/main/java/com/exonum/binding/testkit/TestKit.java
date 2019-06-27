@@ -105,7 +105,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 at the same time — with Testkit?
    */
   @VisibleForTesting
-  final List<Cleaner> snapshotCleaners = new ArrayList<>();
+  final Cleaner snapshotCleaner = new Cleaner("TestKit#getSnapshot");
 
   private TestKit(long nativeHandle, Map<Short, UserServiceAdapter> serviceAdapters) {
     super(nativeHandle, true);
@@ -297,11 +297,37 @@ at the same time — with Testkit?
 
   /**
    * Performs a given function with a snapshot of the current database state (i.e., the one that
+   * corresponds to the latest committed block). In-pool (not yet processed) transactions are also
+   * accessible with it in {@linkplain Blockchain#getTxMessages() blockchain}.
+   *
+   * <p>This method destroys the snapshot once the passed closure completes, compared to
+   * {@link #getSnapshot()}, which disposes created snapshots only when closing the TestKit.
+   *
+   * <p>Consider using {@link #applySnapshot(Function)} when returning the result of given function
+   * is needed.
+   *
+   * @param snapshotFunction a function to execute
+   */
+  public void withSnapshot(Consumer<Snapshot> snapshotFunction) {
+    applySnapshot(s -> {
+      snapshotFunction.accept(s);
+      return null;
+    });
+  }
+
+  /**
+   * Performs a given function with a snapshot of the current database state (i.e., the one that
    * corresponds to the latest committed block) and returns a result of its execution. In-pool
    * (not yet processed) transactions are also accessible with it in
    * {@linkplain Blockchain#getTxMessages() blockchain}.
    *
    * Review: The docs must mention when this methods shall be used instead of #getSnapshot
+   *
+   * <p>This method destroys the snapshot once the passed closure completes, compared to
+   * {@link #getSnapshot()}, which disposes created snapshots only when closing the TestKit.
+   *
+   * <p>Consider using {@link #withSnapshot(Consumer)} when returning the result of given function
+   * is not needed.
    *
    * @param snapshotFunction a function to execute
    * @param <ResultT> a type the function returns
@@ -317,38 +343,19 @@ at the same time — with Testkit?
   }
 
   /**
-   * Performs a given function with a snapshot of the current database state (i.e., the one that
-   * corresponds to the latest committed block). In-pool (not yet processed) transactions are also
-   * accessible with it in {@linkplain Blockchain#getTxMessages() blockchain}.
-   *
-   * @param snapshotFunction a function to execute
-   */
-  public void withSnapshot(Consumer<Snapshot> snapshotFunction) {
-    // Review: begin patch
-    applySnapshot(s -> {
-      snapshotFunction.accept(s);
-      return null;
-    });
-  }
-
-  /**
    * Returns a snapshot of the current database state (i.e., the one that
    * corresponds to the latest committed block). In-pool (not yet processed) transactions are also
    * accessible with it in {@linkplain Blockchain#getTxMessages() blockchain}.
    *
-   * Review: begin patch
    * <p>All created snapshots are deleted when this TestKit is {@linkplain #close() closed}.
    * It is forbidden to access the snapshots once the TestKit is closed.
    *
-   * <p>If you create many snapshots (more than a hundred), it is recommended
-   * to use {@link #withSnapshot(Consumer)} or {@link #applySnapshot(Function)},
-   * which destroy the snapshots once the passed closure completes.
+   * <p>If you need to create a large number (e.g. more than a hundred) of snapshots, it is
+   * recommended to use {@link #withSnapshot(Consumer)} or {@link #applySnapshot(Function)}, which
+   * destroy the snapshots once the passed closure completes.
    */
   public Snapshot getSnapshot() {
-    Cleaner cleaner = new Cleaner("TestKit#getSnapshot");
-    Snapshot snapshot = createSnapshot(cleaner);
-    snapshotCleaners.add(cleaner);
-    return snapshot;
+    return createSnapshot(snapshotCleaner);
   }
 
   private Snapshot createSnapshot(Cleaner cleaner) {
@@ -371,12 +378,10 @@ at the same time — with Testkit?
   }
 
   private void closeSnapshotCleaners() {
-    for (Cleaner cleaner : snapshotCleaners) {
-      try {
-        cleaner.close();
-      } catch (CloseFailuresException e) {
-        throw new RuntimeException(e);
-      }
+    try {
+      snapshotCleaner.close();
+    } catch (CloseFailuresException e) {
+      throw new RuntimeException(e);
     }
   }
 

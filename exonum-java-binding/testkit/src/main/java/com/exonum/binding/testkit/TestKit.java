@@ -99,6 +99,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   private static final short TIME_SERVICE_ID = 4;
 
   private final Map<Short, Service> services = new HashMap<>();
+
+  /*
+   Review: Why is there a List and not a single Cleaner? Aren't the snapshot destroyed
+at the same time — with Testkit?
+   */
   @VisibleForTesting
   final List<Cleaner> snapshotCleaners = new ArrayList<>();
 
@@ -296,6 +301,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * (not yet processed) transactions are also accessible with it in
    * {@linkplain Blockchain#getTxMessages() blockchain}.
    *
+   * Review: The docs must mention when this methods shall be used instead of #getSnapshot
+   *
    * @param snapshotFunction a function to execute
    * @param <ResultT> a type the function returns
    * @return the result of applying the given function to the database state
@@ -317,12 +324,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * @param snapshotFunction a function to execute
    */
   public void withSnapshot(Consumer<Snapshot> snapshotFunction) {
-    try (Cleaner cleaner = new Cleaner("TestKit#withSnapshot")) {
-      Snapshot snapshot = createSnapshot(cleaner);
-      snapshotFunction.accept(snapshot);
-    } catch (CloseFailuresException e) {
-      throw new RuntimeException(e);
-    }
+    // Review: begin patch
+    applySnapshot(s -> {
+      snapshotFunction.accept(s);
+      return null;
+    });
   }
 
   /**
@@ -330,7 +336,13 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * corresponds to the latest committed block). In-pool (not yet processed) transactions are also
    * accessible with it in {@linkplain Blockchain#getTxMessages() blockchain}.
    *
-   * <p>All created snapshots are deleted when corresponding TestKit is disposed.
+   * Review: begin patch
+   * <p>All created snapshots are deleted when this TestKit is {@linkplain #close() closed}.
+   * It is forbidden to access the snapshots once the TestKit is closed.
+   *
+   * <p>If you create many snapshots (more than a hundred), it is recommended
+   * to use {@link #withSnapshot(Consumer)} or {@link #applySnapshot(Function)},
+   * which destroy the snapshots once the passed closure completes.
    */
   public Snapshot getSnapshot() {
     Cleaner cleaner = new Cleaner("TestKit#getSnapshot");

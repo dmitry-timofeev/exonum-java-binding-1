@@ -92,7 +92,7 @@ class QaServiceImplIntegrationTest {
     assertThat(counterNames.get(defaultCounterId)).isEqualTo(DEFAULT_COUNTER_NAME);
     assertThat(counters.get(afterCommitCounterId)).isEqualTo(0L);
     assertThat(counterNames.get(afterCommitCounterId)).isEqualTo(AFTER_COMMIT_COUNTER_NAME);
-;
+;  //Review: ! — here and elsewhere
   }
 
   @Test

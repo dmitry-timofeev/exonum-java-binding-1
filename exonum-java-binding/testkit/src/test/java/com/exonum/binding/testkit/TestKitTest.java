@@ -529,6 +529,11 @@ class TestKitTest {
     assertThat(testKit.snapshotCleaners).hasSize(2);
 
     testKit.close();
+    /*
+     Review: Snapshots have com.exonum.binding.core.storage.database.View.getViewNativeHandle
+which is specified to throw ISE once it is closed. I'd use that instead of relying on
+testkit internals.
+     */
     Cleaner cleaner1 = view1.getCleaner();
     Cleaner cleaner2 = view2.getCleaner();
 

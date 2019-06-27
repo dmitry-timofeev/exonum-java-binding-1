@@ -100,10 +100,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
   private final Map<Short, Service> services = new HashMap<>();
 
-  /*
-   Review: Why is there a List and not a single Cleaner? Aren't the snapshot destroyed
-at the same time — with Testkit?
-   */
   @VisibleForTesting
   final Cleaner snapshotCleaner = new Cleaner("TestKit#getSnapshot");
 
@@ -338,6 +334,7 @@ at the same time — with Testkit?
       Snapshot snapshot = createSnapshot(cleaner);
       return snapshotFunction.apply(snapshot);
     } catch (CloseFailuresException e) {
+      // Review: Exception type.
       throw new RuntimeException(e);
     }
   }
@@ -381,6 +378,20 @@ at the same time — with Testkit?
     try {
       snapshotCleaner.close();
     } catch (CloseFailuresException e) {
+      /*
+       Review: (1) Inappropriate exception type: IllegalStateException would be more suitable;
+(2) The testkit itself will be leaked if such exception occurs. We might add it as a CleanAction
+to ensure reliable destruction, but I think using cleaner here (in explicitly closeable classes
+that control that Cleaner) would add unnecessary indirection, and try/finally will work better:
+    try {
+      snapshotCleaner.close();
+    } catch (CloseFailuresException e) {
+      throw …
+    } finally {
+      nativeFreeTestKit(nativeHandle.get());
+    }
+
+       */
       throw new RuntimeException(e);
     }
   }

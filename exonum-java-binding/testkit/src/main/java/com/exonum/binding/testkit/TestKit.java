@@ -297,7 +297,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * accessible with it in {@linkplain Blockchain#getTxMessages() blockchain}.
    *
    * <p>This method destroys the snapshot once the passed closure completes, compared to
-   * {@link #getSnapshot()}, which disposes created snapshots only when closing the TestKit.
+   * {@link #getSnapshot()}, which disposes created snapshots only when TestKit is closed.
    *
    * <p>Consider using {@link #applySnapshot(Function)} when returning the result of given function
    * is needed.
@@ -320,7 +320,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * Review: The docs must mention when this methods shall be used instead of #getSnapshot
    *
    * <p>This method destroys the snapshot once the passed closure completes, compared to
-   * {@link #getSnapshot()}, which disposes created snapshots only when closing the TestKit.
+   * {@link #getSnapshot()}, which disposes created snapshots only when TestKit is closed.
    *
    * <p>Consider using {@link #withSnapshot(Consumer)} when returning the result of given function
    * is not needed.
@@ -334,8 +334,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       Snapshot snapshot = createSnapshot(cleaner);
       return snapshotFunction.apply(snapshot);
     } catch (CloseFailuresException e) {
-      // Review: Exception type.
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -370,29 +369,12 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
   @Override
   protected void disposeInternal() {
-    closeSnapshotCleaners();
-    nativeFreeTestKit(nativeHandle.get());
-  }
-
-  private void closeSnapshotCleaners() {
     try {
       snapshotCleaner.close();
     } catch (CloseFailuresException e) {
-      /*
-       Review: (1) Inappropriate exception type: IllegalStateException would be more suitable;
-(2) The testkit itself will be leaked if such exception occurs. We might add it as a CleanAction
-to ensure reliable destruction, but I think using cleaner here (in explicitly closeable classes
-that control that Cleaner) would add unnecessary indirection, and try/finally will work better:
-    try {
-      snapshotCleaner.close();
-    } catch (CloseFailuresException e) {
-      throw …
+      throw new IllegalStateException(e);
     } finally {
       nativeFreeTestKit(nativeHandle.get());
-    }
-
-       */
-      throw new RuntimeException(e);
     }
   }
 

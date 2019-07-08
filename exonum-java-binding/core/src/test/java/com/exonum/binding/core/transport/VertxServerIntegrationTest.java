@@ -25,13 +25,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServer;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -197,4 +201,53 @@ class VertxServerIntegrationTest {
     }
   }
 
+  @Test
+  void removingSubRouter() throws InterruptedException {
+    Vertx vertx = Vertx.vertx();
+
+    Router rootRouter = Router.router(vertx);
+    HttpServer server = vertx.createHttpServer()
+        .requestHandler(rootRouter);
+    CountDownLatch serverUp = new CountDownLatch(1);
+    server.listen(0, ar -> {
+      serverUp.countDown();
+    });
+    serverUp.await();
+
+    Router fooRouter = Router.router(vertx);
+    fooRouter.get("/hello").handler(rc -> rc.response().end("Hello from foo"));
+    rootRouter.mountSubRouter("/foo", fooRouter);
+
+    System.out.println(rootRouter.getRoutes());
+
+    Router barRouter = Router.router(vertx);
+    barRouter.get("/hello").handler(rc -> rc.response().end("Hello from bar"));
+    rootRouter.mountSubRouter("/bar", barRouter);
+
+    System.out.println(rootRouter.getRoutes());
+
+    WebClient client = WebClient.create(vertx);
+    CountDownLatch c = new CountDownLatch(1);
+    client.get(server.actualPort(), "localhost", "/foo/hello")
+        .send(ar -> {
+          if (!ar.succeeded()) {
+            ar.cause().printStackTrace();
+          } else {
+            System.out.println(ar.result().bodyAsString());
+          }
+          c.countDown();
+        });
+
+    c.await();
+
+    // Try to remove the route
+    System.out.println("Removing the route");
+    Optional<Route> route = rootRouter.getRoutes().stream()
+        .filter(r -> r.getPath().startsWith("/foo"))
+        .findFirst()
+        .map(Route::remove);
+
+    route.ifPresent(System.out::println);
+    System.out.println(rootRouter.getRoutes());
+  }
 }

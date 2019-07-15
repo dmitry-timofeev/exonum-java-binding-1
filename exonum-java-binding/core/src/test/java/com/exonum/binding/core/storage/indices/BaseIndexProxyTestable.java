@@ -91,6 +91,7 @@ abstract class BaseIndexProxyTestable<IndexT extends StorageIndex> {
   @ParameterizedTest
   @ValueSource(strings = {
       "",
+      // Review: As discussed — a Jira task.
       //      " name", // FIXME: doesn't fail on such items
       //      "name ",
       //      "name 1",

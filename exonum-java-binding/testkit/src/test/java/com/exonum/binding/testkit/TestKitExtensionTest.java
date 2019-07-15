@@ -37,7 +37,7 @@ class TestKitExtensionTest {
 
   private static final TestKit.Builder defaultBuilder = TestKit.builder()
       .withService(TestServiceModule.class);
-
+// Review: If all tests are disabled, it makes sense to put at class level.
   @Disabled
   @Test
   void testKitInstantiationTestCase() {

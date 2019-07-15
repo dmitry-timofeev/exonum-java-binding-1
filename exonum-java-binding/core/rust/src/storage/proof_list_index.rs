@@ -12,20 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use exonum::crypto::Hash;
-use exonum_merkledb::{
-    proof_list_index::{ListProof, ProofListIndexIter},
-    Fork, ProofListIndex, Snapshot,
-};
-use jni::{
-    errors::Result,
-    objects::{JClass, JObject, JString},
-    sys::{jboolean, jbyteArray, jint, jlong, jobject},
-    JNIEnv,
-};
-
 use std::{panic, ptr};
 
+use exonum::crypto::Hash;
+use jni::{
+    errors::Result,
+    JNIEnv,
+    objects::{JClass, JObject, JString},
+    sys::{jboolean, jbyteArray, jint, jlong, jobject},
+};
+
+use exonum_merkledb::{
+    Fork,
+    proof_list_index::{ListProof, ProofListIndexIter}, ProofListIndex, Snapshot,
+};
 use handle::{self, Handle};
 use storage::db::{Value, View, ViewRef};
 use utils;
@@ -192,6 +192,7 @@ pub extern "system" fn Java_com_exonum_binding_core_storage_indices_ProofListInd
     _: JObject,
     _list_handle: Handle,
 ) -> jbyteArray {
+    // Review: Jira ref?
     //    // FIXME: uncomment when new proofs are implemented
     //    let res = panic::catch_unwind(|| {
     //        let hash = match *handle::cast_handle::<IndexType>(list_handle) {

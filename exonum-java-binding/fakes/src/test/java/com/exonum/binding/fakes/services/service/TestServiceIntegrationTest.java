@@ -31,12 +31,14 @@ import com.exonum.binding.core.storage.database.MemoryDb;
 import com.exonum.binding.core.storage.indices.ProofMapIndexProxy;
 import com.exonum.binding.test.RequiresNativeLibrary;
 import java.util.Optional;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 class TestServiceIntegrationTest {
 
+  /*
+  Review: ?
+   */
   @Disabled // FIXME: disabled until ECR-XYZ.
   @Test
   @RequiresNativeLibrary

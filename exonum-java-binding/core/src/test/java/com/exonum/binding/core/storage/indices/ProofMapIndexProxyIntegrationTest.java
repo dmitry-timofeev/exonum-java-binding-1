@@ -73,7 +73,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -686,6 +685,10 @@ class ProofMapIndexProxyIntegrationTest
    * A simple integration test that ensures that:
    * - ProofMap constructor preserves the index type and
    * - Map constructor checks it, preventing illegal access to ProofMap internals.
+   */
+  /*
+   Review: Does it include the error details? Shan't the string be updated?
+   If the message isn't good enough, it must be updated in the core.
    */
   @Disabled // FIXME: Panics on failed assertion "Index type doesn't match specified".
   @Test

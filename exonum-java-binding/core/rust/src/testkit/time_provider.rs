@@ -15,12 +15,13 @@
  */
 
 use chrono::{DateTime, Utc};
-use exonum_merkledb::BinaryValue;
 use exonum_time::time_provider::TimeProvider;
 use jni::{
-    objects::{GlobalRef, JObject},
-    Executor, JNIEnv,
+    Executor,
+    JNIEnv, objects::{GlobalRef, JObject},
 };
+
+use exonum_merkledb::BinaryValue;
 use utils::unwrap_jni;
 
 /// Wrapper around Java interface TimeProvider.
@@ -51,6 +52,7 @@ impl TimeProvider for JavaTimeProvider {
                 .l()?
                 .into_inner();
             let serialized_date_time = env.convert_byte_array(serialized_date_time)?;
+            // Review: ?
             let date_time = DateTime::from_bytes(serialized_date_time.into()).unwrap(); // FIXME: temporary solution, rewrite
 
             Ok(date_time)

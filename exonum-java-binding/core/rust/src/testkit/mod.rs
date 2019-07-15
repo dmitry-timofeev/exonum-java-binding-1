@@ -16,26 +16,29 @@
 
 //! Provides native methods for Java TestKit support.
 
-use self::time_provider::JavaTimeProvider;
+use std::{panic, sync::Arc};
+
 use exonum::{
     blockchain::Block,
     crypto::{PublicKey, SecretKey},
     helpers::ValidatorId,
     messages::{RawTransaction, Signed},
 };
-use exonum_merkledb::BinaryValue;
 use exonum_testkit::{TestKit, TestKitBuilder};
 use exonum_time::{time_provider::TimeProvider, TimeService};
-use handle::{cast_handle, drop_handle, to_handle, Handle};
 use jni::{
-    objects::{JObject, JValue},
-    sys::{jboolean, jbyteArray, jobjectArray, jshort},
-    Executor, JNIEnv,
+    Executor,
+    JNIEnv,
+    objects::{JObject, JValue}, sys::{jboolean, jbyteArray, jobjectArray, jshort},
 };
+
+use exonum_merkledb::BinaryValue;
+use handle::{cast_handle, drop_handle, Handle, to_handle};
 use proxy::ServiceProxy;
-use std::{panic, sync::Arc};
 use storage::View;
 use utils::{unwrap_exc_or, unwrap_exc_or_default};
+
+use self::time_provider::JavaTimeProvider;
 
 mod time_provider;
 
@@ -157,6 +160,9 @@ pub extern "system" fn Java_com_exonum_binding_testkit_TestKit_nativeCreateBlock
             let serialized_tx: jbyteArray = serialized_tx_object.as_obj().into_inner();
             let serialized_tx = env.convert_byte_array(serialized_tx)?;
             let transaction: Signed<RawTransaction> =
+            /*
+            Review: Why, how, Jira ref?
+            */
                 BinaryValue::from_bytes(serialized_tx.into()).unwrap(); // TODO: rewrite
             raw_transactions.push(transaction);
         }

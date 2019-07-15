@@ -12,30 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use jni::{
-    objects::{JClass, JObject, JString},
-    sys::{jboolean, jbyteArray, jobject, jsize},
-    JNIEnv,
-};
-
 use std::{panic, ptr};
 
 use exonum::crypto::Hash;
-use exonum_merkledb::{
-    proof_map_index::{
-        MapProof, ProofMapIndexIter, ProofMapIndexKeys, ProofMapIndexValues, ProofPath,
-        PROOF_MAP_KEY_SIZE,
-    },
-    Fork, ProofMapIndex, Snapshot,
+use jni::{
+    JNIEnv,
+    objects::{JClass, JObject, JString},
+    sys::{jboolean, jbyteArray, jobject, jsize},
 };
+use JniResult;
 
+use exonum_merkledb::{
+    Fork,
+    proof_map_index::{
+        MapProof, PROOF_MAP_KEY_SIZE, ProofMapIndexIter, ProofMapIndexKeys, ProofMapIndexValues,
+        ProofPath,
+    }, ProofMapIndex, Snapshot,
+};
 use handle::{self, Handle};
 use storage::{
     db::{Value, View, ViewRef},
     PairIter,
 };
 use utils;
-use JniResult;
 
 type Key = [u8; PROOF_MAP_KEY_SIZE];
 type Index<T> = ProofMapIndex<T, Key, Value>;
@@ -119,6 +118,7 @@ pub extern "system" fn Java_com_exonum_binding_core_storage_indices_ProofMapInde
     _: JObject,
     _map_handle: Handle,
 ) -> jbyteArray {
+    // Review: Jira
     //    // FIXME: uncomment when new proofs are implemented
     //    let res = panic::catch_unwind(|| {
     //        let hash = match *handle::cast_handle::<IndexType>(map_handle) {

@@ -32,7 +32,6 @@ import com.exonum.binding.core.storage.indices.MapIndexProxy;
 import com.exonum.binding.core.storage.indices.TestStorageItems;
 import com.exonum.binding.test.RequiresNativeLibrary;
 import java.util.List;
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +53,7 @@ class MemoryDbIntegrationTest {
     }
   }
 
+  // Review: 1. Why, as we don't merge it? 2. The jira ref is unrelated.
   // FIXME: Disabled until ECR-3333
   @Disabled
   @Test

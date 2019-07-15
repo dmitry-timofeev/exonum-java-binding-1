@@ -20,18 +20,21 @@ extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
 
+use std::{panic, sync::Arc};
+
 use exonum_testkit::TestKitBuilder;
+
 use integration_tests::{
     fake_service::*,
     vm::{create_vm_for_tests_with_fake_classes, fake_service_artifact_path},
 };
-use java_bindings::{jni::JavaVM, utils::any_to_string, JavaServiceRuntime};
-use std::{panic, sync::Arc};
+use java_bindings::{JavaServiceRuntime, jni::JavaVM, utils::any_to_string};
 
 lazy_static! {
     static ref VM: Arc<JavaVM> = create_vm_for_tests_with_fake_classes();
 }
 
+// Review: Why are they ignored?
 #[ignore]
 #[test]
 fn load_one_service() {

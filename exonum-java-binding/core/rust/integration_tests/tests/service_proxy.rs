@@ -14,33 +14,32 @@
  * limitations under the License.
  */
 
+extern crate exonum_testkit;
 extern crate integration_tests;
 extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
-extern crate exonum_testkit;
 #[macro_use]
 extern crate serde_derive;
+
+use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::sync::Arc;
+
+use exonum_testkit::TestKitBuilder;
 
 use integration_tests::{
     mock::{service::ServiceMockBuilder, transaction::create_empty_raw_transaction},
     test_service::{create_test_map, create_test_service, INITIAL_ENTRY_KEY, INITIAL_ENTRY_VALUE},
     vm::create_vm_for_tests_with_fake_classes,
 };
-
 use java_bindings::{
+    Executor,
     exonum::{blockchain::Service, crypto::hash},
     exonum_merkledb::{Database, TemporaryDB},
-    jni::{objects::JObject, JavaVM},
+    jni::{JavaVM, objects::JObject},
     serde_json::{self, Value},
     utils::{any_to_string, convert_to_string, unwrap_jni},
-    Executor,
 };
-
-use std::panic::{catch_unwind, AssertUnwindSafe};
-use std::sync::Arc;
-
-use exonum_testkit::TestKitBuilder;
 
 lazy_static! {
     static ref VM: Arc<JavaVM> = create_vm_for_tests_with_fake_classes();
@@ -156,6 +155,7 @@ fn initialize_config_parse_error() {
         .initial_global_config(TEST_CONFIG_NOT_JSON.to_string())
         .build();
 
+    // Review: Don't we have `assert_panics` tests/service_runtime.rs:134?
     match catch_unwind(AssertUnwindSafe(|| service.initialize(&fork))) {
         Ok(_config) => panic!("This test should panic"),
         Err(ref e) => {

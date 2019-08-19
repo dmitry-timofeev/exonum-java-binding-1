@@ -16,7 +16,7 @@ branches:
 addons:
   apt:
     sources:
-      - sourceline: 'ppa:chris-lea/libsodium'
+      - sourceline: 'ppa:fsgmhoward/shadowsocks-libev'
       - sourceline: 'ppa:maarten-fonville/protobuf'
       - sourceline: 'ppa:exonum/rocksdb'
     packages:
@@ -30,7 +30,7 @@ addons:
 
 env:
   global:
-    - RUST_COMPILER_VERSION=stable
+    - RUST_COMPILER_VERSION=1.36.0
     - OSX_PACKAGES="libsodium rocksdb pkg-config protobuf"
     - ROCKSDB_LIB_DIR=/usr/lib
     # REPO_TOKEN used for integration with coveralls is encoded here

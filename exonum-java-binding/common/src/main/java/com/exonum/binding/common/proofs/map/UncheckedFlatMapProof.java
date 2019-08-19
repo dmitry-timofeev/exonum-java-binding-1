@@ -17,6 +17,7 @@
 package com.exonum.binding.common.proofs.map;
 
 import static com.exonum.binding.common.hash.Funnels.hashCodeFunnel;
+import static com.exonum.binding.common.proofs.DbKeyCompressedFunnel.dbKeyCompressedFunnel;
 import static com.exonum.binding.common.proofs.DbKeyFunnel.dbKeyFunnel;
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
@@ -299,97 +300,14 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
   }
 
   private static HashCode computeBranchHash(MapProofEntry leftChild, MapProofEntry rightChild) {
-    byte[] leftChildKey = compress(leftChild.getDbKey());
-    byte[] rightChildKey = compress(rightChild.getDbKey());
     return HASH_FUNCTION
         .newHasher()
         .putByte(MAP_NODE_PREFIX)
         .putObject(leftChild.getHash(), hashCodeFunnel())
         .putObject(rightChild.getHash(), hashCodeFunnel())
-        .putBytes(leftChildKey)
-        .putBytes(rightChildKey)
+        .putObject(leftChild.getDbKey(), dbKeyCompressedFunnel())
+        .putObject(rightChild.getDbKey(), dbKeyCompressedFunnel())
         .hash();
-  }
-
-  /*
-   Review: Why isn't it in a funnel so that it is more easily testable?
-   On top of that, it will provide easier API to write the things
-   (putByte/putBytes, similar to ByteBuffer, instead of numerous array copies and keeping track
-   of the number of written bytes manually).
-   Please also test this.
-   */
-  /**
-   * Returns a LEB128 compressed binary representation of the given db key.
-   */
-  public static byte[] compress(DbKey dbKey) {
-    /*
-     Review: The choice of the constant looks random: it seems to write up to
-     <Hash_size> + (?) 2 bytes = 34 for the 'compressed' size (if 2 bytes are required to
-     represent 256 significant bits).
-     */
-    byte[] buffer = new byte[Hashing.DEFAULT_HASH_SIZE_BYTES * 2];
-    int bytesWritten = writeCompressed(buffer, dbKey);
-
-    // Review: begin patch
-    return Arrays.copyOf(buffer, bytesWritten);
-    /*
-    byte[] result = new byte[bytesWritten];
-    System.arraycopy(buffer, 0, result, 0, bytesWritten);
-
-    return result;
-     */
-  }
-
-  /**
-   * Returns a number of bytes written into buffer which contains LEB128 compressed binary
-   * representation of the given db key.
-   */
-  private static int writeCompressed(byte[] buffer, DbKey dbKey) {
-    int bitsLength = dbKey.getNumSignificantBits();
-    // Perform division, rounding the result up
-    int wholeBytesLength = (bitsLength + Byte.SIZE - 1) / Byte.SIZE;
-    byte[] key = dbKey.getKeySlice();
-
-    /*
-     Review: I find this code very confusing. We write up to 9 bits of information
-     (because bitsLength is from 0 to 256) using writeUnsignedLeb128 with a fancy loop?
-     Does it only compress the number of significant bits, if it then just copies the key as is?
-     */
-    int bytesWritten = writeUnsignedLeb128(buffer, bitsLength);
-    // Review: Why copy key.length = 32 bytes if wholeBytesLength is anywhere between 0 bytes and 32 bytes?
-    System.arraycopy(key, 0, buffer, bytesWritten, key.length);
-    bytesWritten += wholeBytesLength;
-    int bitsInLastByte = bitsLength % Byte.SIZE;
-    if (wholeBytesLength > 0 && bitsInLastByte != 0) {
-      /*
-       Review: Why is this needed at all if you copied zeroes in an empty buffer? DbKey ensures
-       that no bits are set after numSignificantBits.
-       */
-      resetBits(buffer, bytesWritten, bitsInLastByte);
-    }
-    return bytesWritten;
-  }
-
-  /**
-   * Resets bits of given buffer that are higher than the given position.
-   */
-  private static void resetBits(byte[] buffer, int bytesWritten, int bitsInLastByte) {
-    byte resetBitsMask = (byte) ~(255 << bitsInLastByte);
-    buffer[bytesWritten - 1] &= resetBitsMask;
-  }
-
-  private static int writeUnsignedLeb128(byte[] out, int value) {
-    int remaining = value >>> 7;
-    int bytesWritten = 0;
-    while (remaining != 0) {
-      out[bytesWritten++] = ((byte) ((value & 0x7f) | 0x80));
-      value = remaining;
-      remaining >>>= 7;
-    }
-
-    out[bytesWritten++] = ((byte) (value & 0x7f));
-
-    return bytesWritten;
   }
 
   private <T> Set<T> toSet(List<T> list) {

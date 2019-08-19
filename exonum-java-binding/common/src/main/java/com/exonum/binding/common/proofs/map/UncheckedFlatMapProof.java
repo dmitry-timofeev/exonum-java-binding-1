@@ -287,6 +287,7 @@ public class UncheckedFlatMapProof implements UncheckedMapProof {
     assert key.getNodeType() == Type.LEAF;
     return HASH_FUNCTION.newHasher()
         .putByte(MAP_NODE_PREFIX)
+        // Review: Is that correct that it does not compress here?
         .putObject(key, dbKeyFunnel())
         .putObject(valueHash, hashCodeFunnel())
         .hash();

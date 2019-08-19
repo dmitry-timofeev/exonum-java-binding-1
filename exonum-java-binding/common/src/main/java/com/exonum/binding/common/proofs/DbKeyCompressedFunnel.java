@@ -21,6 +21,9 @@ import com.exonum.binding.common.hash.PrimitiveSink;
 import com.exonum.binding.common.proofs.map.DbKey;
 
 /**
+ * Review: The wording is misleading — you don't apply LEB128 to the whole key, it is applied
+ * to the key slice size only (or what is the current term of the size of the significant part
+ * of the key).
  * A funnel for a database key. Puts the LEB128 compressed binary representation of the given
  * database key into the sink.
  */

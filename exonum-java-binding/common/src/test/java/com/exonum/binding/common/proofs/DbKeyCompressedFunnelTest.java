@@ -41,6 +41,11 @@ class DbKeyCompressedFunnelTest {
         dbKey.getNumSignificantBits());
     byte[] key = dbKey.getKeySlice();
 
+    /*
+    Review: This test does not seem to test anything, as it uses the private
+    methods *of the SuT* to get the *expected* values. How can they be different from what
+    the `#funnel` produces if it uses the same methods?
+     */
     verify(primitiveSink).putBytes(encodedSignificantBitsNum, 0, bytesWritten);
     verify(primitiveSink).putBytes(key, 0, wholeBytesKeyLength);
   }

@@ -37,13 +37,16 @@ class DbKeyCompressedFunnelTest {
   void funnelTest(DbKey dbKey, byte[] encodedSignificantBitsNum) {
     PrimitiveSink primitiveSink = mock(PrimitiveSink.class);
     DbKeyCompressedFunnel.dbKeyCompressedFunnel().funnel(dbKey, primitiveSink);
+    /*
+    Review: Why getWholeBytesKeyLength is still used in the test to get the *expected* value
+     or not tested separately?
+     */
     int wholeBytesKeyLength = getWholeBytesKeyLength(dbKey.getNumSignificantBits());
     byte[] key = dbKey.getKeySlice();
 
     /*
-    Review: This test does not seem to test anything, as it uses the private
-    methods *of the SuT* to get the *expected* values. How can they be different from what
-    the `#funnel` produces if it uses the same methods?
+    Review: Please use InOrder. Usual verifications do not verify the order of operations.
+    times is not needed then.
      */
     verify(primitiveSink, times(encodedSignificantBitsNum.length)).putByte(anyByte());
     for (byte encodedByte : encodedSignificantBitsNum) {
@@ -59,7 +62,15 @@ class DbKeyCompressedFunnelTest {
         Arguments.of(DbKey.newBranchKey(keyFromString("111"), 7), new byte[]{7}),
         Arguments.of(DbKey.newBranchKey(keyFromString("0001"), 8), new byte[]{8}),
         Arguments.of(DbKey.newBranchKey(keyFromString("1111"), 127), new byte[]{127}),
-        Arguments.of(DbKey.newBranchKey(keyFromString("1001 1001"), 128), new byte[]{-128, 1}),
-        Arguments.of(DbKey.newLeafKey(keyFromString("1111 1111")), new byte[]{-128, 2}));
+        /*
+        Review: As it is a test of LEB128, which is a binary encoding, why doesn't it make it easier
+         to verify the correctness of test data by using binary:
+          * `128:  0b1_0000000 -> 1_0000000, 0_0000001`;
+          * `256: 0b10_0000000 -> 1_0000000, 0_0000010`
+
+         */
+        Arguments.of(DbKey.newBranchKey(keyFromString("1001 1001"), 128), new byte[]{
+            (byte) 0b1_0000000, 0b0_0000001}),
+        Arguments.of(DbKey.newLeafKey(keyFromString("1111 1111")), new byte[]{(byte) 0b1_0000000, 0b0_0000010}));
   }
 }

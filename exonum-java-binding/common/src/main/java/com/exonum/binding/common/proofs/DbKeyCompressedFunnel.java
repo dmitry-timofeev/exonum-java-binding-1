@@ -52,34 +52,13 @@ public enum DbKeyCompressedFunnel implements Funnel<DbKey> {
   }
 
   private static void writeUnsignedLeb128(PrimitiveSink into, int value) {
-    /*
-    Review: Why? 256 takes 9 bits: 100000000. We encode 7 bits of the original value in a byte,
-    therefore, it cannot take more than ceil(9/7) = two bytes.
-     */
-    // As we encode number of significant bits in a database key which is [0; 256], three bytes
-    // are needed
-    /*
-    Review: The previous version writing to a sink seemed to be more straightforward (one did not
-    need
-an extra array, or counting the number of bytes written).
-     */
-    byte[] buffer = new byte[3];
-    int bytesWritten = writeUnsignedLeb128(buffer, value);
-    into.putBytes(buffer, 0, bytesWritten);
-  }
-
-  @VisibleForTesting
-  static int writeUnsignedLeb128(byte[] out, int value) {
     int remaining = value >>> 7;
-    int bytesWritten = 0;
     while (remaining != 0) {
-      out[bytesWritten++] = ((byte) ((value & 0x7f) | 0x80));
+      into.putByte((byte) ((value & 0x7f) | 0x80));
       value = remaining;
       remaining >>>= 7;
     }
 
-    out[bytesWritten++] = ((byte) (value & 0x7f));
-
-    return bytesWritten;
+    into.putByte((byte) (value & 0x7f));
   }
 }

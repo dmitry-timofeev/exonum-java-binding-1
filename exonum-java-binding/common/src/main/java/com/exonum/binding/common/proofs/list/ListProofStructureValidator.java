@@ -78,6 +78,10 @@ final class ListProofStructureValidator implements ListProofVisitor {
   }
 
   @Override
+  /*
+  Review: Shan't we check that if such a node appears in the tree, it is a single node
+  in the whole proof tree, with no parent nodes)?
+   */
   public void visit(ListProofOfAbsence listProofOfAbsence) {}
 
   private void visitLeft(ListProofBranch branch, int branchDepth) {

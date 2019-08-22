@@ -189,6 +189,8 @@ public final class ProofListIndexProxy<E> extends AbstractListIndexProxy<E>
   /**
    * Returns a proof of either existence or absence of some elements in the specified range
    * in this list.
+   * Review: If some elements are present in the list, but some — are not (i.e., the requested range
+   * crosses the list boundary), a proof of absence is returned.
    *
    * @param from the index of the first element
    * @param to the index after the last element

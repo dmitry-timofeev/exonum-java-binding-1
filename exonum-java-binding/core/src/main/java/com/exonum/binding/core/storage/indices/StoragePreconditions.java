@@ -139,6 +139,7 @@ final class StoragePreconditions {
   }
 
   /**
+   * Review: equal don't seem to be allowed
    * Checks that the first element index of the range is less than or equal
    * to the index after the last element.
    *

@@ -38,6 +38,7 @@ public interface CheckedListProof<E> extends CheckedProof {
   /**
    * Get all list proof elements. There might be several consecutive ranges.
    *
+   * Review: empty if the/this proof is ...
    * @return list proof elements. Empty if a proof is a proof of absence
    * @throws IllegalStateException if the proof is not valid
    */

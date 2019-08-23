@@ -199,6 +199,21 @@ final class ListProofStructureValidator implements ListProofVisitor {
    * @param branches collection of branches info
    */
   private boolean proofOfAbsenceIsNotARootNode(List<NodeInfo> branches) {
+    /*
+     Review: Since we already have depth available during the tree walk,
+why don't we accumulate all the absence nodes (as we do with other)
+in `#visit(ListProofOfAbsence) and then just in O(1):
+(a) verify there is at most one;
+(b) if there is one, verify there are no other nodes in the tree;
+(c) if there is one, verify its depth is zero.
+
+Also, it seems reasonable to replace separate collections with Multimap<NodeType, NodeInfo>
+backed by an enummap, but that can be done separately:
+```java
+    Multimaps.newListMultimap(new EnumMap<NodeType, Collection<NodeInfo>>(NodeType.class),
+        ArrayList::new);
+```
+     */
     return branches.stream()
         .map(NodeInfo::getChildElementsTypes)
         .flatMap(Collection::stream)

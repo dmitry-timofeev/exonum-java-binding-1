@@ -68,6 +68,10 @@ final class ListProofUtils {
    * Creates ListProof absence node with given Merkle root.
    */
   static ListProofOfAbsence proofOfAbsence(HashCode merkleRoot) {
+    /*
+     Review: As ListProofOfAbsence internally *creates* a HashCode, we might expose
+     such constructor atop of the one accepting byte[], and delegate to it here and there.
+     */
     return new ListProofOfAbsence(merkleRoot.asBytes());
   }
 

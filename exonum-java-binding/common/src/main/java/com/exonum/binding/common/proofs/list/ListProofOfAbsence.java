@@ -19,19 +19,16 @@ package com.exonum.binding.common.proofs.list;
 import com.exonum.binding.common.hash.HashCode;
 
 /**
- * Review: Not necessarily a (single) element, but of the requested range of elements.
- * Represents the proof of absence of an element.
+ * Represents the proof of absence of a requested element or a range of elements
+ * by providing Merkle root hash of a corresponding proof list.
  */
 public final class ListProofOfAbsence implements ListProofNode {
 
-  /*
-  Review: Which hash?
-   */
-  private final HashCode hash;
+  private final HashCode merkleRoot;
 
   @SuppressWarnings("unused")  // Native API
-  ListProofOfAbsence(byte[] hash) {
-    this.hash = HashCode.fromBytes(hash);
+  ListProofOfAbsence(byte[] merkleRoot) {
+    this.merkleRoot = HashCode.fromBytes(merkleRoot);
   }
 
   @Override
@@ -40,12 +37,9 @@ public final class ListProofOfAbsence implements ListProofNode {
   }
 
   /**
-   * Review: Not of 'this proof of absence'. Please clarify which hash in the signature and the docs
-   * (is it the Merkle root hash?).
-   *
-   * Returns the hash of this proof of absence.
+   * Returns the Merkle root of a corresponding proof list.
    */
-  public HashCode getHash() {
-    return hash;
+  public HashCode getMerkleRoot() {
+    return merkleRoot;
   }
 }

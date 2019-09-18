@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use exonum_merkledb::{Fork, Snapshot};
-use jni::{objects::JClass, JNIEnv};
+use jni::{JNIEnv, objects::JClass};
 
 use handle::{self, Handle};
 
@@ -29,7 +29,12 @@ pub(crate) type Value = Vec<u8>;
 /// - it just holds a reference, when one is provided from the rust side.
 ///
 /// As `View` does not have a lifetime, nothing protects us from dereferencing a freed reference,
+/// Review: I don't get what you mean here by 'dereferencing a freed reference' and how it
+/// is connected with View instantiation
+/// Review: sent to Java
 /// the extreme caution must be taken in places where `View` is constructed and send to Java.
+/// Review: Not sure I understand what you mean here. Usually, Java releases the handles,
+/// and they must not be used subsequently. Is it anyhow different for this thing?
 /// Java code must never store a `View` handle beyond the scope it was initially acquired
 /// (except for `View::Owned`).
 pub(crate) enum View {
@@ -49,6 +54,12 @@ pub(crate) enum View {
     /// Created `View` must never outlive the reference it was constructed with,
     /// or `SIGINT` will occur.
     RefSnapshot(&'static dyn Snapshot),
+    /*
+Review: I'd clarify, what Owned means. If I understand correctly, the
+client code owns a Snapshot/View object and then transfers the ownership of it to the View,
+which then owns it. I.e. 'owned' means different things in different contexts (= when used in factory method
+and in enum variant)
+    */
     /// Covers both `Snapshot` and `Fork` cases. Rust uses move semantic and single-ownership
     /// rule to guarantee that the `View` will be valid for the whole execution.
     ///
@@ -154,8 +165,9 @@ pub extern "system" fn Java_com_exonum_binding_core_storage_database_Views_nativ
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use exonum_merkledb::{Database, Entry, IndexAccess, TemporaryDB};
+
+    use super::*;
 
     const FIRST_TEST_VALUE: i32 = 42;
     const SECOND_TEST_VALUE: i32 = 57;
@@ -223,6 +235,7 @@ mod tests {
             View::RefMutFork(fork_ref) => {
                 mock_method(fork_ref);
             }
+            // Review: What is happening here?
             _ => panic!(),
         }
     }

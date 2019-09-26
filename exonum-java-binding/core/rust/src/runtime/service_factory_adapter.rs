@@ -76,6 +76,9 @@ impl JavaServiceFactoryAdapter {
 /*}
 
 impl ServiceFactory for JavaServiceFactoryAdapter { */
+    /*
+    Review: Why is the code commented? Why do these methods remain?
+    */
     fn service_name(&self) -> &str {
         &self.name
     }

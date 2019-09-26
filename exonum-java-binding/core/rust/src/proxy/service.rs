@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+Review: Why is this commented out and not removed?
+*/
 //
 //use exonum::{
 //    api::ServiceApiBuilder,

@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+/*
+Review: Why is the code commented?
+*/
 //use chrono::{DateTime, Utc};
 //use exonum_merkledb::BinaryValue;
 //use exonum_time::time_provider::TimeProvider;

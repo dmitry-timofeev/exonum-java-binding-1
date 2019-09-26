@@ -12,6 +12,9 @@ fn main() {
         println!("cargo:rustc-link-lib=dylib=c++");
     }
 
+    /*
+    Review: Why is the code commented?
+    */
     //let exonum_protos = get_exonum_protobuf_files_path();
     protobuf_generate(
         "../src/main/proto",

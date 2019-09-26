@@ -77,6 +77,9 @@ impl JavaServiceRuntime {
         }))
     }
 
+    /*
+    Review: Why is the code commented?
+    */
     /// Creates a new service instance using the given artifact id.
     ///
     /// Panics if there are errors on Java side.
@@ -105,7 +108,11 @@ impl JavaServiceRuntime {
     /// Returns an unique service artifact identifier that must be specified in subsequent
     /// operations with it.
     ///
-    /// Panics if there are errors on Java side.
+    /// Panics if there are errors on Java side
+    /*
+    Review: Hasn't this method moved to the runtime? Also, the naming of this class needs to
+    be updated because it conflicts with the runtime.
+    */
     pub fn load_artifact<P: AsRef<Path>>(&self, artifact_path: P) -> String {
         unwrap_jni(self.executor.with_attached(|env| {
             let artifact_path = artifact_path.as_ref().to_str().unwrap();

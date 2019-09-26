@@ -46,6 +46,9 @@ static mut RUNTIME_ADAPTER_STATE_HASHES: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_AFTER_COMMIT: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_MOUNT_API: Option<JMethodID> = None;
 
+/*
+Review: !
+*/
 // todo: Remove transaction and service adapter items when native JavaServiceRuntime is implemented
 static mut TRANSACTION_ADAPTER_EXECUTE: Option<JMethodID> = None;
 static mut TRANSACTION_ADAPTER_INFO: Option<JMethodID> = None;
@@ -88,6 +91,7 @@ unsafe fn cache_methods(env: &JNIEnv) {
     );
     RUNTIME_ADAPTER_DEPLOY_ARTIFACT = get_method_id(
         &env,
+        // Review: Extract the class name?
         "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
         "deployArtifact",
         "(Ljava/lang/String;[B)V",

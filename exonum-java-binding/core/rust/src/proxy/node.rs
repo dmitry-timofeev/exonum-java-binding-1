@@ -83,6 +83,9 @@ impl NodeContext {
 //        }
 
         let key_pair = self.api_context.service_keypair();
+        /*
+Review: signed (as we do not verify the transaction message — we create it (= sign)?
+        */
         let verified = Verified::from_value(
             transaction,
             key_pair.0.to_owned(),

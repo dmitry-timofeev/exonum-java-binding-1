@@ -59,6 +59,7 @@ use utils::{
 pub struct JavaRuntimeProxy {
     exec: Executor,
     runtime_adapter: GlobalRef,
+    /* Review: (to self) Why do we keep these in RAM? */
     deployed_artifacts: HashSet<JavaArtifactId>,
     started_services: HashMap<InstanceId, Instance>,
     started_services_by_name: HashMap<String, InstanceId>,
@@ -71,6 +72,10 @@ struct Instance {
     name: String,
 }
 
+/*
+Review: (to self) Why is it needed (does anything use these separate components)? If not,
+please make it a string.
+*/
 /// Artifact identification properties within `JavaRuntimeProxy`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JavaArtifactId {
@@ -158,6 +163,7 @@ impl JavaRuntimeProxy {
     fn parse_jni<T>(res: JniResult<T>) -> Result<T, ExecutionError> {
         res.map_err(|err| match err.0 {
             JniErrorKind::JavaException => Error::JavaException.into(),
+            /* Review: (to self) How is it used? Is it OK to treat arbitrary JNI errors this way? */
             _ => Error::UnspecifiedError.into(),
         })
     }
@@ -209,6 +215,10 @@ impl Runtime for JavaRuntimeProxy {
             )?;
             Ok(())
         }));
+        /*
+Review: I don't see the exception handling. If it does occur, the native is responsible to act on it
+(handle, according to the specification, and clear, so that it does not remain 'thrown').
+*/
 
         self.deployed_artifacts.insert(id);
 
@@ -218,6 +228,10 @@ impl Runtime for JavaRuntimeProxy {
     fn artifact_protobuf_spec(&self, id: &ArtifactId) -> Option<ArtifactProtobufSpec> {
         let id = self.parse_artifact(id).ok()?;
 
+        /*
+        Review: Why this check is needed? I'd assume that the framework won't call the runtimes
+that don't have a given artifact.
+        */
         if self.deployed_artifacts.contains(&id) {
             // TODO: call `ServiceRuntimeAdapter`
             Some(ArtifactProtobufSpec::default())
@@ -230,6 +244,11 @@ impl Runtime for JavaRuntimeProxy {
         let adapter = self.runtime_adapter.as_obj().clone();
         let service_name = spec.name.clone();
         let id = spec.id;
+        /*
+        Review: Here we parse the artifactId, only to convert it to string.
+        It seems unnecessary, as the correctness of such ids is checked before deploy in Java
+        (and also each time it is instantiated in Java).
+        */
         let artifact = self.parse_artifact(&spec.artifact)?;
 
         Self::parse_jni(self.exec.with_attached(|env| {
@@ -247,6 +266,9 @@ impl Runtime for JavaRuntimeProxy {
                 ],
             ).map(|_| ())
         }))?;
+        /*
+        Review: Same here: exceptions must be handled.
+        */
 
         self.add_started_service(Instance::new(spec.id, spec.name.clone()));
         Ok(())
@@ -310,6 +332,9 @@ impl Runtime for JavaRuntimeProxy {
                 = (context.caller.author(), context.caller.transaction_hash()) {
             (key, hash)
         } else {
+            /* Review: Is there an easier way to check that? If not, I'd request one from core,
+because this way is not intuitive.
+*/
             // TODO: caller is Blockchain (not Transaction) is not supported  yet
             return Err(Error::NotSupportedOperation.into());
         };
@@ -337,6 +362,10 @@ impl Runtime for JavaRuntimeProxy {
             )?;
             Ok(())
         }))
+        /* Review: As usual, the exception must be handled. On top of that,
+TransactionExecutionException must be converted into appropriate Errors, see the present
+TransactionProxy.
+        */
     }
 
     fn state_hashes(&self, snapshot: &Snapshot) -> StateHashAggregator {
@@ -396,6 +425,11 @@ impl Runtime for JavaRuntimeProxy {
     }
 
     fn api_endpoints(&self, context: &ApiContext) -> Vec<(String, ServiceApiBuilder)> {
+        /*
+        Review: Please see the docs of the runtime method:
+(1) It must be invoked for the services to connect to API (not the already connected)
+(2) It must not be empty (shall not be invoked if no new services need to be connected)
+*/
         let started_ids: Vec<i32> = self.started_services
             .values()
             .map(|instance| instance.id as i32)
@@ -516,6 +550,9 @@ impl<'a> AfterCommitContext<'a> {
 
     /// If the current node is a validator, return its identifier, for other nodes return `None`.
     pub fn validator_id(&self) -> Option<ValidatorId> {
+        /*
+Review: It is too complex. Why has it been removed? Shall we remove it as well?
+        */
         CoreSchema::new(self.snapshot)
             .actual_configuration()
             .validator_keys
@@ -545,6 +582,9 @@ impl<'a> AfterCommitContext<'a> {
         CoreSchema::new(self.snapshot).height()
     }
 
+    /*
+    Review: Some of these methods seem unused. Why are they added?
+    */
     /// Returns reference to communication channel with dispatcher.
     pub(crate) fn dispatcher_channel(&self) -> &DispatcherSender {
         self.dispatcher
@@ -572,6 +612,7 @@ impl From<&ServiceStateHashes> for (InstanceId, Vec<Hash>) {
 
 impl ServiceRuntimeStateHashes {
     fn runtime(&self) -> Vec<Hash> {
+        // Review: Shan't this code be extracted: to_hashes(hashes: Vec<Vec<u8>>) -> Vec<Hash>?
         self.runtime_state_hashes
             .iter()
             .map(|bytes| Hash::from_bytes(bytes.into()).unwrap())

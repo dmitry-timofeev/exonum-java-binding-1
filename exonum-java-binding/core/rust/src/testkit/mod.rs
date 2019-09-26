@@ -16,6 +16,9 @@
 
 //! Provides native methods for Java TestKit support.
 
+/*
+Review: Why is the code commented out? Is it *all* broken? It used to compile.
+*/
 //use self::time_provider::JavaTimeProvider;
 //use exonum::{
 //    blockchain::Block,

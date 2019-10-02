@@ -123,6 +123,7 @@ class TestKitExtensionTest extends TestKitWithTestArtifact {
       instantiatedTestKit = testKit;
 
       // Check that TestKit was instantiated with a correct service
+      // Review: ServiceWrapper is inappropriate, I think.
       ServiceWrapper serviceWrapper = testKit.getServiceWrapper(SERVICE_NAME);
       assertThat(serviceWrapper.getId()).isEqualTo(SERVICE_ID);
       assertThat(serviceWrapper.getName()).isEqualTo(SERVICE_NAME);

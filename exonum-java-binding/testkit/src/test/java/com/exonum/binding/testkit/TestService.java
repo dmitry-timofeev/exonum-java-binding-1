@@ -67,6 +67,12 @@ final class TestService extends AbstractService {
   static RawTransaction constructAfterCommitTransaction(long height) {
     String payload = "Test message on height " + height;
     return RawTransaction.newBuilder()
+        /*
+         Review: It must use the id from the ServiceInstanceSpec supplied to the constructor,
+          not the constant.
+          Same applies to schema — it must have namespaces so that multiple instances don't
+          write over the same data.
+         */
         .serviceId(TestKitWithTestArtifact.SERVICE_ID)
         .transactionId(TestTransaction.ID)
         .payload(payload.getBytes(BODY_CHARSET))

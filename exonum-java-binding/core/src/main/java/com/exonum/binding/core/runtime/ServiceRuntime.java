@@ -401,6 +401,7 @@ public final class ServiceRuntime {
   }
 
   /**
+   * Review: There is a difference between find and get, not reflected in this Javadoc.
    * Finds service instance by its id.
    */
   public ServiceWrapper getServiceById(Integer serviceId) {

@@ -239,6 +239,7 @@ class TestKitTest extends TestKitWithTestArtifact {
   void requestWrongServiceId(TestKit testKit) {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     assertThrows(exceptionType, () -> testKit.getService("Invalid service name",
+        // Review: Why the class changed?
         TestService.class));
   }
 
@@ -247,6 +248,10 @@ class TestKitTest extends TestKitWithTestArtifact {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     TestKit.Builder testKitBuilder = TestKit.builder();
     for (int i = 0; i < TestKit.MAX_SERVICE_NUMBER + 1; i++) {
+      /*
+       Review: (1) Why is artifact deployed N times if that is not what is tested?
+       (2) Why the same instance (name and id) is attempted to be added?
+       */
       testKitBuilder = testKitBuilder.withDeployedService(ARTIFACT_ID, ARTIFACT_FILENAME)
           .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID,
               Any.getDefaultInstance());
@@ -427,6 +432,7 @@ class TestKitTest extends TestKitWithTestArtifact {
 
   @Test
   void createBlockWithTransactionWithWrongServiceId(TestKit testKit) {
+    // Review: It is no longer restricted to short.
     short wrongServiceId = (short) (SERVICE_ID + 1);
     TransactionMessage message = TransactionMessage.builder()
         .serviceId(wrongServiceId)
@@ -524,6 +530,7 @@ class TestKitTest extends TestKitWithTestArtifact {
     short invalidValidatorCount = TestKit.MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE + 1;
     TestKit.Builder testKitBuilder = TestKit.builder()
         .withDeployedService(ARTIFACT_ID, ARTIFACT_FILENAME)
+        // REview: There must be an overload for no (= empty) configuration.
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID,
             Any.getDefaultInstance())
         .withTimeService(timeProvider, TIME_SERVICE_NAME, TIME_SERVICE_ID)
@@ -584,6 +591,7 @@ class TestKitTest extends TestKitWithTestArtifact {
       return node;
     }
 
+    // Review: null?
     @Override
     public List<HashCode> getStateHashes(Snapshot snapshot) {
       return null;

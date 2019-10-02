@@ -24,7 +24,9 @@ import com.google.auto.value.AutoValue;
 @SuppressWarnings("unused") // Native API
 @AutoValue
 abstract class TimeServiceSpec {
-
+  /*
+  Review: If it is an internal data class for native, then field access is preferable to methods.
+   */
   /**
    * Returns {@linkplain TimeProviderAdapter} used by time service as a time source.
    */

@@ -22,10 +22,12 @@ package com.exonum.binding.testkit;
 @SuppressWarnings("unused") // Native API
 class TestKitServiceInstances {
 
+  // Review: final.
   private String artifactId;
   private String artifactFilename;
   private ServiceSpec[] serviceSpecs;
 
+  // Review: package-private type with public methods.
   public TestKitServiceInstances(String artifactId, String artifactFilename, ServiceSpec[] serviceSpecs) {
     this.artifactId = artifactId;
     this.artifactFilename = artifactFilename;
@@ -34,6 +36,10 @@ class TestKitServiceInstances {
 
   /**
    * Returns the service artifact id.
+   */
+  /*
+   REview: Why the methods are needed? It is an internal data object where the native can read
+   the fields.
    */
   public String getArtifactId() {
     return artifactId;

@@ -96,6 +96,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
   private static final Serializer<Block> BLOCK_SERIALIZER = BlockSerializer.INSTANCE;
+  // Review: Why isn't final? Why is it kept here at all? What if I need multiple instances?
   private Integer timeServiceId;
 
   @VisibleForTesting
@@ -122,6 +123,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   /**
    * Deploys and creates a single service with a single validator node in this TestKit network.
    */
+  // Review: Any is not used for configuration anymore, but any protobuf message (MessageLite).
   public static TestKit forService(ServiceArtifactId artifactId, String artifactFilename,
                                    String serviceName, int serviceId, Any configuration) {
     List<TestKitServiceInstances> testKitServiceInstances = createTestKitSingleServiceInstance(
@@ -149,6 +151,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    *     cast to given class
    */
   public <T extends Service> T getService(String serviceName, Class<T> serviceClass) {
+    // Review: (to self) I don't think server wrapper must be made public for this operation.
     Service service = getServiceWrapper(serviceName).getService();
     checkArgument(service.getClass().equals(serviceClass),
         "Service (name=%s, class=%s) cannot be cast to %s",
@@ -157,6 +160,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   @VisibleForTesting
+  // Review: (to self) Why?
   ServiceWrapper getServiceWrapper(String serviceName) {
     Optional<ServiceWrapper> serviceWrapper = getServiceRuntime().findService(serviceName);
     checkArgument(serviceWrapper.isPresent(),
@@ -221,6 +225,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     if (serviceId.equals(timeServiceId)) {
       return;
     }
+    // Review: Not appropriate.
     ServiceWrapper serviceWrapper = getServiceRuntime().getServiceById(serviceId);
     TransactionConverter txConverter = serviceWrapper.getTxConverter();
     try {
@@ -263,6 +268,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   private ServiceRuntime getServiceRuntime() {
+    // Review: Is this still a question?
     // TODO: TBD where should we create ServiceRuntime instance
     return nativeGetServiceRuntime(nativeHandle.get());
   }
@@ -383,6 +389,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     private short validatorCount = 1;
     private Multimap<ServiceArtifactId, ServiceSpec> services = ArrayListMultimap.create();
     private HashMap<ServiceArtifactId, String> serviceArtifactFilenames = new HashMap<>();
+    // Review: I think it must not be a single instance.
     private TimeServiceSpec timeServiceSpec;
 
     private Builder() {}
@@ -394,6 +401,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       Builder builder = new Builder()
           .withNodeType(nodeType)
           .withValidators(validatorCount);
+      // Review: Is a shallow copy of a builder OK?
       builder.timeServiceSpec = timeServiceSpec;
       builder.services = services;
       builder.serviceArtifactFilenames = serviceArtifactFilenames;
@@ -429,10 +437,14 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     /**
      * Adds a service artifact which would be deployed by the TestKit. Several service artifacts
      * can be added.
+     * Review:
+     * Once the service artifact is deployed, the service instances can be added with
+     * {@link #withService(ServiceArtifactId, String, int, Any)}.
      *
      * <p>Note that the corresponding service instance with equal serviceArtifactId should be
      * created with {@link #withService(ServiceArtifactId, String, int, Any)}.
      */
+    // Review: withDeployedArtifact, otherwise, aren't `withService` work with deployed services?
     public Builder withDeployedService(ServiceArtifactId serviceArtifactId, String artifactFilename) {
       serviceArtifactFilenames.put(serviceArtifactId, artifactFilename);
       return this;
@@ -441,6 +453,9 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     /**
      * Adds a service specification with which the TestKit would create the corresponding service
      * instance. Several service specifications can be added.
+     * Review: All services are started and configured before the genesis block
+     * (please check if that's accurate. Also, what would happen if configuration of such service
+     * fails? Will I get an exception or just silent start failure, as with 'dynamic' services?)
      *
      * <p>Note that the corresponding service artifact with equal serviceArtifactId should be
      * deployed with {@link #withDeployedService(ServiceArtifactId, String)}.
@@ -449,6 +464,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
                                String serviceName,
                                int serviceId,
                                Any configuration) {
+      /*
+Review: Shan't we check here that the corresponding artifact is already added? I.e.,
+shall we enforce the rule 'an artifact first, its instances — next' which doesn't sound
+too restrictive? Or allow the inverse?
+       */
       ServiceSpec serviceSpec =
           ServiceSpec.newInstance(serviceName, serviceId, configuration.toByteArray());
       services.put(serviceArtifactId, serviceSpec);
@@ -456,11 +476,17 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     }
 
     /**
+     * Review: Please rephrase as withService, as with multiple instances supported they must
+     * work the same.
      * If called, will create a TestKit with time service enabled. The time service will be created
      * with given name and id and use the given {@linkplain TimeProvider} as a time source.
      *
      * <p>Note that validator count should be
      * {@value #MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE} or less if time service is enabled.
+     */
+    /*
+     Review: I'd keep the order of parameters consistent with addService:
+     name, id, timeProvider-as-configuration
      */
     public Builder withTimeService(TimeProvider timeProvider, String serviceName, int serviceId) {
       TimeProviderAdapter timeProviderAdapter = new TimeProviderAdapter(timeProvider);
@@ -487,11 +513,34 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      */
     private List<TestKitServiceInstances> mergeServiceSpecs() {
       Set<ServiceArtifactId> serviceArtifactIds = services.keySet();
+      /*
+      Review:
+(1) The condition does not match the error message (must be equal).
+Please add tests for both conditions (no artifact, no services for artifact, both at the same time).
+
+(2) The error message is not very helpful. A symmetric difference, which is needed to communicate
+all 'lost' items to cover the last condition will not be easy enough to understand either.
+Therefore, just split into two conditions:
+```java
+      // To be able to use the shorter names (serviceIds vs serviceArtifactIds),
+      // extract in a method
+      Set<ServiceArtifactId> serviceIds = services.keySet();
+      Set<ServiceArtifactId> deployedIds = serviceArtifactFilenames.keySet();
+      SetView<ServiceArtifactId> artifactsWithNoServices = Sets.difference(deployedIds, serviceIds);
+      // check empty
+      SetView<ServiceArtifactId> missingArtifacts = Sets.difference(serviceIds, deployedIds);
+      // check empty
+```
+
+(3) serviceArtifactFilenames.keySet() extract in a variable `deployedArtifact[Id]s`, otherwise
+it looks like it compares files with artifactIds.
+       */
       checkArgument(serviceArtifactIds.containsAll(serviceArtifactFilenames.keySet()),
           "All service instances that are deployed should also be instantiated"
               + " and vice versa.");
       return serviceArtifactIds.stream()
           .map(this::aggregateServiceSpecs)
+          // Review: Why list if it is always converted to array?
           .collect(toList());
     }
 
@@ -500,6 +549,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      * {@linkplain TestKitServiceInstances} object.
      */
     private TestKitServiceInstances aggregateServiceSpecs(ServiceArtifactId artifactId) {
+      /*
+      Review: This code streams from the keys of this map, and as its very next step, adds
+the values. Why doesn't it stream entries then?
+       */
       String artifactFilename = serviceArtifactFilenames.get(artifactId);
       ServiceSpec[] serviceSpecs = services.get(artifactId).toArray(new ServiceSpec[0]);
       return new TestKitServiceInstances(artifactId.toString(), artifactFilename, serviceSpecs);
@@ -515,6 +568,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     }
 
     private void checkCorrectServiceNumber(int serviceCount) {
+      /*
+       Review: Given the dynamic nature of the runtime and the fact that it's not as easy
+       to register a service just to make testkit happy when that service might not be needed,
+       I'd reconsider 0.
+      */
       checkArgument(0 < serviceCount && serviceCount <= MAX_SERVICE_NUMBER,
           "Number of services must be in range [1; %s], but was %s",
           MAX_SERVICE_NUMBER, serviceCount);

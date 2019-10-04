@@ -18,7 +18,7 @@ package com.exonum.binding.testkit;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 import com.exonum.binding.common.hash.HashCode;
@@ -32,11 +32,9 @@ import com.exonum.binding.core.proxy.Cleaner;
 import com.exonum.binding.core.proxy.CloseFailuresException;
 import com.exonum.binding.core.runtime.ServiceArtifactId;
 import com.exonum.binding.core.runtime.ServiceRuntime;
-import com.exonum.binding.core.runtime.ServiceWrapper;
 import com.exonum.binding.core.service.BlockCommittedEvent;
 import com.exonum.binding.core.service.Node;
 import com.exonum.binding.core.service.Service;
-import com.exonum.binding.core.service.TransactionConverter;
 import com.exonum.binding.core.storage.database.Fork;
 import com.exonum.binding.core.storage.database.Snapshot;
 import com.exonum.binding.core.storage.indices.KeySetIndexProxy;
@@ -47,18 +45,21 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.protobuf.Any;
+import com.google.protobuf.MessageLite;
 import io.vertx.ext.web.Router;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 /**
  * TestKit for testing blockchain services. It offers simple network configuration emulation
@@ -95,29 +96,28 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   public static final short MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE = 3;
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
+  @VisibleForTesting
+  static final int MAX_SERVICE_INSTANCE_ID = 1023;
   private static final Serializer<Block> BLOCK_SERIALIZER = BlockSerializer.INSTANCE;
-  // Review: Why isn't final? Why is it kept here at all? What if I need multiple instances?
-  private Integer timeServiceId;
+  private final List<Integer> timeServiceIds;
 
   @VisibleForTesting
   final Cleaner snapshotCleaner = new Cleaner("TestKit#getSnapshot");
 
-  private TestKit(long nativeHandle,
-                  @Nullable TimeServiceSpec timeServiceSpec) {
+  private TestKit(long nativeHandle, List<TimeServiceSpec> timeServiceSpecs) {
     super(nativeHandle, true);
-    if (timeServiceSpec != null) {
-      timeServiceId = timeServiceSpec.getServiceId();
-    }
+    timeServiceIds = timeServiceSpecs.stream()
+        .map(t -> t.getServiceId)
+        .collect(toList());
   }
 
-  private static TestKit newInstance(List<TestKitServiceInstances> serviceInstances,
+  private static TestKit newInstance(TestKitServiceInstances[] serviceInstances,
                                      EmulatedNodeType nodeType, short validatorCount,
-                                     @Nullable TimeServiceSpec timeServiceSpec) {
+                                     List<TimeServiceSpec> timeServiceSpecs) {
     boolean isAuditorNode = nodeType == EmulatedNodeType.AUDITOR;
-    long nativeHandle = nativeCreateTestKit(
-        serviceInstances.toArray(new TestKitServiceInstances[0]), isAuditorNode, validatorCount,
-        timeServiceSpec);
-    return new TestKit(nativeHandle, timeServiceSpec);
+    long nativeHandle = nativeCreateTestKit(serviceInstances, isAuditorNode, validatorCount,
+        timeServiceSpecs.toArray(new TimeServiceSpec[0]));
+    return new TestKit(nativeHandle, timeServiceSpecs);
   }
 
   /**
@@ -125,20 +125,31 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    */
   // Review: Any is not used for configuration anymore, but any protobuf message (MessageLite).
   public static TestKit forService(ServiceArtifactId artifactId, String artifactFilename,
-                                   String serviceName, int serviceId, Any configuration) {
-    List<TestKitServiceInstances> testKitServiceInstances = createTestKitSingleServiceInstance(
+                                   String serviceName, int serviceId, MessageLite configuration) {
+    checkServiceId(serviceId);
+    TestKitServiceInstances[] testKitServiceInstances = createTestKitSingleServiceInstance(
         artifactId, artifactFilename, serviceName, serviceId, configuration);
-    return newInstance(testKitServiceInstances, EmulatedNodeType.VALIDATOR, (short) 1, null);
+    return newInstance(
+        testKitServiceInstances, EmulatedNodeType.VALIDATOR, (short) 1, emptyList());
   }
 
-  private static List<TestKitServiceInstances> createTestKitSingleServiceInstance(
+  /**
+   * Deploys and creates a single service with default configuration and with a single validator
+   * node in this TestKit network.
+   */
+  public static TestKit forService(ServiceArtifactId artifactId, String artifactFilename,
+                                   String serviceName, int serviceId) {
+    Any defaultConfiguration = Any.getDefaultInstance();
+    return forService(artifactId, artifactFilename, serviceName, serviceId, defaultConfiguration);
+  }
+
+  private static TestKitServiceInstances[] createTestKitSingleServiceInstance(
       ServiceArtifactId artifactId, String artifactFilename, String serviceName,
-      int serviceId, Any configuration) {
-    ServiceSpec serviceSpec =
-        ServiceSpec.newInstance(serviceName, serviceId, configuration.toByteArray());
+      int serviceId, MessageLite configuration) {
+    ServiceSpec serviceSpec = new ServiceSpec(serviceName, serviceId, configuration.toByteArray());
     TestKitServiceInstances testKitServiceInstances = new TestKitServiceInstances(
         artifactId.toString(), artifactFilename, new ServiceSpec[] {serviceSpec});
-    return singletonList(testKitServiceInstances);
+    return new TestKitServiceInstances[] {testKitServiceInstances};
   }
 
   /**
@@ -151,21 +162,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    *     cast to given class
    */
   public <T extends Service> T getService(String serviceName, Class<T> serviceClass) {
-    // Review: (to self) I don't think server wrapper must be made public for this operation.
-    Service service = getServiceWrapper(serviceName).getService();
+    Service service = getServiceRuntime().getServiceInstanceByName(serviceName);
     checkArgument(service.getClass().equals(serviceClass),
         "Service (name=%s, class=%s) cannot be cast to %s",
         serviceName, service.getClass().getCanonicalName(), serviceClass.getCanonicalName());
     return serviceClass.cast(service);
-  }
-
-  @VisibleForTesting
-  // Review: (to self) Why?
-  ServiceWrapper getServiceWrapper(String serviceName) {
-    Optional<ServiceWrapper> serviceWrapper = getServiceRuntime().findService(serviceName);
-    checkArgument(serviceWrapper.isPresent(),
-        "Service with given name=%s was not found", serviceName);
-    return serviceWrapper.get();
   }
 
   /**
@@ -218,24 +219,22 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   private void checkTransaction(TransactionMessage transactionMessage) {
-    Integer serviceId = transactionMessage.getServiceId();
-    // As transactions of time service might be submitted in TestKit that has that service
-    // activated, those transactions should be considered valid, even though time service is not
-    // contained in 'services'
-    if (serviceId.equals(timeServiceId)) {
+    int serviceId = transactionMessage.getServiceId();
+    // As transactions of time services might be submitted in TestKit that has those service
+    // activated, those transactions should be considered valid, as time services are not
+    // contained in Java runtime
+    if (timeServiceIds.contains(serviceId)) {
       return;
     }
-    // Review: Not appropriate.
-    ServiceWrapper serviceWrapper = getServiceRuntime().getServiceById(serviceId);
-    TransactionConverter txConverter = serviceWrapper.getTxConverter();
     try {
-      txConverter.toTransaction(
+      // Review: (still) Not appropriate: we don't need to pass the transaction
+      getServiceRuntime().convertTransaction(serviceId,
           transactionMessage.getTransactionId(), transactionMessage.getPayload().toByteArray());
     } catch (Throwable conversionError) {
-      String message = String.format("Service (%s) with id=%s failed to convert transaction (%s)."
+      String message = String.format("Service with id=%s failed to convert transaction (%s)."
           + " Make sure that the submitted transaction is correctly serialized, and the service's"
           + " TransactionConverter implementation is correct and handles this transaction as"
-          + " expected.", serviceWrapper.getName(), serviceId, transactionMessage);
+          + " expected.", serviceId, transactionMessage);
       throw new IllegalArgumentException(message, conversionError);
     }
   }
@@ -269,8 +268,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
   private ServiceRuntime getServiceRuntime() {
     // Review: Is this still a question?
-    // TODO: TBD where should we create ServiceRuntime instance
-    return nativeGetServiceRuntime(nativeHandle.get());
+    // TODO: create ServiceRuntime instance
+    return null;
   }
 
   /**
@@ -358,11 +357,9 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
   private static native long nativeCreateTestKit(TestKitServiceInstances[] services,
                                                  boolean auditor, short withValidatorCount,
-                                                 TimeServiceSpec timeProvider);
+                                                 TimeServiceSpec[] timeProviderSpecs);
 
   private native long nativeCreateSnapshot(long nativeHandle);
-
-  private native ServiceRuntime nativeGetServiceRuntime(long nativeHandle);
 
   private native byte[] nativeCreateBlock(long nativeHandle);
 
@@ -371,6 +368,12 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   private native EmulatedNode nativeGetEmulatedNode(long nativeHandle);
 
   private native void nativeFreeTestKit(long nativeHandle);
+
+  private static void checkServiceId(int serviceId) {
+    checkArgument(0 <= serviceId && serviceId <= MAX_SERVICE_INSTANCE_ID,
+        "Service id must be in range [0; %s], but was %s",
+        MAX_SERVICE_INSTANCE_ID, serviceId);
+  }
 
   /**
    * Creates a new builder for the TestKit. Note that this builder creates a single validator
@@ -389,20 +392,22 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     private short validatorCount = 1;
     private Multimap<ServiceArtifactId, ServiceSpec> services = ArrayListMultimap.create();
     private HashMap<ServiceArtifactId, String> serviceArtifactFilenames = new HashMap<>();
-    // Review: I think it must not be a single instance.
-    private TimeServiceSpec timeServiceSpec;
+    /*
+    Review: Set as LinkedHashSet?
+     */
+    private List<TimeServiceSpec> timeServiceSpecs = new ArrayList<>();
 
     private Builder() {}
 
     /**
      * Returns a copy of this TestKit builder.
      */
-    public Builder copy() {
+    Builder copy() {
       Builder builder = new Builder()
           .withNodeType(nodeType)
           .withValidators(validatorCount);
       // Review: Is a shallow copy of a builder OK?
-      builder.timeServiceSpec = timeServiceSpec;
+      builder.timeServiceSpecs = timeServiceSpecs;
       builder.services = services;
       builder.serviceArtifactFilenames = serviceArtifactFilenames;
       return builder;
@@ -441,56 +446,64 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      * Once the service artifact is deployed, the service instances can be added with
      * {@link #withService(ServiceArtifactId, String, int, Any)}.
      *
-     * <p>Note that the corresponding service instance with equal serviceArtifactId should be
-     * created with {@link #withService(ServiceArtifactId, String, int, Any)}.
+     * <p>Once the service artifact is deployed, the service instances can be added with
+     * {@link #withService(ServiceArtifactId, String, int, MessageLite)}.
      */
-    // Review: withDeployedArtifact, otherwise, aren't `withService` work with deployed services?
-    public Builder withDeployedService(ServiceArtifactId serviceArtifactId, String artifactFilename) {
+    public Builder withDeployedArtifact(ServiceArtifactId serviceArtifactId, String artifactFilename) {
       serviceArtifactFilenames.put(serviceArtifactId, artifactFilename);
       return this;
     }
 
     /**
      * Adds a service specification with which the TestKit would create the corresponding service
+     * instance. Several service specifications can be added. All services are started and
+     * configured before the genesis block.
      * instance. Several service specifications can be added.
-     * Review: All services are started and configured before the genesis block
-     * (please check if that's accurate. Also, what would happen if configuration of such service
+     * Review: Also, what would happen if configuration of such service
      * fails? Will I get an exception or just silent start failure, as with 'dynamic' services?)
      *
      * <p>Note that the corresponding service artifact with equal serviceArtifactId should be
-     * deployed with {@link #withDeployedService(ServiceArtifactId, String)}.
+     * deployed with {@link #withDeployedArtifact(ServiceArtifactId, String)}.
      */
-    public Builder withService(ServiceArtifactId serviceArtifactId,
-                               String serviceName,
-                               int serviceId,
-                               Any configuration) {
-      /*
-Review: Shan't we check here that the corresponding artifact is already added? I.e.,
-shall we enforce the rule 'an artifact first, its instances — next' which doesn't sound
-too restrictive? Or allow the inverse?
-       */
-      ServiceSpec serviceSpec =
-          ServiceSpec.newInstance(serviceName, serviceId, configuration.toByteArray());
+    public Builder withService(ServiceArtifactId serviceArtifactId, String serviceName,
+                               int serviceId, MessageLite configuration) {
+      checkServiceId(serviceId);
+      checkServiceArtifactIsDeployed(serviceArtifactId);
+      ServiceSpec serviceSpec = new ServiceSpec(serviceName, serviceId,
+          configuration.toByteArray());
       services.put(serviceArtifactId, serviceSpec);
       return this;
     }
 
+    private void checkServiceArtifactIsDeployed(ServiceArtifactId serviceArtifactId) {
+      checkArgument(serviceArtifactFilenames.containsKey(serviceArtifactId),
+          "Service %s should be deployed first in order to be created", serviceArtifactId);
+    }
+
     /**
-     * Review: Please rephrase as withService, as with multiple instances supported they must
-     * work the same.
-     * If called, will create a TestKit with time service enabled. The time service will be created
-     * with given name and id and use the given {@linkplain TimeProvider} as a time source.
+     * Adds a service specification with which the TestKit would create the corresponding service
+     * instance with default configuration. Several service specifications can be added. All
+     * services are started and configured before the genesis block.
+     *
+     * <p>Note that the corresponding service artifact with equal serviceArtifactId should be
+     * deployed with {@link #withDeployedArtifact(ServiceArtifactId, String)}.
+     */
+    public Builder withService(ServiceArtifactId serviceArtifactId, String serviceName,
+                               int serviceId) {
+      Any defaultConfiguration = Any.getDefaultInstance();
+      return withService(serviceArtifactId, serviceName, serviceId, defaultConfiguration);
+    }
+
+    /**
+     * Adds a time service specification with which the TestKit would create the corresponding
+     * time service instance. Several time service specifications can be added.
      *
      * <p>Note that validator count should be
      * {@value #MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE} or less if time service is enabled.
      */
-    /*
-     Review: I'd keep the order of parameters consistent with addService:
-     name, id, timeProvider-as-configuration
-     */
-    public Builder withTimeService(TimeProvider timeProvider, String serviceName, int serviceId) {
+    public Builder withTimeService(String serviceName, int serviceId, TimeProvider timeProvider) {
       TimeProviderAdapter timeProviderAdapter = new TimeProviderAdapter(timeProvider);
-      this.timeServiceSpec = TimeServiceSpec.newInstance(timeProviderAdapter, serviceName, serviceId);
+      timeServiceSpecs.add(new TimeServiceSpec(serviceName, serviceId, timeProviderAdapter));
       return this;
     }
 
@@ -503,78 +516,57 @@ too restrictive? Or allow the inverse?
     public TestKit build() {
       checkCorrectServiceNumber(services.size());
       checkCorrectValidatorNumber();
-      List<TestKitServiceInstances> testKitServiceInstances = mergeServiceSpecs();
-      return newInstance(testKitServiceInstances, nodeType, validatorCount, timeServiceSpec);
+      TestKitServiceInstances[] testKitServiceInstances = mergeServiceSpecs();
+      return newInstance(testKitServiceInstances, nodeType, validatorCount, timeServiceSpecs);
     }
 
     /**
      * Turn collection of service instances into a list of
      * {@linkplain TestKitServiceInstances} objects for native to work with.
      */
-    private List<TestKitServiceInstances> mergeServiceSpecs() {
-      Set<ServiceArtifactId> serviceArtifactIds = services.keySet();
-      /*
-      Review:
-(1) The condition does not match the error message (must be equal).
-Please add tests for both conditions (no artifact, no services for artifact, both at the same time).
-
-(2) The error message is not very helpful. A symmetric difference, which is needed to communicate
-all 'lost' items to cover the last condition will not be easy enough to understand either.
-Therefore, just split into two conditions:
-```java
-      // To be able to use the shorter names (serviceIds vs serviceArtifactIds),
-      // extract in a method
-      Set<ServiceArtifactId> serviceIds = services.keySet();
-      Set<ServiceArtifactId> deployedIds = serviceArtifactFilenames.keySet();
-      SetView<ServiceArtifactId> artifactsWithNoServices = Sets.difference(deployedIds, serviceIds);
-      // check empty
-      SetView<ServiceArtifactId> missingArtifacts = Sets.difference(serviceIds, deployedIds);
-      // check empty
-```
-
-(3) serviceArtifactFilenames.keySet() extract in a variable `deployedArtifact[Id]s`, otherwise
-it looks like it compares files with artifactIds.
-       */
-      checkArgument(serviceArtifactIds.containsAll(serviceArtifactFilenames.keySet()),
-          "All service instances that are deployed should also be instantiated"
-              + " and vice versa.");
-      return serviceArtifactIds.stream()
+    private TestKitServiceInstances[] mergeServiceSpecs() {
+      checkDeployedArtifactsAreUsed();
+      return serviceArtifactFilenames.entrySet().stream()
           .map(this::aggregateServiceSpecs)
-          // Review: Why list if it is always converted to array?
-          .collect(toList());
+          .toArray(TestKitServiceInstances[]::new);
+    }
+
+    private void checkDeployedArtifactsAreUsed() {
+      Set<ServiceArtifactId> serviceIds = services.keySet();
+      Set<ServiceArtifactId> deployedArtifactIds = serviceArtifactFilenames.keySet();
+      Sets.SetView<ServiceArtifactId> unusedArtifacts =
+          Sets.difference(deployedArtifactIds, serviceIds);
+      checkArgument(unusedArtifacts.isEmpty(),
+          "Following service artifacts were deployed, but not used for service instantiation: %s",
+          unusedArtifacts.stream()
+              .map(ServiceArtifactId::toString)
+              .collect(Collectors.joining(", ")));
     }
 
     /**
      * Aggregates service instances specifications of a given service artifact id as a
      * {@linkplain TestKitServiceInstances} object.
      */
-    private TestKitServiceInstances aggregateServiceSpecs(ServiceArtifactId artifactId) {
-      /*
-      Review: This code streams from the keys of this map, and as its very next step, adds
-the values. Why doesn't it stream entries then?
-       */
-      String artifactFilename = serviceArtifactFilenames.get(artifactId);
-      ServiceSpec[] serviceSpecs = services.get(artifactId).toArray(new ServiceSpec[0]);
-      return new TestKitServiceInstances(artifactId.toString(), artifactFilename, serviceSpecs);
+    private TestKitServiceInstances aggregateServiceSpecs(
+        Map.Entry<ServiceArtifactId, String> serviceArtifact) {
+      ServiceArtifactId serviceArtifactId = serviceArtifact.getKey();
+      ServiceSpec[] serviceSpecs = services.get(serviceArtifactId).toArray(new ServiceSpec[0]);
+      return new TestKitServiceInstances(
+          serviceArtifactId.toString(), serviceArtifact.getValue(), serviceSpecs);
     }
 
     private void checkCorrectValidatorNumber() {
-      if (timeServiceSpec != null) {
+      if (!timeServiceSpecs.isEmpty()) {
         checkArgument(validatorCount <= MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE,
             "Number of validators (%s) should be less than or equal to %s when TimeService is"
-                + " enabled.",
+                + " instantiated.",
             validatorCount, MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE);
       }
     }
 
     private void checkCorrectServiceNumber(int serviceCount) {
-      /*
-       Review: Given the dynamic nature of the runtime and the fact that it's not as easy
-       to register a service just to make testkit happy when that service might not be needed,
-       I'd reconsider 0.
-      */
-      checkArgument(0 < serviceCount && serviceCount <= MAX_SERVICE_NUMBER,
-          "Number of services must be in range [1; %s], but was %s",
+      checkArgument(0 <= serviceCount && serviceCount <= MAX_SERVICE_NUMBER,
+          "Number of services must be in range [0; %s], but was %s",
           MAX_SERVICE_NUMBER, serviceCount);
     }
   }

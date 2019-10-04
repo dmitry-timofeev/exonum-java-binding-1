@@ -38,7 +38,7 @@ import java.util.List;
  * to operate on them conveniently. It separates the <em>extension</em>,
  * user-facing, interface from the <em>runtime</em>, internal, interface.
  */
-public final class ServiceWrapper {
+final class ServiceWrapper {
 
   private final Service service;
   private final TransactionConverter txConverter;
@@ -80,33 +80,33 @@ to the testkit via package-private ServiceWrapper?
   /**
    * Returns the service instance.
    */
-  public Service getService() {
+  Service getService() {
     return service;
   }
 
   /**
    * Returns the transaction converter of this service.
    */
-  public TransactionConverter getTxConverter() {
+  TransactionConverter getTxConverter() {
     return txConverter;
   }
 
   /**
    * Returns the name of this service instance.
    */
-  public String getName() {
+  String getName() {
     return instanceSpec.getName();
   }
 
   /**
    * Returns id of this service instance.
    */
-  public int getId() {
+  int getId() {
     return instanceSpec.getId();
   }
 
-  void configure(Fork view, Configuration configuration) {
-    service.configure(view, configuration);
+  void initialize(Fork view, Configuration configuration) {
+    service.initialize(view, configuration);
   }
 
   void executeTransaction(int txId, byte[] arguments, TransactionContext context)
@@ -127,6 +127,10 @@ to the testkit via package-private ServiceWrapper?
 
   List<HashCode> getStateHashes(Snapshot snapshot) {
     return service.getStateHashes(snapshot);
+  }
+
+  void beforeCommit(Fork fork) {
+    service.beforeCommit(fork);
   }
 
   void afterCommit(BlockCommittedEvent event) {

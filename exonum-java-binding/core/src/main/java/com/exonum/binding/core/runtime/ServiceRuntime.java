@@ -23,13 +23,16 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.stream.Collectors.toList;
 
 import com.exonum.binding.common.hash.HashCode;
+import com.exonum.binding.common.message.TransactionMessage;
 import com.exonum.binding.core.runtime.ServiceRuntimeProtos.ServiceRuntimeStateHashes;
 import com.exonum.binding.core.runtime.ServiceRuntimeProtos.ServiceStateHashes;
 import com.exonum.binding.core.service.BlockCommittedEvent;
 import com.exonum.binding.core.service.Configuration;
 import com.exonum.binding.core.service.Node;
+import com.exonum.binding.core.service.Service;
 import com.exonum.binding.core.storage.database.Fork;
 import com.exonum.binding.core.storage.database.Snapshot;
+import com.exonum.binding.core.transaction.Transaction;
 import com.exonum.binding.core.transaction.TransactionContext;
 import com.exonum.binding.core.transaction.TransactionExecutionException;
 import com.exonum.binding.core.transport.Server;
@@ -37,7 +40,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
@@ -154,6 +156,17 @@ public final class ServiceRuntime {
   }
 
   /**
+   * Returns true if an artifact with the given id is currently deployed in this runtime.
+   * @param id a service artifact identifier
+   */
+  public boolean isArtifactDeployed(ServiceArtifactId id) {
+    synchronized (lock) {
+      return serviceLoader.findService(id)
+          .isPresent();
+    }
+  }
+
+  /**
    * Creates a new service instance with the given specification. This method registers
    * the service API.
    *
@@ -200,18 +213,19 @@ public final class ServiceRuntime {
   }
 
   /**
-   * Configures the service instance.
+   * Performs an initial configuration of the service instance.
    *
    * @param id the id of the started service
    * @param view a database view to apply configuration
-   * @param configuration service instance configuration parameters
+   * @param configuration service instance configuration parameters as a serialized protobuf
+   *     message
    */
-  public void configureService(Integer id, Fork view, Any configuration) {
+  public void initializeService(Integer id, Fork view, byte[] configuration) {
     synchronized (lock) {
       ServiceWrapper service = getServiceById(id);
       try {
         Configuration config = new ServiceConfiguration(configuration);
-        service.configure(view, config);
+        service.initialize(view, config);
       } catch (Exception e) {
         String name = service.getName();
         logger.error("Service {} configuration with parameters {} failed",
@@ -303,6 +317,32 @@ public final class ServiceRuntime {
   }
 
   /**
+   * Performs the before commit operation for all services in the runtime.
+   *
+   * @param fork a fork allowing the runtime and the service to modify the database state.
+   *             Must allow checkpoints and rollbacks.
+   */
+  public void beforeCommit(Fork fork) {
+    synchronized (lock) {
+      try {
+        for (ServiceWrapper service : services.values()) {
+          fork.createCheckpoint();
+          try {
+            service.beforeCommit(fork);
+          } catch (Exception e) {
+            logger.error("Service {} threw exception in beforeCommit. Any changes are rolled-back",
+                service.getName(), e);
+            fork.rollback();
+          }
+        }
+      } catch (Exception e) {
+        logger.error("Unexpected exception in beforeCommit", e);
+        throw e;
+      }
+    }
+  }
+
+  /**
    * Notifies the services in the runtime of the block commit event.
    */
   public void afterCommit(BlockCommittedEvent event) {
@@ -347,6 +387,37 @@ public final class ServiceRuntime {
         connectServiceApi(serviceId, node);
       }
     }
+  }
+
+  /**
+   * Get service instance by its name.
+   *
+   * @throws IllegalArgumentException if there is no service with such name
+   */
+  public Service getServiceInstanceByName(String serviceName) {
+    return findService(serviceName)
+        .map(ServiceWrapper::getService)
+        .orElseThrow(() ->
+            new IllegalArgumentException("No service with such name in the Java runtime "
+                + serviceName));
+  }
+
+  /**
+   * Converts an Exonum raw transaction to an executable transaction of given service.
+   *
+   * @param serviceId the id of the service
+   * @param txId the {@linkplain TransactionMessage#getTransactionId() transaction type identifier}
+   *     within the service
+   * @param arguments the {@linkplain TransactionMessage#getPayload() serialized transaction
+   *     arguments}
+   * @return an executable transaction of the service
+   * @throws IllegalArgumentException of there is no service with such name in this runtime, or if
+   *     the transaction is not known to the service, or the arguments are not valid: e.g., cannot
+   *     be deserialized, or do not meet the preconditions
+   */
+  public Transaction convertTransaction(int serviceId, int txId, byte[] arguments) {
+    ServiceWrapper service = getServiceById(serviceId);
+    return service.getTxConverter().toTransaction(txId, arguments);
   }
 
   private void connectServiceApi(Integer serviceId, Node node) {
@@ -400,11 +471,7 @@ public final class ServiceRuntime {
         );
   }
 
-  /**
-   * Review: There is a difference between find and get, not reflected in this Javadoc.
-   * Finds service instance by its id.
-   */
-  public ServiceWrapper getServiceById(Integer serviceId) {
+  private ServiceWrapper getServiceById(Integer serviceId) {
     checkService(serviceId);
     return servicesById.get(serviceId);
   }
@@ -415,10 +482,8 @@ public final class ServiceRuntime {
         "No service with id=%s in the Java runtime", serviceId);
   }
 
-  /**
-   * Finds service instance by its name.
-   */
-  public Optional<ServiceWrapper> findService(String name) {
+  @VisibleForTesting
+  Optional<ServiceWrapper> findService(String name) {
     return Optional.ofNullable(services.get(name));
   }
 

@@ -30,6 +30,7 @@ use std::{os::raw::c_void, panic::catch_unwind};
 
 /// Invalid JNI version constant, signifying JNI_OnLoad failure.
 const INVALID_JNI_VERSION: jint = 0;
+const SERVICE_RUNTIME_ADAPTER_CLASS: &str = "com/exonum/binding/core/runtime/ServiceRuntimeAdapter";
 
 static INIT: Once = ONCE_INIT;
 
@@ -38,23 +39,14 @@ static mut CLASS_GET_NAME: Option<JMethodID> = None;
 static mut THROWABLE_GET_MESSAGE: Option<JMethodID> = None;
 
 static mut RUNTIME_ADAPTER_DEPLOY_ARTIFACT: Option<JMethodID> = None;
+static mut RUNTIME_ADAPTER_IS_ARTIFACT_DEPLOYED: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_CREATE_SERVICE: Option<JMethodID> = None;
-static mut RUNTIME_ADAPTER_CONFIGURE_SERVICE: Option<JMethodID> = None;
+static mut RUNTIME_ADAPTER_INITIALIZE_SERVICE: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_STOP_SERVICE: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_EXECUTE_TX: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_STATE_HASHES: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_AFTER_COMMIT: Option<JMethodID> = None;
 static mut RUNTIME_ADAPTER_MOUNT_API: Option<JMethodID> = None;
-
-/*
-Review: !
-*/
-// todo: Remove transaction and service adapter items when native JavaServiceRuntime is implemented
-static mut TRANSACTION_ADAPTER_EXECUTE: Option<JMethodID> = None;
-static mut TRANSACTION_ADAPTER_INFO: Option<JMethodID> = None;
-
-static mut SERVICE_ADAPTER_STATE_HASHES: Option<JMethodID> = None;
-static mut SERVICE_ADAPTER_CONVERT_TRANSACTION: Option<JMethodID> = None;
 
 static mut JAVA_LANG_ERROR: Option<GlobalRef> = None;
 static mut JAVA_LANG_RUNTIME_EXCEPTION: Option<GlobalRef> = None;
@@ -91,50 +83,55 @@ unsafe fn cache_methods(env: &JNIEnv) {
     );
     RUNTIME_ADAPTER_DEPLOY_ARTIFACT = get_method_id(
         &env,
-        // Review: Extract the class name?
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "deployArtifact",
         "(Ljava/lang/String;[B)V",
     );
+    RUNTIME_ADAPTER_IS_ARTIFACT_DEPLOYED = get_method_id(
+        &env,
+        SERVICE_RUNTIME_ADAPTER_CLASS,
+        "isArtifactDeployed",
+        "(Ljava/lang/String;)Z",
+    );
     RUNTIME_ADAPTER_CREATE_SERVICE = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "createService",
         "(Ljava/lang/String;ILjava/lang/String;)V",
     );
-    RUNTIME_ADAPTER_CONFIGURE_SERVICE = get_method_id(
+    RUNTIME_ADAPTER_INITIALIZE_SERVICE = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
-        "configureService",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
+        "initializeService",
         "(IJ[B)V",
     );
     RUNTIME_ADAPTER_STOP_SERVICE = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "stopService",
         "(I)V",
     );
     RUNTIME_ADAPTER_EXECUTE_TX = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "executeTransaction",
         "(II[BJ[B[B)V",
     );
     RUNTIME_ADAPTER_STATE_HASHES = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "getStateHashes",
         "(J)[B",
     );
     RUNTIME_ADAPTER_AFTER_COMMIT = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "afterCommit",
         "(JIJ)V",
     );
     RUNTIME_ADAPTER_MOUNT_API = get_method_id(
         &env,
-        "com/exonum/binding/core/runtime/ServiceRuntimeAdapter",
+        SERVICE_RUNTIME_ADAPTER_CLASS,
         "connectServiceApis",
         "([IJ)V",
     );
@@ -157,8 +154,9 @@ unsafe fn cache_methods(env: &JNIEnv) {
             && JAVA_LANG_ERROR.is_some()
             && THROWABLE_GET_MESSAGE.is_some()
             && RUNTIME_ADAPTER_DEPLOY_ARTIFACT.is_some()
+            && RUNTIME_ADAPTER_IS_ARTIFACT_DEPLOYED.is_some()
             && RUNTIME_ADAPTER_CREATE_SERVICE.is_some()
-            && RUNTIME_ADAPTER_CONFIGURE_SERVICE.is_some()
+            && RUNTIME_ADAPTER_INITIALIZE_SERVICE.is_some()
             && RUNTIME_ADAPTER_STOP_SERVICE.is_some()
             && RUNTIME_ADAPTER_EXECUTE_TX.is_some()
             && RUNTIME_ADAPTER_STATE_HASHES.is_some()
@@ -187,40 +185,6 @@ fn check_cache_initialized() {
     }
 }
 
-/// Refers to the cached methods of the `UserTransactionAdapter` class.
-pub mod transaction_adapter {
-    use super::*;
-
-    /// Returns cached `JMethodID` for `UserTransactionAdapter.execute()`.
-    pub fn execute_id() -> JMethodID<'static> {
-        check_cache_initialized();
-        unsafe { TRANSACTION_ADAPTER_EXECUTE.unwrap() }
-    }
-
-    /// Returns cached `JMethodID` for `UserTransactionAdapter.info()`.
-    pub fn info_id() -> JMethodID<'static> {
-        check_cache_initialized();
-        unsafe { TRANSACTION_ADAPTER_INFO.unwrap() }
-    }
-}
-
-/// Refers to the cached methods of the `UserServiceAdapter` class.
-pub mod service_adapter {
-    use super::*;
-
-    /// Returns cached `JMethodID` for `UserServiceAdapter.getStateHashes()`.
-    pub fn state_hashes_id() -> JMethodID<'static> {
-        check_cache_initialized();
-        unsafe { SERVICE_ADAPTER_STATE_HASHES.unwrap() }
-    }
-
-    /// Returns cached `JMethodID` for `UserServiceAdapter.convertTransaction()`.
-    pub fn convert_transaction_id() -> JMethodID<'static> {
-        check_cache_initialized();
-        unsafe { SERVICE_ADAPTER_CONVERT_TRANSACTION.unwrap() }
-    }
-}
-
 /// Refers to the cached methods of the `ServiceRuntimeAdapter` class.
 pub mod runtime_adapter {
     use super::*;
@@ -231,16 +195,22 @@ pub mod runtime_adapter {
         unsafe { RUNTIME_ADAPTER_DEPLOY_ARTIFACT.unwrap() }
     }
 
+    /// Returns cached `JMethodID` for `ServiceRuntimeAdapter.isArtifactDeployed()`.
+    pub fn is_artifact_deployed_id() -> JMethodID<'static> {
+        check_cache_initialized();
+        unsafe { RUNTIME_ADAPTER_IS_ARTIFACT_DEPLOYED.unwrap() }
+    }
+
     /// Returns cached `JMethodID` for `ServiceRuntimeAdapter.createService()`.
     pub fn create_service_id() -> JMethodID<'static> {
         check_cache_initialized();
         unsafe { RUNTIME_ADAPTER_CREATE_SERVICE.unwrap() }
     }
 
-    /// Returns cached `JMethodID` for `ServiceRuntimeAdapter.configureService()`.
-    pub fn configure_service_id() -> JMethodID<'static> {
+    /// Returns cached `JMethodID` for `ServiceRuntimeAdapter.initializeService()`.
+    pub fn initialize_service_id() -> JMethodID<'static> {
         check_cache_initialized();
-        unsafe { RUNTIME_ADAPTER_CONFIGURE_SERVICE.unwrap() }
+        unsafe { RUNTIME_ADAPTER_INITIALIZE_SERVICE.unwrap() }
     }
 
     /// Returns cached `JMethodID` for `ServiceRuntimeAdapter.stopService()`.

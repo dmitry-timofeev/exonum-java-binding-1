@@ -395,6 +395,9 @@ public final class ServiceRuntime {
    * @throws IllegalArgumentException if there is no service with such name
    */
   public Service getServiceInstanceByName(String serviceName) {
+    /*
+    Review: This class is specified as thread-safe. This public method must keep that promise.
+     */
     return findService(serviceName)
         .map(ServiceWrapper::getService)
         .orElseThrow(() ->
@@ -402,6 +405,15 @@ public final class ServiceRuntime {
                 + serviceName));
   }
 
+  /*
+  REview:
+  (1) Why does this method return transaction if what testkit needs is transaction
+  verification (#verifyTransaction -> void throws exception if it is not valid)?
+  (2) Why isn't this operation inside ServiceWrapper, which already implements it properly,
+  see the first lines of ServiceWrapper#execute?
+  (3) Thread-safe.
+  (4) Tests.
+   */
   /**
    * Converts an Exonum raw transaction to an executable transaction of given service.
    *

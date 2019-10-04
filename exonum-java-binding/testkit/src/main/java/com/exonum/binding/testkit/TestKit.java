@@ -97,8 +97,14 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
   @VisibleForTesting
+  /*
+  Review: Does the core have such restriction?
+   */
   static final int MAX_SERVICE_INSTANCE_ID = 1023;
   private static final Serializer<Block> BLOCK_SERIALIZER = BlockSerializer.INSTANCE;
+  /*
+  Review: Set, it is only used to check if id in the set.
+   */
   private final List<Integer> timeServiceIds;
 
   @VisibleForTesting
@@ -123,9 +129,22 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   /**
    * Deploys and creates a single service with a single validator node in this TestKit network.
    */
-  // Review: Any is not used for configuration anymore, but any protobuf message (MessageLite).
   public static TestKit forService(ServiceArtifactId artifactId, String artifactFilename,
                                    String serviceName, int serviceId, MessageLite configuration) {
+    /*
+     Review: I think using a builder here would reduce code duplication and simplify
+things:
+
+```java
+    return new Builder()
+        .withNodeType(EmulatedNodeType.VALIDATOR)
+        .withDeployedArtifact(artifactId, artifactFilename)
+        .withService(artifactId, serviceName, serviceId, configuration)
+        .build();
+```
+
+createTestKitSingleServiceInstance would no longer be needed
+     */
     checkServiceId(serviceId);
     TestKitServiceInstances[] testKitServiceInstances = createTestKitSingleServiceInstance(
         artifactId, artifactFilename, serviceName, serviceId, configuration);
@@ -139,6 +158,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    */
   public static TestKit forService(ServiceArtifactId artifactId, String artifactFilename,
                                    String serviceName, int serviceId) {
+    // Review: Any is not used for configuration anymore, but any protobuf message (MessageLite).
     Any defaultConfiguration = Any.getDefaultInstance();
     return forService(artifactId, artifactFilename, serviceName, serviceId, defaultConfiguration);
   }
@@ -230,6 +250,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       // Review: (still) Not appropriate: we don't need to pass the transaction
       getServiceRuntime().convertTransaction(serviceId,
           transactionMessage.getTransactionId(), transactionMessage.getPayload().toByteArray());
+      // Review: Just Exception (we don't need Errors).
     } catch (Throwable conversionError) {
       String message = String.format("Service with id=%s failed to convert transaction (%s)."
           + " Make sure that the submitted transaction is correctly serialized, and the service's"
@@ -370,6 +391,9 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   private native void nativeFreeTestKit(long nativeHandle);
 
   private static void checkServiceId(int serviceId) {
+    /*
+    Review: core restrictions
+     */
     checkArgument(0 <= serviceId && serviceId <= MAX_SERVICE_INSTANCE_ID,
         "Service id must be in range [0; %s], but was %s",
         MAX_SERVICE_INSTANCE_ID, serviceId);
@@ -392,9 +416,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     private short validatorCount = 1;
     private Multimap<ServiceArtifactId, ServiceSpec> services = ArrayListMultimap.create();
     private HashMap<ServiceArtifactId, String> serviceArtifactFilenames = new HashMap<>();
-    /*
-    Review: Set as LinkedHashSet?
-     */
     private List<TimeServiceSpec> timeServiceSpecs = new ArrayList<>();
 
     private Builder() {}
@@ -442,9 +463,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     /**
      * Adds a service artifact which would be deployed by the TestKit. Several service artifacts
      * can be added.
-     * Review:
-     * Once the service artifact is deployed, the service instances can be added with
-     * {@link #withService(ServiceArtifactId, String, int, Any)}.
      *
      * <p>Once the service artifact is deployed, the service instances can be added with
      * {@link #withService(ServiceArtifactId, String, int, MessageLite)}.
@@ -467,6 +485,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      */
     public Builder withService(ServiceArtifactId serviceArtifactId, String serviceName,
                                int serviceId, MessageLite configuration) {
+      /*
+      Review: @skletsun Does testkit/core check properly (with reasonable error messages)
+that there are no duplicate ids assigned? The builder accepts ids for regular and time services,
+and something has to check they do not intersect.
+       */
       checkServiceId(serviceId);
       checkServiceArtifactIsDeployed(serviceArtifactId);
       ServiceSpec serviceSpec = new ServiceSpec(serviceName, serviceId,
@@ -482,6 +505,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
     /**
      * Adds a service specification with which the TestKit would create the corresponding service
+     * Review: with no configuration. (there is no 'default' in the core, it is default of the testkit).
      * instance with default configuration. Several service specifications can be added. All
      * services are started and configured before the genesis block.
      *
@@ -490,6 +514,9 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      */
     public Builder withService(ServiceArtifactId serviceArtifactId, String serviceName,
                                int serviceId) {
+      /*
+      Review: I think a default is just empty array, but any could also work.
+       */
       Any defaultConfiguration = Any.getDefaultInstance();
       return withService(serviceArtifactId, serviceName, serviceId, defaultConfiguration);
     }
@@ -532,12 +559,19 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     }
 
     private void checkDeployedArtifactsAreUsed() {
+      /*
+      Review: I suggest either both names as xArtifactIds or none (xIds).
+       */
       Set<ServiceArtifactId> serviceIds = services.keySet();
       Set<ServiceArtifactId> deployedArtifactIds = serviceArtifactFilenames.keySet();
       Sets.SetView<ServiceArtifactId> unusedArtifacts =
           Sets.difference(deployedArtifactIds, serviceIds);
       checkArgument(unusedArtifacts.isEmpty(),
           "Following service artifacts were deployed, but not used for service instantiation: %s",
+          /*
+Review: Both SetView and ServiceArtifactIds must have proper toString with no redundant information,
+don't they?
+           */
           unusedArtifacts.stream()
               .map(ServiceArtifactId::toString)
               .collect(Collectors.joining(", ")));

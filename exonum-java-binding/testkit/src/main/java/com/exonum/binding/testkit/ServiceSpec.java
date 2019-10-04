@@ -26,6 +26,9 @@ class ServiceSpec {
   final int getServiceId;
   final byte[] getConfiguration;
 
+  /*
+  Review: public in package-private.
+   */
   public ServiceSpec(String getServiceName, int getServiceId, byte[] getConfiguration) {
     this.getServiceName = getServiceName;
     this.getServiceId = getServiceId;

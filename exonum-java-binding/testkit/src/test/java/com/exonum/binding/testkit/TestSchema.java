@@ -30,6 +30,7 @@ final class TestSchema implements Schema {
 
   private final View view;
 
+  // Review: it is not injectable in the container sense of things, you will have to pass it.
   // TODO: inject ServiceInstanceSpec
   TestSchema(View view) {
     this.view = view;

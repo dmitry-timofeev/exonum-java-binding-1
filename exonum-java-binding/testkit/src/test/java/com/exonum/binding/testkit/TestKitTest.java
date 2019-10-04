@@ -17,7 +17,6 @@
 package com.exonum.binding.testkit;
 
 import static com.exonum.binding.testkit.TestKit.MAX_SERVICE_INSTANCE_ID;
-import static com.exonum.binding.testkit.TestService.constructAfterCommitTransaction;
 import static com.exonum.binding.testkit.TestTransaction.BODY_CHARSET;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -140,6 +139,7 @@ class TestKitTest extends TestKitWithTestArtifact {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     TestKit.Builder testKitBuilder = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+        // Review: ?
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
     IllegalArgumentException thrownException = assertThrows(exceptionType, testKitBuilder::build);
     assertThat(thrownException.getMessage())
@@ -157,6 +157,7 @@ class TestKitTest extends TestKitWithTestArtifact {
       checkTestServiceInitialization(testKit, service);
     }
   }
+  // Review: tests for wrong configuration
 
   @ParameterizedTest
   @ValueSource(ints = {-1, MAX_SERVICE_INSTANCE_ID + 1})
@@ -191,6 +192,9 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
         .build()) {
+      /* Review: That seems redundant and unrelated: why concern with services
+      when we test time service deployment?
+       */
       TestService service = testKit.getService(SERVICE_NAME, TestService.class);
       checkTestServiceInitialization(testKit, service);
     }
@@ -208,12 +212,18 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
         .withTimeService(timeServiceName2, timeServiceId2, timeProvider2)
         .build()) {
+      /*
+      Review: We don't verify that two time services with the given parameters are deployed.
+       */
       TestService service = testKit.getService(SERVICE_NAME, TestService.class);
       checkTestServiceInitialization(testKit, service);
     }
   }
 
   private void checkTestServiceInitialization(TestKit testKit, TestService service) {
+    /*
+     Review: This code and checkTestService2Initialization do not check that the services with the given parameters are started.
+     */
     // Check that TestService API is mounted
     Node serviceNode = service.getNode();
     EmulatedNode emulatedTestKitNode = testKit.getEmulatedNode();
@@ -304,7 +314,6 @@ class TestKitTest extends TestKitWithTestArtifact {
   void requestWrongServiceId(TestKit testKit) {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     assertThrows(exceptionType, () -> testKit.getService("Invalid service name",
-        // Review: Why the class changed?
         TestService.class));
   }
 

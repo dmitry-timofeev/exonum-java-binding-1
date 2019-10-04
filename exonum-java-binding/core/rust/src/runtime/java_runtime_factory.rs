@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 
+use std::{path::Path, sync::Arc};
+
 use jni::{
     self,
     errors::{Error, ErrorKind},
-    objects::{GlobalRef, JObject},
-    Executor, InitArgs, InitArgsBuilder, JavaVM, Result as JniResult,
+    Executor,
+    InitArgs, InitArgsBuilder, JavaVM, objects::{GlobalRef, JObject}, Result as JniResult,
 };
 
 //use proxy::ServiceProxy;
 use runtime::config::{self, Config, InternalConfig, JvmConfig, RuntimeConfig};
-use std::{path::Path, sync::Arc};
 use utils::{convert_to_string, panic_on_exception, unwrap_jni};
 
 const SERVICE_RUNTIME_BOOTSTRAP_PATH: &str = "com/exonum/binding/app/ServiceRuntimeBootstrap";
@@ -35,6 +36,10 @@ const CREATE_SERVICE_SIGNATURE: &str =
 /// Controls JVM and java runtime.
 #[allow(dead_code)]
 #[derive(Clone)]
+/*
+ Review: Better names? Maybe JavaSystemRuntime? @vitvakatu, will it survive your changes?
+ Also, I don't see service_runtime to be used after initialization.
+*/
 pub struct JavaRuntimeFactory {
     executor: Executor,
     service_runtime: GlobalRef,

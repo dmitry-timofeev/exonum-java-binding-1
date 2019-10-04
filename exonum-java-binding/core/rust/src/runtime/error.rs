@@ -15,7 +15,6 @@
 //! The set of specific for the Java runtime implementation errors.
 use exonum::runtime::{ErrorKind, ExecutionError};
 
-
 /// List of possible Java runtime errors.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd, IntoExecutionError)]
 #[exonum(crate = "crate", kind = "runtime")]
@@ -24,6 +23,10 @@ pub enum Error {
     IncorrectArtifactId = 0,
     /// Checked java exception is occurred
     JavaException = 1,
+    /*
+    Review: Too broad — I wouldn't like it to be abused. "OtherJniError" is how it is used,
+    and I'd keep it such (better names are welcome).
+    */
     /// Unspecified error
     UnspecifiedError = 2,
     /// Not supported operation

@@ -14,37 +14,39 @@
  * limitations under the License.
  */
 
+use std::fmt;
+
 use exonum::{
     api::ApiContext,
     blockchain::Schema as CoreSchema,
     crypto::{Hash, PublicKey, SecretKey},
+    exonum_merkledb::{self, Fork, Snapshot},
     helpers::ValidatorId,
     messages::BinaryValue,
-    exonum_merkledb::{self, Fork, Snapshot},
     node::ApiSender,
     runtime::{
         api::ServiceApiBuilder,
-        dispatcher::{Dispatcher, DispatcherRef, DispatcherSender},
-        ArtifactId, ArtifactProtobufSpec, CallInfo, ErrorKind, ExecutionContext, ExecutionError,
+        ArtifactId,
+        ArtifactProtobufSpec, CallInfo, dispatcher::{Dispatcher, DispatcherRef, DispatcherSender}, ErrorKind, ExecutionContext, ExecutionError,
         InstanceDescriptor, InstanceId, InstanceSpec, Runtime, RuntimeIdentifier,
         StateHashAggregator,
     },
 };
-use futures::{Future, IntoFuture};
 use jni::{
+    Executor,
     objects::{GlobalRef, JObject, JValue},
     signature::{JavaType, Primitive},
-    Executor,
 };
+use JniErrorKind;
+use JniResult;
+
+use futures::{Future, IntoFuture};
 use proto;
 use proxy::node::NodeContext;
 use runtime::Error;
-use std::fmt;
 use storage::View;
 use to_handle;
 use utils::{jni_cache::runtime_adapter, panic_on_exception, unwrap_jni};
-use JniErrorKind;
-use JniResult;
 
 /// A proxy for `ServiceRuntimeAdapter`s.
 #[derive(Clone)]
@@ -53,10 +55,6 @@ pub struct JavaRuntimeProxy {
     runtime_adapter: GlobalRef,
 }
 
-/*
-Review: (to self) Why is it needed (does anything use these separate components)? If not,
-please make it a string.
-*/
 /// Artifact identification properties within `JavaRuntimeProxy`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JavaArtifactId(String);
@@ -106,7 +104,7 @@ impl JavaRuntimeProxy {
     }
 
     /*
-Review: ValidatorId is (still) too complex. Why has it been removed? Shall we remove it as well?
+Review: @sidorov ValidatorId is (still) too complex. Why has it been removed? Shall we remove it as well?
 */
 
     /// If the current node is a validator, returns `Some(validator_id)`, for other nodes return `None`.
@@ -171,6 +169,7 @@ Review: I don't see the exception handling. If it does occur, the native is resp
         let artifact = match self.parse_artifact(id) {
             Ok(id) => id.to_string(),
             Err(err) => {
+                // Review: panic if the core passes garbase?
                 return false;
             },
         };
@@ -198,11 +197,6 @@ Review: I don't see the exception handling. If it does occur, the native is resp
         let adapter = self.runtime_adapter.as_obj().clone();
         let service_name = spec.name.clone();
         let id = spec.id;
-        /*
-        Review: Here we parse the artifactId, only to convert it to string.
-        It seems unnecessary, as the correctness of such ids is checked before deploy in Java
-        (and also each time it is instantiated in Java).
-        */
         let artifact = self.parse_artifact(&spec.artifact)?;
 
         /*

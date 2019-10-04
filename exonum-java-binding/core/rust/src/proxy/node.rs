@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
+use std::{panic, ptr};
+
 use exonum::{
     api::ApiContext,
     crypto::{Hash, PublicKey},
-    messages::{AnyTx, Verified, BinaryValue},
+    messages::{AnyTx, BinaryValue, Verified},
 };
-use exonum_merkledb::{Snapshot, ObjectHash};
+use exonum_merkledb::{ObjectHash, Snapshot};
 use failure;
+use jni::{Executor, JNIEnv};
 use jni::objects::JClass;
 use jni::sys::{jbyteArray, jshort};
-use jni::{Executor, JNIEnv};
+use JniResult;
 
-use std::{panic, ptr};
-
-use handle::{cast_handle, drop_handle, to_handle, Handle};
+use handle::{cast_handle, drop_handle, Handle, to_handle};
 use storage::View;
 use utils::{unwrap_exc_or, unwrap_exc_or_default, unwrap_jni_verbose};
-use JniResult;
 
 const TX_SUBMISSION_EXCEPTION: &str =
     "com/exonum/binding/core/service/TransactionSubmissionException";
@@ -72,6 +72,9 @@ impl NodeContext {
 
     #[doc(hidden)]
     pub fn submit(&self, transaction: Verified<AnyTx>) -> Result<Hash, failure::Error> {
+        /*
+         Review: @sidorov Why doesn't the core check that?
+         */
         // TODO: check service is active
         let _service_id = transaction.payload().call_info.instance_id;
 //        if !self.blockchain.service_map().contains_key(&service_id) {
@@ -112,6 +115,17 @@ pub extern "system" fn Java_com_exonum_binding_core_service_NodeProxy_nativeSubm
             &env,
             || -> JniResult<jbyteArray> {
                 let payload = env.convert_byte_array(payload)?;
+                /*
+                Review:
+This code cannot be correct because Verified expects a *message*,
+but we pass just the payload. This method must create a transaction message and sign it with
+the key of this node, ideally, using the core functionality, if it is available.
+
+https://github.com/exonum/exonum/blob/b542dae0bc10d8d8c015a347e9ce2c56201cac08/exonum/src/messages/signed.rs#L172-L177
+
+Second, please move all the logic inside Node#submit and test it. Keep here only
+type conversion logic.
+                */
                 let tx = match Verified::from_bytes(payload.into()) {
                     Ok(tx) => tx,
                     Err(err) => {

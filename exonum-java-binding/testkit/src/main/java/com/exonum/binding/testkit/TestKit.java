@@ -131,12 +131,21 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   private static TestKit newInstance(TestKitServiceInstances[] serviceInstances,
                                      EmulatedNodeType nodeType, short validatorCount,
                                      List<TimeServiceSpec> timeServiceSpecs,
+                                     /* Review: Why optionals as parameters? */
                                      Optional<Path> artifactsDirectory,
                                      Optional<Integer> serverPort) {
+    /*
+     Review: I don't think the testkit shall depend on the app and use this method
+     made for native code.
+     Create a single injector with a framework module, and invoke
+     injector.get(ServiceRuntimeAdapter.class). From here you can also get a ServiceRuntime,
+     if needed.
+     */
     ServiceRuntime serviceRuntime = createServiceRuntime(artifactsDirectory, serverPort);
     ViewFactory viewFactory = getViewFactory();
     ServiceRuntimeAdapter serviceRuntimeAdapter =
         new ServiceRuntimeAdapter(serviceRuntime, viewFactory);
+
     boolean isAuditorNode = nodeType == EmulatedNodeType.AUDITOR;
     long nativeHandle = nativeCreateTestKit(serviceInstances, isAuditorNode, validatorCount,
         timeServiceSpecs.toArray(new TimeServiceSpec[0]), serviceRuntimeAdapter);
@@ -151,6 +160,12 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   }
 
   private static ViewFactory getViewFactory() {
+    /*
+     Review: What is this injector for if it is only used to create a new ViewFactory,
+      which is already provided by the other module, instantiated by the ServiceRuntimeBootstrap?
+      If testkit creates an injector with the framework module, as suggest above, it will already
+      have a binding for ViewFactory, hence it will be injected into SRA.
+     */
     Injector frameworkInjector = Guice.createInjector(new TestKitFrameworkModule());
     return frameworkInjector.getInstance(ViewFactory.class);
   }
@@ -202,6 +217,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    *
    * @throws IllegalArgumentException if there is no service with such name
    */
+  // Review: Why is this method provided (here and in the runtime)?
   public int getServiceIdByName(String serviceName) {
     return serviceRuntime.getServiceIdByName(serviceName);
   }
@@ -361,6 +377,10 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     return createSnapshot(snapshotCleaner);
   }
 
+  /*
+  Review: I wonder how it can be used. If to test APIs, then the fact that it is not possible
+  to wait until it does accept requests is not good.
+   */
   /**
    * Returns a server port of the corresponding runtime, or {@link OptionalInt#empty()} if it
    * does not currently accept requests.
@@ -425,6 +445,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     private short validatorCount = 1;
     private Multimap<ServiceArtifactId, ServiceSpec> services = ArrayListMultimap.create();
     private HashMap<ServiceArtifactId, String> serviceArtifactFilenames = new HashMap<>();
+    /*
+    REVIEW: Why don't we set defaults for  artifactsDirectory and serverPort here as
+    with the rest of the arguments, but pass optionals to the constructor? The default
+    port is documented in the builder setter.
+     */
     private Path artifactsDirectory;
     private List<TimeServiceSpec> timeServiceSpecs = new ArrayList<>();
     private Integer serverPort;
@@ -433,7 +458,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
 
     /**
      * Returns a copy of this TestKit builder.
-     *
+     * Review: Returns a shallow copy of this TestKit builder.
      * <p>Note that this method performs a shallow copy.
      */
     Builder copy() {
@@ -442,7 +467,16 @@ public final class TestKit extends AbstractCloseableNativeProxy {
           .withValidators(validatorCount)
           .withArtifactsDirectory(artifactsDirectory)
           .withServerPort(serverPort);
-      // Review: Is a shallow copy of a builder OK? (Why)
+      /*
+      Returns a shallow copy of this TestKit builder. (in one sentence)
+
+However, I am concerned that just having this documentation is not reliable. The client code must not invoke any of the numerous methods modifying the internal data structures (timeServiceSpecs, services,  serviceArtifactFilenames).
+
+The reason it does not already perform deep copy is TimeProvider which is not copyable. The rest of the arguments — are (or are immutable). To reduce the likelihood of errors, I'd consider:
+* copying the collections (new ArrayList<>(timeServiceSpecs), etc)
+* renaming the method to shallowCopy
+* documenting that the remaining mutable state are time providers.
+       */
       builder.timeServiceSpecs = timeServiceSpecs;
       builder.services = services;
       builder.serviceArtifactFilenames = serviceArtifactFilenames;

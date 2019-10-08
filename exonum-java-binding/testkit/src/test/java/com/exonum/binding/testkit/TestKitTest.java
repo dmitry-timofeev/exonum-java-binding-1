@@ -40,7 +40,6 @@ import com.exonum.binding.core.storage.database.View;
 import com.exonum.binding.core.storage.indices.MapIndex;
 import com.exonum.binding.core.storage.indices.ProofMapIndexProxy;
 import com.exonum.binding.core.transaction.RawTransaction;
-import com.exonum.binding.messages.Runtime.ArtifactId;
 import com.exonum.binding.messages.Runtime.InstanceSpec;
 import com.exonum.binding.time.TimeSchema;
 import com.google.common.collect.ImmutableList;
@@ -87,6 +86,9 @@ class TestKitTest extends TestKitWithTestArtifact {
     }
   }
 
+  /*
+  Review: Do we test configuration?
+   */
   @Test
   void createTestKitWithBuilderForSingleService() {
     try (TestKit testKit = TestKit.builder()
@@ -176,6 +178,9 @@ class TestKitTest extends TestKitWithTestArtifact {
     TestKit.Builder testKitBuilder = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
+    /*
+    Review: It sounds like IllegalState, not NPE.
+     */
     NullPointerException thrownException = assertThrows(exceptionType, testKitBuilder::build);
     assertThat(thrownException.getMessage()).isEqualTo("Artifacts directory was not set.");
   }
@@ -187,6 +192,9 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID, DEFAULT_CONFIGURATION)
         .withArtifactsDirectory(artifactsDirectory)
         .build()) {
+      /*
+      Review: Why don't we check the configuration (also — the wrong configuration)?
+       */
       checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
     }
   }
@@ -206,6 +214,11 @@ class TestKitTest extends TestKitWithTestArtifact {
   @Test
   void createTestKitWithBuilderForMultipleDifferentServices() throws Exception {
     // Create artifact for TestService2
+    /*
+    Review: Do you expect the runtime to load two artifacts with the same meta?
+    This method writes ARTIFACT_ID, but then specifies ARTIFACT_ID_2:
+     .withDeployedArtifact(ARTIFACT_ID_2, ARTIFACT_FILENAME_2)
+     */
     createArtifact(artifactsDirectory.resolve(ARTIFACT_FILENAME_2));
 
     try (TestKit testKit = TestKit.builder()
@@ -389,6 +402,7 @@ class TestKitTest extends TestKitWithTestArtifact {
 
   @Test
   void afterCommitSubmitsTransaction(TestKit testKit) {
+    // Review: You specify the id, why this method is needed?
     int serviceId = testKit.getServiceIdByName(SERVICE_NAME);
     // Create a block so that afterCommit transaction is submitted
     Block block = testKit.createBlock();

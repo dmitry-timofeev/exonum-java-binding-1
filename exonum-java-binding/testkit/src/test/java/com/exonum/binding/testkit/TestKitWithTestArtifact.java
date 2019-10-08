@@ -18,10 +18,10 @@ package com.exonum.binding.testkit;
 
 import com.exonum.binding.core.runtime.ServiceArtifactId;
 import com.exonum.binding.test.runtime.ServiceArtifactBuilder;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.io.TempDir;
 
 class TestKitWithTestArtifact {
 
@@ -30,6 +30,10 @@ class TestKitWithTestArtifact {
       ServiceArtifactId.of("com.exonum.binding", "test-service", "1.0.0");
   static final String SERVICE_NAME = "Test service";
   static final int SERVICE_ID = 46;
+  /*
+   Review: Is it reasonable to share this directory between tests (static), especially with the
+   non-private createArtifact?
+   */
   static Path artifactsDirectory;
 
   @BeforeAll

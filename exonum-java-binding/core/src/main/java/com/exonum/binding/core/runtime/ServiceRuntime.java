@@ -404,6 +404,9 @@ public final class ServiceRuntime {
     }
   }
 
+  /*
+  Review: (to self) Why this method?
+   */
   /**
    * Get service instance id by its name.
    *
@@ -419,15 +422,6 @@ public final class ServiceRuntime {
     }
   }
 
-  /*
-  REview:
-  (1) Why does this method return transaction if what testkit needs is transaction
-  verification (#verifyTransaction -> void throws exception if it is not valid)?
-  (2) Why isn't this operation inside ServiceWrapper, which already implements it properly,
-  see the first lines of ServiceWrapper#execute?
-  (3) Thread-safe.
-  (4) Tests.
-   */
   /**
    * Verifies that an Exonum raw transaction can be correctly converted to an executable
    * transaction of given service.
@@ -437,6 +431,7 @@ public final class ServiceRuntime {
    *     within the service
    * @param arguments the {@linkplain TransactionMessage#getPayload() serialized transaction
    *     arguments}
+   *                  Review: with such name — not name, but id
    * @throws IllegalArgumentException if there is no service with such name in this runtime, or if
    *     the transaction is not known to the service, or the arguments are not valid: e.g., cannot
    *     be deserialized, or do not meet the preconditions
@@ -448,6 +443,9 @@ public final class ServiceRuntime {
     }
   }
 
+  /*
+  Review: ?
+   */
   /**
    * Returns a port server of this runtime is listening at, or {@link OptionalInt#empty()} if it
    * does not currently accept requests.

@@ -14,18 +14,21 @@
  * limitations under the License.
  */
 
-use super::{paths::executable_directory, Config, JvmConfig, RuntimeConfig};
-use exonum_cli::command::{
-    finalize::Finalize, generate_config::GenerateConfig, generate_template::GenerateTemplate,
-    maintenance::Maintenance, run::Run as StandardRun, run_dev::RunDev, ExonumCommand,
-    StandardResult,
-};
-use failure::{self, format_err, ResultExt};
-use serde::{Deserialize, Serialize};
-use structopt::StructOpt;
-
 use std::path::PathBuf;
 
+use failure::{self, format_err, ResultExt};
+use serde::{Deserialize, Serialize};
+
+use exonum_cli::command::{
+    ExonumCommand, finalize::Finalize, generate_config::GenerateConfig,
+    generate_template::GenerateTemplate, maintenance::Maintenance, run::Run as StandardRun, run_dev::RunDev,
+    StandardResult,
+};
+use structopt::StructOpt;
+
+use super::{Config, JvmConfig, paths::executable_directory, RuntimeConfig};
+
+/// Review: (nit) an application not in exonum-app?
 /// Exonum Java Bindings Application.
 ///
 /// Configures and runs Exonum node with Java runtime enabled.
@@ -84,6 +87,9 @@ pub struct Run {
     /// Must be distinct from the ports used by Exonum.
     #[structopt(long)]
     ejb_port: i32,
+    /*
+    Review: I'd be more specific: Java service artifacts.
+    */
     /// Path to the directory containing service artifacts.
     #[structopt(long)]
     artifacts_path: PathBuf,
@@ -114,6 +120,11 @@ pub struct Run {
     jvm_args_append: Vec<String>,
 }
 
+/*
+Review:
+Can we now specify the application name and version in the help output?
+ECR-3090
+*/
 /// Possible output of the Java Bindings CLI commands.
 pub enum EjbCommandResult {
     /// Output of the standard Exonum Core commands.
@@ -166,6 +177,9 @@ impl EjbCommand for Run {
 
             Ok(EjbCommandResult::EjbRun(config))
         } else {
+            /*
+            Review: Is there any context to include, if not already shown elsewhere?
+            */
             Err(format_err!("Standard run command returned invalid result"))
         }
     }

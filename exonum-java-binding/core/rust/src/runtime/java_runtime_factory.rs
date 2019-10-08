@@ -14,25 +14,30 @@
  * limitations under the License.
  */
 
+use std::{path::Path, sync::Arc};
+
+use exonum::runtime::Runtime;
 use jni::{
     self,
     errors::{Error, ErrorKind},
-    objects::{GlobalRef, JObject},
-    Executor, InitArgs, InitArgsBuilder, JavaVM, Result as JniResult,
+    Executor,
+    InitArgs, InitArgsBuilder, JavaVM, objects::{GlobalRef, JObject}, Result as JniResult,
 };
 
-use exonum::runtime::Runtime;
-use runtime::config::{self, Config, InternalConfig, JvmConfig, RuntimeConfig};
-use std::{path::Path, sync::Arc};
-use utils::{convert_to_string, panic_on_exception, unwrap_jni};
 use JavaRuntimeProxy;
+use runtime::config::{self, Config, InternalConfig, JvmConfig, RuntimeConfig};
+use utils::{convert_to_string, panic_on_exception, unwrap_jni};
 
 const SERVICE_RUNTIME_BOOTSTRAP_PATH: &str = "com/exonum/binding/app/ServiceRuntimeBootstrap";
 const CREATE_RUNTIME_ADAPTER_SIGNATURE: &str =
     "(L/java/lang/String;I)Lcom/exonum/binding/core/runtime/ServiceRuntimeAdapter;";
 
+/// Review: Since VM is not a part of the runtime, I'd expand the summary and/or description.
 /// Creates new runtime from provided config.
 ///
+/// Review: This is not entirely accurate as JavaServiceRuntime does not manage the VM,
+/// there can be multiple runtimes (in native tests, when created by testkit, etc.).
+/// I'd clarify the wording, and consider if we need to represent a runtime-managing-VM-and-runtime.
 /// There can be only one `JavaServiceRuntime` instance at a time.
 pub fn create_service_runtime(
     jvm_config: &JvmConfig,

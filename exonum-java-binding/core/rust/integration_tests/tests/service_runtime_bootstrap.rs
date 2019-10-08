@@ -17,11 +17,11 @@
 extern crate integration_tests;
 extern crate java_bindings;
 
-use integration_tests::vm::{fakes_classpath, java_library_path, log4j_path};
-use java_bindings::exonum::runtime::Runtime;
-use java_bindings::{create_service_runtime, Config, InternalConfig, JvmConfig, RuntimeConfig};
-
 use std::path::PathBuf;
+
+use integration_tests::vm::{fakes_classpath, java_library_path, log4j_path};
+use java_bindings::{Config, create_service_runtime, InternalConfig, JvmConfig, RuntimeConfig};
+use java_bindings::exonum::runtime::Runtime;
 
 #[test]
 // Fails on Java 12. Ignored until [ECR-3133] is fixed because the cause of the issue also prevents
@@ -47,6 +47,10 @@ fn bootstrap() {
         system_lib_path: java_library_path(),
     };
 
+    /*
+    Review: This test shall perform some assertions on the created runtime/VM,
+    shan't it?
+    */
     let _runtime: Box<dyn Runtime> =
         create_service_runtime(&jvm_config, &runtime_config, internal_config);
 }

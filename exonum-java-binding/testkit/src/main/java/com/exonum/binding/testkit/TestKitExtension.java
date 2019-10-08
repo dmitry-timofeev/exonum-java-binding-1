@@ -37,7 +37,9 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * &#64;RegisterExtension
  * TestKitExtension testKitExtension = new TestKitExtension(
  *     TestKit.builder()
- *         .withService(TestServiceModule.class));
+ *         .withDeployedArtifact(artifactId, artifactFilename)
+ *         .withService(artifactId, serviceName, serviceId)
+ *         .withArtifactsDirectory(artifactsDirectory));
  *
  * &#64;BeforeEach
  * void setUp(TestKit testKit) {
@@ -55,7 +57,10 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  *
  * &#64;BeforeEach
  * void setUp() {
- *   testKit = TestKit.forService(TestServiceModule.class));
+ *   testKit = TestKit.withDeployedArtifact(artifactId, artifactFilename)
+ *       .withService(artifactId, serviceName, serviceId)
+ *       .withArtifactsDirectory(artifactsDirectory)
+ *       .build();
  *   // Set up
  * }
  *
@@ -82,7 +87,9 @@ import org.junit.jupiter.api.extension.ParameterResolver;
  * &#64;RegisterExtension
  * TestKitExtension testKitExtension = new TestKitExtension(
  *     TestKit.builder()
- *         .withService(TestServiceModule.class));
+ *         .withDeployedArtifact(artifactId, artifactFilename)
+ *         .withService(artifactId, serviceName, serviceId)
+ *         .withArtifactsDirectory(artifactsDirectory));
  *
  * &#64;Test
  * void test(&#64;Auditor &#64;ValidatorCount(8) TestKit testKit) {

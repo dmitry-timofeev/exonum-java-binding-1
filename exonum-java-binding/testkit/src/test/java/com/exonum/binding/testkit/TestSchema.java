@@ -26,18 +26,17 @@ import java.util.List;
 
 final class TestSchema implements Schema {
 
-  static final String TEST_MAP_NAME = "TestKitService_map";
+  private final String testMapName;
 
   private final View view;
 
-  // Review: it is not injectable in the container sense of things, you will have to pass it.
-  // TODO: inject ServiceInstanceSpec
-  TestSchema(View view) {
+  TestSchema(View view, int serviceInstanceId) {
     this.view = view;
+    this.testMapName = "TestKitService_map " + serviceInstanceId;
   }
 
   ProofMapIndexProxy<HashCode, String> testMap() {
-    return ProofMapIndexProxy.newInstance(TEST_MAP_NAME, view, StandardSerializers.hash(),
+    return ProofMapIndexProxy.newInstance(testMapName, view, StandardSerializers.hash(),
         StandardSerializers.string());
   }
 

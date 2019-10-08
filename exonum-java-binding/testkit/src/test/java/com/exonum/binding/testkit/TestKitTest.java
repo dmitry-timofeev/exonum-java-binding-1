@@ -16,6 +16,7 @@
 
 package com.exonum.binding.testkit;
 
+import static com.exonum.binding.testkit.TestKit.DEFAULT_CONFIGURATION;
 import static com.exonum.binding.testkit.TestKit.MAX_SERVICE_INSTANCE_ID;
 import static com.exonum.binding.testkit.TestTransaction.BODY_CHARSET;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,28 +32,26 @@ import com.exonum.binding.common.message.TransactionMessage;
 import com.exonum.binding.core.blockchain.Block;
 import com.exonum.binding.core.blockchain.Blockchain;
 import com.exonum.binding.core.proxy.Cleaner;
+import com.exonum.binding.core.runtime.DispatcherSchema;
 import com.exonum.binding.core.runtime.ServiceArtifactId;
-import com.exonum.binding.core.service.AbstractServiceModule;
 import com.exonum.binding.core.service.Node;
-import com.exonum.binding.core.service.Service;
-import com.exonum.binding.core.service.TransactionConverter;
 import com.exonum.binding.core.storage.database.Snapshot;
 import com.exonum.binding.core.storage.database.View;
 import com.exonum.binding.core.storage.indices.MapIndex;
 import com.exonum.binding.core.storage.indices.ProofMapIndexProxy;
 import com.exonum.binding.core.transaction.RawTransaction;
+import com.exonum.binding.messages.Runtime.ArtifactId;
+import com.exonum.binding.messages.Runtime.InstanceSpec;
 import com.exonum.binding.time.TimeSchema;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.inject.Singleton;
-import com.google.protobuf.Any;
-import io.vertx.ext.web.Router;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -77,27 +76,14 @@ class TestKitTest extends TestKitWithTestArtifact {
   TestKitExtension testKitExtension = new TestKitExtension(
       TestKit.builder()
           .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-          .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID));
-
-  // TODO: create artifact for second service
+          .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+          .withArtifactsDirectory(artifactsDirectory));
 
   @Test
   void createTestKitForSingleService() {
-    TestService service;
     try (TestKit testKit = TestKit.forService(ARTIFACT_ID, ARTIFACT_FILENAME,
-        SERVICE_NAME, SERVICE_ID)) {
-      service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
-    }
-  }
-
-  @Test
-  void createTestKitForSingleServiceWithCustomConfiguration() {
-    TestService service;
-    try (TestKit testKit = TestKit.forService(ARTIFACT_ID, ARTIFACT_FILENAME,
-        SERVICE_NAME, SERVICE_ID, Any.getDefaultInstance())) {
-      service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
+        SERVICE_NAME, SERVICE_ID, artifactsDirectory)) {
+      checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
     }
   }
 
@@ -106,29 +92,66 @@ class TestKitTest extends TestKitWithTestArtifact {
     try (TestKit testKit = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
-      TestService service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
+      checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
     }
   }
 
   @Test
-  void createTestKitWithoutDeployedArtifactThrows() {
-    Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
-    TestKit.Builder testKitBuilder = TestKit.builder()
-        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME);
-    IllegalArgumentException thrownException = assertThrows(exceptionType, testKitBuilder::build);
-    assertThat(thrownException.getMessage())
-        .isEqualTo("Following service artifacts were deployed, but not used for"
-            + " service instantiation: ", ARTIFACT_ID.toString());
+  void createTestKitWithTwoServiceInstancesSameArtifact() {
+    try (TestKit testKit = TestKit.builder()
+        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withService(ARTIFACT_ID, SERVICE_NAME_2, SERVICE_ID_2)
+        .withArtifactsDirectory(artifactsDirectory)
+        .build()) {
+      checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
+      checkTestServiceInitialization(testKit, SERVICE_NAME_2, SERVICE_ID_2);
+    }
+  }
+
+  @Test
+  void getServiceIdByName() {
+    try (TestKit testKit = TestKit.builder()
+        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withArtifactsDirectory(artifactsDirectory)
+        .build()) {
+      assertThat(testKit.getServiceIdByName(SERVICE_NAME)).isEqualTo(SERVICE_ID);
+    }
+  }
+
+  @Test
+  void getServerPort() {
+    int serverPort = 25000;
+    try (TestKit testKit = TestKit.builder()
+        .withServerPort(serverPort)
+        .build()) {
+      OptionalInt expectedServerPort = OptionalInt.of(serverPort);
+      assertThat(testKit.getServerPort()).isEqualTo(expectedServerPort);
+    }
   }
 
   @Test
   void createTestKitWithDeployedArtifactWithoutCreatedServicesThrows() {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     TestKit.Builder testKitBuilder = TestKit.builder()
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
+        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+        .withArtifactsDirectory(artifactsDirectory);
     IllegalArgumentException thrownException = assertThrows(exceptionType, testKitBuilder::build);
+    assertThat(thrownException.getMessage())
+        .isEqualTo("Following service artifacts were deployed, but not used for"
+            + " service instantiation: [%s]", ARTIFACT_ID.toString());
+  }
+
+  @Test
+  void createTestKitWithoutDeployedArtifactThrows() {
+    Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
+    TestKit.Builder testKitBuilder = TestKit.builder()
+        .withArtifactsDirectory(artifactsDirectory);
+    IllegalArgumentException thrownException = assertThrows(exceptionType,
+        () -> testKitBuilder.withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID));
     assertThat(thrownException.getMessage())
         .isEqualTo("Service %s should be deployed first in order to be created",
         ARTIFACT_ID.toString());
@@ -139,22 +162,32 @@ class TestKitTest extends TestKitWithTestArtifact {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     TestKit.Builder testKitBuilder = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        // Review: ?
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
-    IllegalArgumentException thrownException = assertThrows(exceptionType, testKitBuilder::build);
+        .withArtifactsDirectory(artifactsDirectory);
+    IllegalArgumentException thrownException = assertThrows(exceptionType,
+        () -> testKitBuilder.withService(ARTIFACT_ID_2, SERVICE_NAME_2, SERVICE_ID_2));
     assertThat(thrownException.getMessage())
         .isEqualTo("Service %s should be deployed first in order to be created",
-        ARTIFACT_ID.toString());
+        ARTIFACT_ID_2.toString());
+  }
+
+  @Test
+  void createTestKitWithoutArtifactsDirectoryThrows() {
+    Class<NullPointerException> exceptionType = NullPointerException.class;
+    TestKit.Builder testKitBuilder = TestKit.builder()
+        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
+    NullPointerException thrownException = assertThrows(exceptionType, testKitBuilder::build);
+    assertThat(thrownException.getMessage()).isEqualTo("Artifacts directory was not set.");
   }
 
   @Test
   void createTestKitWithBuilderForSingleServiceWithCustomConfiguration() {
     try (TestKit testKit = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID, Any.getDefaultInstance())
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID, DEFAULT_CONFIGURATION)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
-      TestService service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
+      checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
     }
   }
   // Review: tests for wrong configuration
@@ -164,23 +197,26 @@ class TestKitTest extends TestKitWithTestArtifact {
   void createTestKitWithInvalidServiceId(int invalidServiceId) {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     TestKit.Builder testKitBuilder = TestKit.builder()
-        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME);
+        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+        .withArtifactsDirectory(artifactsDirectory);
     assertThrows(exceptionType,
         () -> testKitBuilder.withService(ARTIFACT_ID, SERVICE_NAME, invalidServiceId));
   }
 
   @Test
-  void createTestKitWithBuilderForMultipleDifferentServices() {
+  void createTestKitWithBuilderForMultipleDifferentServices() throws Exception {
+    // Create artifact for TestService2
+    createArtifact(artifactsDirectory.resolve(ARTIFACT_FILENAME_2));
+
     try (TestKit testKit = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
         .withDeployedArtifact(ARTIFACT_ID_2, ARTIFACT_FILENAME_2)
         .withService(ARTIFACT_ID_2, SERVICE_NAME_2, SERVICE_ID_2)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
-      TestService service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
-      TestService2 service2 = testKit.getService(SERVICE_NAME_2, TestService2.class);
-      checkTestService2Initialization(testKit, service2);
+      checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
+      checkTestService2Initialization(testKit, SERVICE_NAME_2, SERVICE_ID_2);
     }
   }
 
@@ -188,15 +224,9 @@ class TestKitTest extends TestKitWithTestArtifact {
   void createTestKitWithTimeService() {
     TimeProvider timeProvider = FakeTimeProvider.create(TIME);
     try (TestKit testKit = TestKit.builder()
-        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
         .build()) {
-      /* Review: That seems redundant and unrelated: why concern with services
-      when we test time service deployment?
-       */
-      TestService service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
+      checkIfServiceEnabled(testKit, TIME_SERVICE_NAME, TIME_SERVICE_ID);
     }
   }
 
@@ -207,23 +237,18 @@ class TestKitTest extends TestKitWithTestArtifact {
     TimeProvider timeProvider = FakeTimeProvider.create(TIME);
     TimeProvider timeProvider2 = FakeTimeProvider.create(TIME.plusDays(1));
     try (TestKit testKit = TestKit.builder()
-        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
         .withTimeService(timeServiceName2, timeServiceId2, timeProvider2)
         .build()) {
-      /*
-      Review: We don't verify that two time services with the given parameters are deployed.
-       */
-      TestService service = testKit.getService(SERVICE_NAME, TestService.class);
-      checkTestServiceInitialization(testKit, service);
+      checkIfServiceEnabled(testKit, TIME_SERVICE_NAME, TIME_SERVICE_ID);
+      checkIfServiceEnabled(testKit, timeServiceName2, timeServiceId2);
     }
   }
 
-  private void checkTestServiceInitialization(TestKit testKit, TestService service) {
-    /*
-     Review: This code and checkTestService2Initialization do not check that the services with the given parameters are started.
-     */
+  private void checkTestServiceInitialization(TestKit testKit, String serviceName, int serviceId) {
+    // Check that service appears in dispatcher schema
+    checkIfServiceEnabled(testKit, serviceName, serviceId);
+    TestService service = testKit.getService(serviceName, TestService.class);
     // Check that TestService API is mounted
     Node serviceNode = service.getNode();
     EmulatedNode emulatedTestKitNode = testKit.getEmulatedNode();
@@ -244,7 +269,10 @@ class TestKitTest extends TestKitWithTestArtifact {
     assertThat(blockchain.getBlockHashes().size()).isEqualTo(1L);
   }
 
-  private void checkTestService2Initialization(TestKit testKit, TestService2 service) {
+  private void checkTestService2Initialization(TestKit testKit, String serviceName, int serviceId) {
+    // Check that service appears in dispatcher schema
+    checkIfServiceEnabled(testKit, serviceName, serviceId);
+    TestService2 service = testKit.getService(serviceName, TestService2.class);
     // Check that TestService2 API is mounted
     Node serviceNode = service.getNode();
     EmulatedNode emulatedTestKitNode = testKit.getEmulatedNode();
@@ -257,6 +285,17 @@ class TestKitTest extends TestKitWithTestArtifact {
     assertThat(blockchain.getBlockHashes().size()).isEqualTo(1L);
   }
 
+  private void checkIfServiceEnabled(TestKit testKit, String serviceName, int serviceId) {
+    View view = testKit.getSnapshot();
+    MapIndex<String, InstanceSpec> serviceInstances =
+        new DispatcherSchema(view).serviceInstances();
+    assertThat(serviceInstances.containsKey(serviceName)).isTrue();
+
+    InstanceSpec serviceSpec = serviceInstances.get(serviceName);
+    int actualServiceId = serviceSpec.getId();
+    assertThat(actualServiceId).isEqualTo(serviceId);
+  }
+
   @Test
   void createTestKitWithSeveralValidators() {
     short validatorCount = 2;
@@ -264,6 +303,7 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
         .withValidators(validatorCount)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       Snapshot view = testKit.getSnapshot();
       Blockchain blockchain = Blockchain.newInstance(view);
@@ -280,6 +320,7 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
         .withValidators(validatorCount)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       Snapshot view = testKit.getSnapshot();
       Blockchain blockchain = Blockchain.newInstance(view);
@@ -294,24 +335,20 @@ class TestKitTest extends TestKitWithTestArtifact {
     short invalidValidatorCount = 0;
     TestKit.Builder testKitBuilder = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withArtifactsDirectory(artifactsDirectory);
     assertThrows(exceptionType, () -> testKitBuilder.withValidators(invalidValidatorCount));
   }
 
   @Test
-  void requestWrongServiceClass() {
+  void getServiceWithWrongClassThrows(TestKit testKit) {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
-    try (TestKit testKit = TestKit.builder()
-        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
-        .build()) {
-      assertThrows(exceptionType,
-          () -> testKit.getService(SERVICE_NAME, TestService2.class));
-    }
+    assertThrows(exceptionType,
+        () -> testKit.getService(SERVICE_NAME, TestService2.class));
   }
 
   @Test
-  void requestWrongServiceId(TestKit testKit) {
+  void getServiceWithWrongNameThrows(TestKit testKit) {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     assertThrows(exceptionType, () -> testKit.getService("Invalid service name",
         TestService.class));
@@ -320,8 +357,9 @@ class TestKitTest extends TestKitWithTestArtifact {
   @Test
   void createTestKitMoreThanMaxServiceNumber() {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
-    TestKit.Builder testKitBuilder =
-        TestKit.builder().withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME);
+    TestKit.Builder testKitBuilder = TestKit.builder()
+            .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
+            .withArtifactsDirectory(artifactsDirectory);
     for (int i = 0; i < TestKit.MAX_SERVICE_NUMBER + 1; i++) {
       String serviceName = SERVICE_NAME + " " + i;
       int serviceId = SERVICE_ID + i;
@@ -349,27 +387,28 @@ class TestKitTest extends TestKitWithTestArtifact {
     assertThat(block).isEqualTo(blockchain.getBlock(1));
   }
 
-  // TODO: fix this test (allow retrieving service id from runtime)
-//  @Test
-//  void afterCommitSubmitsTransaction(TestKit testKit) {
-//    // Create a block so that afterCommit transaction is submitted
-//    Block block = testKit.createBlock();
-//    List<TransactionMessage> inPoolTransactions = testKit
-//        .findTransactionsInPool(tx -> tx.getServiceId() == SERVICE_ID);
-//    assertThat(inPoolTransactions).hasSize(1);
-//    TransactionMessage inPoolTransaction = inPoolTransactions.get(0);
-//    RawTransaction afterCommitTransaction = constructAfterCommitTransaction(block.getHeight());
-//
-//    assertThat(inPoolTransaction.getServiceId())
-//        .isEqualTo(afterCommitTransaction.getServiceId());
-//    assertThat(inPoolTransaction.getTransactionId())
-//        .isEqualTo(afterCommitTransaction.getTransactionId());
-//    assertThat(inPoolTransaction.getPayload()).isEqualTo(afterCommitTransaction.getPayload());
-//
-//    Block nextBlock = testKit.createBlock();
-//    assertThat(nextBlock.getNumTransactions()).isEqualTo(1);
-//    assertThat(nextBlock.getHeight()).isEqualTo(2);
-//  }
+  @Test
+  void afterCommitSubmitsTransaction(TestKit testKit) {
+    int serviceId = testKit.getServiceIdByName(SERVICE_NAME);
+    // Create a block so that afterCommit transaction is submitted
+    Block block = testKit.createBlock();
+    List<TransactionMessage> inPoolTransactions = testKit
+        .findTransactionsInPool(tx -> tx.getServiceId() == serviceId);
+    assertThat(inPoolTransactions).hasSize(1);
+    TransactionMessage inPoolTransaction = inPoolTransactions.get(0);
+    RawTransaction afterCommitTransaction =
+        constructAfterCommitTransaction(serviceId, block.getHeight());
+
+    assertThat(inPoolTransaction.getServiceId())
+        .isEqualTo(afterCommitTransaction.getServiceId());
+    assertThat(inPoolTransaction.getTransactionId())
+        .isEqualTo(afterCommitTransaction.getTransactionId());
+    assertThat(inPoolTransaction.getPayload()).isEqualTo(afterCommitTransaction.getPayload());
+
+    Block nextBlock = testKit.createBlock();
+    assertThat(nextBlock.getNumTransactions()).isEqualTo(1);
+    assertThat(nextBlock.getHeight()).isEqualTo(2);
+  }
 
   @Test
   void createBlockWithTransactionIgnoresInPoolTransactions(TestKit testKit) {
@@ -546,6 +585,7 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withNodeType(EmulatedNodeType.AUDITOR)
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       EmulatedNode node = testKit.getEmulatedNode();
       assertThat(node.getNodeType()).isEqualTo(EmulatedNodeType.AUDITOR);
@@ -607,7 +647,7 @@ class TestKitTest extends TestKitWithTestArtifact {
         .withValidators(invalidValidatorCount);
     IllegalArgumentException thrownException = assertThrows(exceptionType, testKitBuilder::build);
     String expectedMessage = String.format("Number of validators (%s) should be less than or equal"
-        + " to %s when TimeService is enabled.",
+        + " to %s when TimeService is instantiated.",
         invalidValidatorCount, TestKit.MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE);
     assertThat(thrownException).hasMessageContaining(expectedMessage);
   }
@@ -638,39 +678,5 @@ class TestKitTest extends TestKitWithTestArtifact {
 
   private <K, V> Map<K, V> toMap(MapIndex<K, V> mapIndex) {
     return Maps.toMap(mapIndex.keys(), mapIndex::get);
-  }
-
-  public static final class TestServiceModule2 extends AbstractServiceModule {
-
-    private static final TransactionConverter THROWING_TX_CONVERTER = (tx, payload) -> {
-      throw new IllegalStateException("No transactions in this service: " + tx);
-    };
-
-    @Override
-    protected void configure() {
-      bind(Service.class).to(TestService2.class).in(Singleton.class);
-      bind(TransactionConverter.class).toInstance(THROWING_TX_CONVERTER);
-    }
-  }
-
-  static final class TestService2 implements Service {
-
-    private Node node;
-
-    Node getNode() {
-      return node;
-    }
-
-    // Review: null?
-    @Override
-    public List<HashCode> getStateHashes(Snapshot snapshot) {
-      // TODO: refactor TestService2
-      return null;
-    }
-
-    @Override
-    public void createPublicApiHandlers(Node node, Router router) {
-      this.node = node;
-    }
   }
 }

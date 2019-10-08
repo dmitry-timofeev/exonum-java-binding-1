@@ -44,6 +44,7 @@ import com.exonum.binding.core.runtime.ServiceRuntimeProtos.ServiceStateHashes;
 import com.exonum.binding.core.service.BlockCommittedEvent;
 import com.exonum.binding.core.service.Configuration;
 import com.exonum.binding.core.service.Node;
+import com.exonum.binding.core.service.Service;
 import com.exonum.binding.core.storage.database.Database;
 import com.exonum.binding.core.storage.database.Fork;
 import com.exonum.binding.core.storage.database.Snapshot;
@@ -63,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.OptionalInt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -262,6 +264,13 @@ class ServiceRuntimeIntegrationTest {
         () -> serviceRuntime.connectServiceApis(emptyServiceIds, node));
   }
 
+  @Test
+  void getServerPort() {
+    OptionalInt serverPort = OptionalInt.of(25000);
+    when(server.getActualPort()).thenReturn(serverPort);
+    assertThat(serviceRuntime.getServerPort()).isEqualTo(serverPort);
+  }
+
   @Nested
   class WithSingleService {
     final ServiceArtifactId ARTIFACT_ID = ServiceArtifactId.parseFrom("com.acme:foo-service:1.0.0");
@@ -333,6 +342,16 @@ class ServiceRuntimeIntegrationTest {
     }
 
     @Test
+    void verifyTransaction() {
+      int txId = 1;
+      byte[] arguments = bytes(127);
+
+      serviceRuntime.verifyTransaction(TEST_ID, txId, arguments);
+
+      verify(serviceWrapper).convertTransaction(txId, arguments);
+    }
+
+    @Test
     void executeTransactionUnknownService() throws Exception {
       try (Database database = TemporaryDb.newInstance();
           Cleaner cleaner = new Cleaner()) {
@@ -350,6 +369,19 @@ class ServiceRuntimeIntegrationTest {
 
         assertThat(e).hasMessageContaining(String.valueOf(serviceId));
       }
+    }
+
+    @Test
+    void verifyTransactionUnknownService() {
+      int serviceId = TEST_ID + 1;
+      int txId = 1;
+      byte[] arguments = bytes(127);
+
+      Exception e = assertThrows(IllegalArgumentException.class,
+          () -> serviceRuntime.verifyTransaction(serviceId, txId, arguments));
+      String expectedMessage =
+          String.format("No service with id=%s in the Java runtime", serviceId);
+      assertThat(e).hasMessageContaining(expectedMessage);
     }
 
     @Test
@@ -437,6 +469,38 @@ class ServiceRuntimeIntegrationTest {
 
       verify(serviceWrapper).createPublicApiHandlers(node, serviceRouter);
       verify(server).mountSubRouter(API_ROOT_PATH + "/" + serviceApiPath, serviceRouter);
+    }
+
+    @Test
+    void getServiceInstanceByName() {
+      Service service = mock(Service.class);
+      when(serviceWrapper.getService()).thenReturn(service);
+      assertThat(serviceRuntime.getServiceInstanceByName(TEST_NAME)).isEqualTo(service);
+    }
+
+    @Test
+    void getServiceInstanceByNameUnknownService() {
+      String invalidServiceName = "Wrong service name";
+      Exception e = assertThrows(IllegalArgumentException.class,
+          () -> serviceRuntime.getServiceInstanceByName(invalidServiceName));
+      String expectedMessage =
+          String.format("No service with such name in the Java runtime: %s", invalidServiceName);
+      assertThat(e).hasMessageContaining(expectedMessage);
+    }
+
+    @Test
+    void getServiceIdByName() {
+      assertThat(serviceRuntime.getServiceIdByName(TEST_NAME)).isEqualTo(TEST_ID);
+    }
+
+    @Test
+    void getServiceIdByNameUnknownService() {
+      String invalidServiceName = "Wrong service name";
+      Exception e = assertThrows(IllegalArgumentException.class,
+          () -> serviceRuntime.getServiceIdByName(invalidServiceName));
+      String expectedMessage =
+          String.format("No service with such name in the Java runtime: %s", invalidServiceName);
+      assertThat(e).hasMessageContaining(expectedMessage);
     }
   }
 

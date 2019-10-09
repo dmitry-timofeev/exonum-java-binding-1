@@ -61,8 +61,6 @@ import com.google.protobuf.Any;
 import com.google.protobuf.MessageLite;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
-import org.apache.logging.log4j.LogManager;
-import org.pf4j.PluginManager;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +72,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.LogManager;
+import org.pf4j.PluginManager;
 
 /**
  * TestKit for testing blockchain services. It offers simple network configuration emulation
@@ -124,9 +124,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
   @VisibleForTesting
-  /*
-  Review: Does the core have such restriction?
-   */
   static final int MAX_SERVICE_INSTANCE_ID = 1023;
   @VisibleForTesting
   static final Any DEFAULT_CONFIGURATION = Any.getDefaultInstance();
@@ -166,6 +163,9 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     return new TestKit(nativeHandle, timeServiceSpecs, serviceRuntime);
   }
 
+  /*
+  Review: createServiceRuntime, as this method creates the whole thing with its dependencies.
+   */
   private static ServiceRuntimeAdapter getServiceRuntimeAdapter(
       Path artifactsDirectory, int serverPort) {
     Module frameworkModule = new FrameworkModule(artifactsDirectory, serverPort,

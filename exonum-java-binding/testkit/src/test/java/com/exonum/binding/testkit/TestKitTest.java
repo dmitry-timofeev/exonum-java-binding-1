@@ -173,13 +173,9 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID, DEFAULT_CONFIGURATION)
         .withArtifactsDirectory(artifactsDirectory)
         .build()) {
-      /*
-      Review: Why don't we check the configuration (also — the wrong configuration)?
-       */
       checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
     }
   }
-  // Review: tests for wrong configuration
 
   @ParameterizedTest
   @ValueSource(ints = {-1, MAX_SERVICE_INSTANCE_ID + 1})
@@ -622,12 +618,6 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
     Class<IllegalArgumentException> exceptionType = IllegalArgumentException.class;
     short invalidValidatorCount = TestKit.MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE + 1;
     TestKit.Builder testKitBuilder = TestKit.builder()
-        /*
-         REview:
-         re .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID,
-            Any.getDefaultInstance()):
-    There must be an overload for no (= empty) configuration.
-         */
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
         .withValidators(invalidValidatorCount);
     IllegalArgumentException thrownException = assertThrows(exceptionType, testKitBuilder::build);

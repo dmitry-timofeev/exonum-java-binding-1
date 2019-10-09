@@ -18,10 +18,10 @@ package com.exonum.binding.testkit;
 
 import com.exonum.binding.core.runtime.ServiceArtifactId;
 import com.exonum.binding.test.runtime.ServiceArtifactBuilder;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.io.TempDir;
 
 class TestKitTestWithArtifactsCreated {
 
@@ -56,6 +56,9 @@ class TestKitTestWithArtifactsCreated {
 
   private static void createTestService2Artifact() throws IOException {
     Path artifactLocation = artifactsDirectory.resolve(ARTIFACT_FILENAME_2);
+    /*
+    Review: Is that correct that it uses the same schema and transactions?
+     */
     createArtifact(artifactLocation, ARTIFACT_ID_2, TestServiceModule2.class, TestTransaction.class,
         TestSchema.class, TestService2.class);
   }

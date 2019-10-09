@@ -120,6 +120,7 @@ to the testkit via package-private ServiceWrapper?
   /**
    * Converts an Exonum raw transaction to an executable transaction of this service.
    *
+   * Review: unresolved refs
    * @param txId the {@linkplain TransactionMessage#getTransactionId() transaction type identifier}
    *     within the service
    * @param arguments the {@linkplain TransactionMessage#getPayload() serialized transaction

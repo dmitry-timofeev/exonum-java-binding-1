@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 // TODO: uncomment and update once NodeContext supports dynamic services
+/*
+Review: Is it required to comment the whole file? Can't you disable the compilation instead?
+*/
 //
 //extern crate futures;
 //extern crate integration_tests;

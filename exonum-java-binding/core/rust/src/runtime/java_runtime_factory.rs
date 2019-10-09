@@ -36,10 +36,6 @@ const CREATE_SERVICE_SIGNATURE: &str =
 /// Controls JVM and java runtime.
 #[allow(dead_code)]
 #[derive(Clone)]
-/*
- Review: Better names? Maybe JavaSystemRuntime? @vitvakatu, will it survive your changes?
- Also, I don't see service_runtime to be used after initialization.
-*/
 pub struct JavaRuntimeFactory {
     executor: Executor,
     service_runtime: GlobalRef,

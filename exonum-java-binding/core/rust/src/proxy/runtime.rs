@@ -14,37 +14,39 @@
  * limitations under the License.
  */
 
+use std::fmt;
+
 use exonum::{
     api::ApiContext,
     blockchain::Schema as CoreSchema,
     crypto::{Hash, PublicKey, SecretKey},
+    exonum_merkledb::{self, Fork, Snapshot},
     helpers::ValidatorId,
     messages::BinaryValue,
-    exonum_merkledb::{self, Fork, Snapshot},
     node::ApiSender,
     runtime::{
         api::ServiceApiBuilder,
-        dispatcher::{Dispatcher, DispatcherRef, DispatcherSender},
-        ArtifactId, ArtifactProtobufSpec, CallInfo, ErrorKind, ExecutionContext, ExecutionError,
+        ArtifactId,
+        ArtifactProtobufSpec, CallInfo, dispatcher::{Dispatcher, DispatcherRef, DispatcherSender}, ErrorKind, ExecutionContext, ExecutionError,
         InstanceDescriptor, InstanceId, InstanceSpec, Runtime, RuntimeIdentifier,
         StateHashAggregator,
     },
 };
-use futures::{Future, IntoFuture};
 use jni::{
+    Executor,
     objects::{GlobalRef, JObject, JValue},
     signature::{JavaType, Primitive},
-    Executor,
 };
+use JniErrorKind;
+use JniResult;
+
+use futures::{Future, IntoFuture};
 use proto;
 use proxy::node::NodeContext;
 use runtime::Error;
-use std::fmt;
 use storage::View;
 use to_handle;
 use utils::{jni_cache::runtime_adapter, log_jni_error_or_exception, panic_on_exception, unwrap_jni};
-use JniErrorKind;
-use JniResult;
 
 /// A proxy for `ServiceRuntimeAdapter`s.
 #[derive(Clone)]
@@ -121,6 +123,11 @@ impl Runtime for JavaRuntimeProxy {
             let artifact_id = JObject::from(env.new_string(id)?);
             let spec = JObject::from(env.byte_array_from_slice(&deploy_spec)?);
 
+            /*
+            Review: I'd consider renaming to communicate that it not just logs (it is a secondary
+            responsibility, but handles/clears the exception).
+            handle_exception/clear_exception?
+            */
             log_jni_error_or_exception(
                 env,
                 env.call_method_unchecked(
@@ -272,6 +279,14 @@ because this way is not intuitive.
             let pub_key = JObject::from(env.byte_array_from_slice(&tx.0)?);
             let hash = JObject::from(env.byte_array_from_slice(&tx.1)?);
 
+            /*
+            Review:
+            I've requested multiple times that this method shall handle TransactionExecutionExceptions
+            and convert to appropriate core errors (**see the present TransactionProxy**).
+            Also, it is not appropriate to log all exceptions
+            as errors here because some (= TransactionExecutionErrors) are used to communicate
+            an *expected* error in tx execution.
+            */
             log_jni_error_or_exception(
                 env,
                 env.call_method_unchecked(
@@ -320,6 +335,10 @@ TransactionProxy.
 
     fn before_commit(&self, _dispatcher: &DispatcherRef, fork: &mut Fork) {
         unwrap_jni(self.exec.with_attached(|env| {
+            /*
+            Review: Shan't this code be updated to the head of dynamic-services (and appropriate
+            View method) for this work?
+            */
             let view_handle = to_handle(View::from_ref_fork(fork));
 
             panic_on_exception(
@@ -366,6 +385,9 @@ TransactionProxy.
         }));
     }
 
+    /*
+    Review: Remove, it has a default implementation.
+    */
     fn api_endpoints(&self, context: &ApiContext) -> Vec<(String, ServiceApiBuilder)> {
         Vec::new()
     }
@@ -383,12 +405,15 @@ TransactionProxy.
         /*
         Review: Please see the docs of the runtime method:
 x (1) It must be invoked for the services to connect to API (not the already connected)
-(2) It must not be empty (shall not be invoked if no new services need to be connected)
+! (2) It must not be empty (shall not be invoked if no new services need to be connected)
 */
         let node = NodeContext::new(self.exec.clone(), context.clone());
 
         unwrap_jni(self.exec.with_attached(|env| {
             let node_handle = to_handle(node);
+            /*
+            Review: It is incorrect: capacity is not a number of elements.
+            */
             let ids_array = env.new_int_array(added_instances_ids.capacity() as i32)?;
             env.set_int_array_region(ids_array, 0, &added_instances_ids)?;
             let service_ids = JObject::from(ids_array);
@@ -452,7 +477,7 @@ struct ServiceRuntimeStateHashes {
 
 impl ServiceRuntimeStateHashes {
     fn runtime(&self) -> Vec<Hash> {
-        // Review: Shan't this code be extracted: to_hashes(hashes: Vec<Vec<u8>>) -> Vec<Hash>?
+        // ! Review: Shan't this code be extracted: to_hashes(hashes: Vec<Vec<u8>>) -> Vec<Hash>?
         self.runtime_state_hashes
             .iter()
             .map(|bytes| Hash::from_bytes(bytes.into()).unwrap())

@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-use jni::objects::JObject;
-use jni::JNIEnv;
-
 use std::any::Any;
 use std::cell::Cell;
 use std::error::Error;
 use std::result;
 use std::thread;
 
-use utils::{get_class_name, get_exception_message, jni_cache::classes_refs};
+use jni::JNIEnv;
+use jni::objects::JObject;
+
 use {JniError, JniErrorKind, JniResult};
+use utils::{get_class_name, get_exception_message, jni_cache::classes_refs};
 
 /// Unwraps the result, returning its content.
 ///
@@ -79,10 +79,15 @@ pub fn check_error_on_exception<T>(env: &JNIEnv, result: JniResult<T>) -> Result
 /// Panics:
 /// - Panics if JNI error is `JniErrorKind::JavaException` but couldn't get (and clear) exception
 ///   object and describe it.
+// Review: Tests.
 pub fn log_jni_error_or_exception<T>(env: &JNIEnv, result: JniResult<T>) -> JniResult<T> {
     result.map_err(|jni_error| match jni_error.0 {
         JniErrorKind::JavaException => {
             let exception = get_and_clear_java_exception(env);
+            /*
+             Review: I'd consider using log_enabled! to avoid this method invocation
+            as it involves several Rust->Java calls which are expensive.
+            */
             let message = describe_java_exception(env, exception);
             error!("{}", message);
             jni_error

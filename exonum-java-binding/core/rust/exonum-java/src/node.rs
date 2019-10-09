@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use std::sync::Arc;
-
 use java_bindings::{Command, Config, EjbCommand, EjbCommandResult};
+
 use java_bindings::exonum::blockchain::{Blockchain, BlockchainBuilder, InstanceCollection};
 use java_bindings::exonum::exonum_merkledb::{Database, RocksDB};
 use java_bindings::exonum::node::{ApiSender, Node, NodeChannel};
 use java_bindings::exonum::runtime::rust::ServiceFactory;
+use std::sync::Arc;
 
 pub fn run_node(command: Command) -> Result<(), failure::Error> {
     if let EjbCommandResult::EjbRun(config) = command.execute()? {
@@ -32,14 +32,11 @@ pub fn run_node(command: Command) -> Result<(), failure::Error> {
 }
 
 fn create_node(config: Config) -> Result<Node, failure::Error> {
-    /*
-    Review: That's not readable. Please extract in a variable (events_pool_capacity?). Also,
-    if you move `node_config` definition above, you can reuse it here to get a shorter chain.
-    */
-    let channel = NodeChannel::new(&config.run_config.node_config.mempool.events_pool_capacity);
+    let node_config = config.run_config.node_config.clone();
+    let events_pool_capacity = &node_config.mempool.events_pool_capacity;
+    let channel = NodeChannel::new(events_pool_capacity);
     let blockchain = create_blockchain(&config, &channel)?;
 
-    let node_config = config.run_config.node_config;
     let node_config_path = config
         .run_config
         .node_config_path

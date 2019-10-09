@@ -24,28 +24,20 @@ use jni::{
     InitArgs, InitArgsBuilder, JavaVM, objects::{GlobalRef, JObject}, Result as JniResult,
 };
 
+use exonum::runtime::Runtime;
+use runtime::config::{self, InternalConfig, JvmConfig, RuntimeConfig};
+use utils::unwrap_jni;
 use JavaRuntimeProxy;
-use runtime::config::{self, Config, InternalConfig, JvmConfig, RuntimeConfig};
-use utils::{convert_to_string, panic_on_exception, unwrap_jni};
 
 const SERVICE_RUNTIME_BOOTSTRAP_PATH: &str = "com/exonum/binding/app/ServiceRuntimeBootstrap";
 const CREATE_RUNTIME_ADAPTER_SIGNATURE: &str =
     "(L/java/lang/String;I)Lcom/exonum/binding/core/runtime/ServiceRuntimeAdapter;";
 
-/// Review: Since VM is not a part of the runtime, I'd expand the summary and/or description.
-/// Creates new runtime from provided config.
-///
-/// Review: This is not entirely accurate as JavaServiceRuntime does not manage the VM,
-/// there can be multiple runtimes (in native tests, when created by testkit, etc.).
-/// I'd clarify the wording, and consider if we need to represent a runtime-managing-VM-and-runtime.
-/// There can be only one `JavaServiceRuntime` instance at a time.
+/// Instantiates JavaRuntimeProxy using provided Executor and runtime configuration parameters.
 pub fn create_service_runtime(
-    jvm_config: &JvmConfig,
+    executor: Executor,
     runtime_config: &RuntimeConfig,
-    internal_config: InternalConfig,
 ) -> Box<dyn Runtime> {
-    let java_vm = create_java_vm(jvm_config, runtime_config, internal_config);
-    let executor = Executor::new(Arc::new(java_vm));
     let runtime_adapter = create_service_runtime_adapter(&executor, &runtime_config);
     let runtime_proxy = JavaRuntimeProxy::new(executor, runtime_adapter);
     Box::new(runtime_proxy) as Box<dyn Runtime>
@@ -76,7 +68,7 @@ fn create_service_runtime_adapter(executor: &Executor, config: &RuntimeConfig) -
 /// # Panics
 ///
 /// - If user specified invalid additional JVM parameters.
-fn create_java_vm(
+pub fn create_java_vm(
     jvm_config: &JvmConfig,
     runtime_config: &RuntimeConfig,
     internal_config: InternalConfig,
@@ -203,7 +195,7 @@ mod tests {
         let error = Error::from(ErrorKind::Other(jni::sys::JNI_EINVAL));
         assert_eq!(
             "Invalid arguments",
-            JavaRuntimeFactory::transform_jni_error(error).description()
+            transform_jni_error(error).description()
         );
     }
 
@@ -212,16 +204,13 @@ mod tests {
         let error_detached = Error::from(ErrorKind::ThreadDetached);
         assert_eq!(
             "Current thread is not attached to the java VM",
-            JavaRuntimeFactory::transform_jni_error(error_detached).description()
+            transform_jni_error(error_detached).description()
         );
     }
 
     #[test]
     fn transform_jni_error_type_other_code_not_in_range() {
         let error = Error::from(ErrorKind::Other(-42));
-        assert_eq!(
-            "JNI error",
-            JavaRuntimeFactory::transform_jni_error(error).description()
-        );
+        assert_eq!("JNI error", transform_jni_error(error).description());
     }
 }

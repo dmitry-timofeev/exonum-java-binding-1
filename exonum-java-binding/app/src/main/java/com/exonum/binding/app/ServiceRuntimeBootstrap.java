@@ -87,9 +87,6 @@ public final class ServiceRuntimeBootstrap {
           DEPENDENCY_REFERENCE_CLASSES);
       Injector frameworkInjector = Guice.createInjector(APP_STAGE, frameworkModule);
 
-      /*
-      Review: patch
-       */
       return frameworkInjector.getInstance(ServiceRuntimeAdapter.class);
     } catch (Throwable t) {
       logger.fatal("Failed to create the Java Service Runtime", t);

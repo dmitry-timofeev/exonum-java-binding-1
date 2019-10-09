@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Disabled;
 /*
 Review: @Disabled("Why it is disabled (ticket, etc.)")
  */
-@Disabled
+@Disabled("ECR-3608")
 class ProofListIndexProxyGroupIntegrationTest
     extends BaseListIndexProxyGroupTestable {
 

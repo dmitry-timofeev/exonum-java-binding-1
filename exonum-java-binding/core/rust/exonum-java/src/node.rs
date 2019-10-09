@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-use java_bindings::{Command, Config, EjbCommand, EjbCommandResult};
+use std::sync::Arc;
 
+use java_bindings::{Command, Config, EjbCommand, EjbCommandResult};
 use java_bindings::exonum::blockchain::{Blockchain, BlockchainBuilder, InstanceCollection};
 use java_bindings::exonum::exonum_merkledb::{Database, RocksDB};
 use java_bindings::exonum::node::{ApiSender, Node, NodeChannel};
 use java_bindings::exonum::runtime::rust::ServiceFactory;
-use std::sync::Arc;
 
 pub fn run_node(command: Command) -> Result<(), failure::Error> {
     if let EjbCommandResult::EjbRun(config) = command.execute()? {
@@ -47,10 +47,6 @@ fn create_node(config: Config) -> Result<Node, failure::Error> {
     Ok(Node::with_blockchain(
         blockchain,
         channel,
-        /*
-        Review: That's funny that it accepts the whole thing yet requires node_config_path
-        to be passed separately.
-        */
         node_config,
         Some(node_config_path),
     ))
@@ -66,7 +62,6 @@ fn create_blockchain(config: &Config, channel: &NodeChannel) -> Result<Blockchai
 
     BlockchainBuilder::new(database, node_config.consensus.clone(), keypair)
         // TODO: add Java runtime
-        // Review: InstanceCollection? We don't seem to have instances unless started, do we?
         .with_rust_runtime(service_factories.into_iter().map(InstanceCollection::new))
         .finalize(api_sender, internal_requests)
 }

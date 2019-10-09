@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-use super::{paths::executable_directory, Config, JvmConfig, RuntimeConfig};
-use exonum_cli::command::{
-    finalize::Finalize, generate_config::GenerateConfig, generate_template::GenerateTemplate,
-    maintenance::Maintenance, run::Run as StandardRun, ExonumCommand, StandardResult,
-};
 use failure;
 use serde::{Deserialize, Serialize};
 
+use exonum_cli::command::{
+    ExonumCommand, finalize::Finalize, generate_config::GenerateConfig,
+    generate_template::GenerateTemplate, maintenance::Maintenance, run::Run as StandardRun, StandardResult,
+};
 use exonum_cli::command::{
     ExonumCommand, finalize::Finalize, generate_config::GenerateConfig,
     generate_template::GenerateTemplate, maintenance::Maintenance, run::Run as StandardRun, run_dev::RunDev,
@@ -29,6 +28,7 @@ use exonum_cli::command::{
 };
 use structopt::StructOpt;
 
+use super::{Config, JvmConfig, paths::executable_directory, RuntimeConfig};
 use super::{Config, JvmConfig, paths::executable_directory, RuntimeConfig};
 
 /// Review: (nit) an application not in exonum-app?
@@ -121,11 +121,6 @@ pub struct Run {
     jvm_args_append: Vec<String>,
 }
 
-/*
-Review:
-Can we now specify the application name and version in the help output?
-ECR-3090
-*/
 /// Possible output of the Java Bindings CLI commands.
 pub enum EjbCommandResult {
     /// Output of the standard Exonum Core commands.

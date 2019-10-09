@@ -14,63 +14,43 @@
  * limitations under the License.
  */
 
-use std::fmt;
-
 use exonum::{
     api::ApiContext,
     blockchain::Schema as CoreSchema,
     crypto::{Hash, PublicKey, SecretKey},
-    exonum_merkledb::{self, Fork, Snapshot},
     helpers::ValidatorId,
     messages::BinaryValue,
+    exonum_merkledb::{self, Fork, Snapshot},
     node::ApiSender,
     runtime::{
         api::ServiceApiBuilder,
-        ArtifactId,
-        ArtifactProtobufSpec, CallInfo, dispatcher::{Dispatcher, DispatcherRef, DispatcherSender}, ErrorKind, ExecutionContext, ExecutionError,
+        dispatcher::{Dispatcher, DispatcherRef, DispatcherSender},
+        ArtifactId, ArtifactProtobufSpec, CallInfo, ErrorKind, ExecutionContext, ExecutionError,
         InstanceDescriptor, InstanceId, InstanceSpec, Runtime, RuntimeIdentifier,
         StateHashAggregator,
     },
 };
+use futures::{Future, IntoFuture};
 use jni::{
-    Executor,
     objects::{GlobalRef, JObject, JValue},
     signature::{JavaType, Primitive},
+    Executor,
 };
-use JniErrorKind;
-use JniResult;
-
-use futures::{Future, IntoFuture};
 use proto;
 use proxy::node::NodeContext;
 use runtime::Error;
+use std::fmt;
 use storage::View;
 use to_handle;
-use utils::{jni_cache::runtime_adapter, panic_on_exception, unwrap_jni};
+use utils::{jni_cache::runtime_adapter, log_jni_error_or_exception, panic_on_exception, unwrap_jni};
+use JniErrorKind;
+use JniResult;
 
 /// A proxy for `ServiceRuntimeAdapter`s.
 #[derive(Clone)]
 pub struct JavaRuntimeProxy {
     exec: Executor,
     runtime_adapter: GlobalRef,
-}
-
-/// Artifact identification properties within `JavaRuntimeProxy`
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct JavaArtifactId(String);
-
-#[derive(Serialize, Deserialize, Clone, ProtobufConvert, PartialEq)]
-#[exonum(pb = "proto::ServiceStateHashes")]
-struct ServiceStateHashes {
-    instance_id: u32,
-    state_hashes: Vec<Vec<u8>>,
-}
-
-#[derive(Serialize, Deserialize, Clone, ProtobufConvert, PartialEq)]
-#[exonum(pb = "proto::ServiceRuntimeStateHashes")]
-struct ServiceRuntimeStateHashes {
-    runtime_state_hashes: Vec<Vec<u8>>,
-    service_state_hashes: Vec<ServiceStateHashes>,
 }
 
 impl JavaRuntimeProxy {
@@ -97,7 +77,7 @@ impl JavaRuntimeProxy {
         res.map_err(|err| {
             let kind: ErrorKind = match err.kind() {
                 JniErrorKind::JavaException => Error::JavaException.into(),
-                _ => Error::UnspecifiedError.into(),
+                _ => Error::OtherJniError.into(),
             };
             (kind, err).into()
         })
@@ -125,12 +105,6 @@ Review: @sidorov ValidatorId is (still) too complex. Why has it been removed? Sh
     }
 }
 
-impl fmt::Debug for JavaRuntimeProxy {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "JavaRuntimeProxy()")
-    }
-}
-
 impl Runtime for JavaRuntimeProxy {
     fn deploy_artifact(
         &mut self,
@@ -147,16 +121,18 @@ impl Runtime for JavaRuntimeProxy {
             let artifact_id = JObject::from(env.new_string(id)?);
             let spec = JObject::from(env.byte_array_from_slice(&deploy_spec)?);
 
-            env.call_method_unchecked(
-                self.runtime_adapter.as_obj(),
-                runtime_adapter::deploy_artifact_id(),
-                JavaType::Primitive(Primitive::Void),
-                &[
-                    JValue::from(artifact_id),
-                    JValue::from(spec),
-                ],
-            )?;
-            Ok(())
+            log_jni_error_or_exception(
+                env,
+                env.call_method_unchecked(
+                    self.runtime_adapter.as_obj(),
+                    runtime_adapter::deploy_artifact_id(),
+                    JavaType::Primitive(Primitive::Void),
+                    &[
+                        JValue::from(artifact_id),
+                        JValue::from(spec),
+                    ],
+                )
+            ).map(|_| ())
         }))
         .into_future())
         /*
@@ -206,17 +182,19 @@ Review: I don't see the exception handling. If it does occur, the native is resp
             let name = JObject::from(env.new_string(service_name)?);
             let artifact_id = JObject::from(env.new_string(artifact.to_string())?);
 
-            env.call_method_unchecked(
-                adapter,
-                runtime_adapter::create_service_id(),
-                JavaType::Primitive(Primitive::Void),
-                &[
-                    JValue::from(name),
-                    JValue::from(id as i32),
-                    JValue::from(artifact_id),
-                ],
-            )
-            .map(|_| ())
+            log_jni_error_or_exception(
+                env,
+                env.call_method_unchecked(
+                    adapter,
+                    runtime_adapter::create_service_id(),
+                    JavaType::Primitive(Primitive::Void),
+                    &[
+                        JValue::from(name),
+                        JValue::from(id as i32),
+                        JValue::from(artifact_id),
+                    ],
+                )
+            ).map(|_| ())
         }))
     }
 
@@ -232,18 +210,20 @@ Review: I don't see the exception handling. If it does occur, the native is resp
             let view_handle = to_handle(View::from_ref_fork(fork));
             let params = JObject::from(env.byte_array_from_slice(&parameters)?);
 
-            env.call_method_unchecked(
-                self.runtime_adapter.as_obj(),
-                runtime_adapter::initialize_service_id(),
-                JavaType::Primitive(Primitive::Void),
-                &[
-                    JValue::from(id),
-                    JValue::from(view_handle),
-                    JValue::from(params),
-                ],
-            )?;
-
-            Ok(())
+            log_jni_error_or_exception(
+                env,
+                env.call_method_unchecked(
+                    self.runtime_adapter.as_obj(),
+                    runtime_adapter::initialize_service_id(),
+                    JavaType::Primitive(Primitive::Void),
+                    &[
+                        JValue::from(id),
+                        JValue::from(view_handle),
+                        JValue::from(params),
+                    ],
+                )
+            )
+                .map(|_| ())
         }))
     }
 
@@ -253,15 +233,17 @@ Review: I don't see the exception handling. If it does occur, the native is resp
         Self::parse_jni(self.exec.with_attached(|env| {
             let id = descriptor.id as i32;
 
-            env.call_method_unchecked(
-                adapter,
-                runtime_adapter::stop_service_id(),
-                JavaType::Primitive(Primitive::Void),
-                &[
-                    JValue::from(id),
-                ],
-            )
-            .map(|_| ())
+            log_jni_error_or_exception(
+                env,
+                env.call_method_unchecked(
+                    adapter,
+                    runtime_adapter::stop_service_id(),
+                    JavaType::Primitive(Primitive::Void),
+                    &[
+                        JValue::from(id),
+                    ],
+                )
+            ).map(|_| ())
         }))
     }
 
@@ -290,20 +272,22 @@ because this way is not intuitive.
             let pub_key = JObject::from(env.byte_array_from_slice(&tx.0)?);
             let hash = JObject::from(env.byte_array_from_slice(&tx.1)?);
 
-            env.call_method_unchecked(
-                self.runtime_adapter.as_obj(),
-                runtime_adapter::execute_tx_id(),
-                JavaType::Primitive(Primitive::Void),
-                &[
-                    JValue::from(service_id),
-                    JValue::from(tx_id),
-                    JValue::from(args),
-                    JValue::from(view_handle),
-                    JValue::from(pub_key),
-                    JValue::from(hash),
-                ],
-            )?;
-            Ok(())
+            log_jni_error_or_exception(
+                env,
+                env.call_method_unchecked(
+                    self.runtime_adapter.as_obj(),
+                    runtime_adapter::execute_tx_id(),
+                    JavaType::Primitive(Primitive::Void),
+                    &[
+                        JValue::from(service_id),
+                        JValue::from(tx_id),
+                        JValue::from(args),
+                        JValue::from(view_handle),
+                        JValue::from(pub_key),
+                        JValue::from(hash),
+                    ],
+                )
+            ).map(|_| ())
         }))
         /* Review: As usual, the exception must be handled. On top of that,
 TransactionExecutionException must be converted into appropriate Errors, see the present
@@ -334,8 +318,23 @@ TransactionProxy.
             .into()
     }
 
-    fn before_commit(&self, _dispatcher: &DispatcherRef, _fork: &mut Fork) {
-        // TODO: ECR-3585
+    fn before_commit(&self, _dispatcher: &DispatcherRef, fork: &mut Fork) {
+        unwrap_jni(self.exec.with_attached(|env| {
+            let view_handle = to_handle(View::from_ref_fork(fork));
+
+            panic_on_exception(
+                env,
+                env.call_method_unchecked(
+                    self.runtime_adapter.as_obj(),
+                    runtime_adapter::before_commit_id(),
+                    JavaType::Primitive(Primitive::Void),
+                    &[
+                        JValue::from(view_handle),
+                    ],
+                ),
+            );
+            Ok(())
+        }));
     }
 
     fn after_commit(
@@ -367,21 +366,31 @@ TransactionProxy.
         }));
     }
 
-    // TODO: consider connecting api during the service start due to warning:
-    // "It is a temporary method which retains the existing `RustRuntime` code"
     fn api_endpoints(&self, context: &ApiContext) -> Vec<(String, ServiceApiBuilder)> {
+        Vec::new()
+    }
+
+    fn notify_api_changes(&self, context: &ApiContext, changes: &[ApiChange]) {
+        let added_instances_ids: Vec<i32> = changes.iter()
+            .filter_map(|change| {
+                if let ApiChange::InstanceAdded(instance_id) = change {
+                    Some(*instance_id as i32)
+                } else {
+                    None
+                }
+            })
+            .collect();
         /*
         Review: Please see the docs of the runtime method:
-(1) It must be invoked for the services to connect to API (not the already connected)
+x (1) It must be invoked for the services to connect to API (not the already connected)
 (2) It must not be empty (shall not be invoked if no new services need to be connected)
 */
-        let started_ids = Vec::<i32>::new();
         let node = NodeContext::new(self.exec.clone(), context.clone());
 
         unwrap_jni(self.exec.with_attached(|env| {
             let node_handle = to_handle(node);
-            let ids_array = env.new_int_array(started_ids.capacity() as i32)?;
-            env.set_int_array_region(ids_array, 0, &started_ids)?;
+            let ids_array = env.new_int_array(added_instances_ids.capacity() as i32)?;
+            env.set_int_array_region(ids_array, 0, &added_instances_ids)?;
             let service_ids = JObject::from(ids_array);
 
             panic_on_exception(
@@ -398,15 +407,30 @@ TransactionProxy.
             );
             Ok(())
         }));
-
-        Vec::<(String, ServiceApiBuilder)>::new()
     }
 }
+
+impl fmt::Debug for JavaRuntimeProxy {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "JavaRuntimeProxy()")
+    }
+}
+
+/// Artifact identification properties within `JavaRuntimeProxy`
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct JavaArtifactId(String);
 
 impl ToString for JavaArtifactId {
     fn to_string(&self) -> String {
         self.0.to_owned()
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, ProtobufConvert, PartialEq)]
+#[exonum(pb = "proto::ServiceStateHashes")]
+struct ServiceStateHashes {
+    instance_id: u32,
+    state_hashes: Vec<Vec<u8>>,
 }
 
 impl ServiceStateHashes {
@@ -417,6 +441,13 @@ impl ServiceStateHashes {
             .collect();
         (self.instance_id, hashes)
     }
+}
+
+#[derive(Serialize, Deserialize, Clone, ProtobufConvert, PartialEq)]
+#[exonum(pb = "proto::ServiceRuntimeStateHashes")]
+struct ServiceRuntimeStateHashes {
+    runtime_state_hashes: Vec<Vec<u8>>,
+    service_state_hashes: Vec<ServiceStateHashes>,
 }
 
 impl ServiceRuntimeStateHashes {

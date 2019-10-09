@@ -20,15 +20,13 @@ extern crate java_bindings;
 #[macro_use]
 extern crate lazy_static;
 
-use std::{panic, sync::Arc};
-
 use exonum_testkit::TestKitBuilder;
-
 use integration_tests::{
     fake_service::*,
     vm::{create_vm_for_tests_with_fake_classes, fake_service_artifact_path},
 };
-use java_bindings::{JavaRuntimeFactory, jni::JavaVM, utils::any_to_string};
+use java_bindings::{jni::JavaVM, utils::any_to_string, JavaRuntimeFactory};
+use std::{panic, sync::Arc};
 
 lazy_static! {
     static ref VM: Arc<JavaVM> = create_vm_for_tests_with_fake_classes();
@@ -125,8 +123,7 @@ fn create_service_for_unknown_artifact() {
     });
 }
 
-// Review: Comment is not updated
-// Creates a new instance of JavaServiceRuntime for same JVM.
+// Creates a new instance of JavaRuntimeFactory for same JVM.
 fn get_runtime() -> JavaRuntimeFactory {
     JavaRuntimeFactory::create_with_jvm(VM.clone(), 0)
 }

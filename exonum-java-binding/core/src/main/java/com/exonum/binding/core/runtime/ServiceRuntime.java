@@ -404,24 +404,6 @@ public final class ServiceRuntime {
     }
   }
 
-  /*
-  Review: (to self) Why this method?
-   */
-  /**
-   * Get service instance id by its name.
-   *
-   * @throws IllegalArgumentException if there is no service with such name
-   */
-  public int getServiceIdByName(String serviceName) {
-    synchronized (lock) {
-      return findService(serviceName)
-          .map(ServiceWrapper::getId)
-          .orElseThrow(() ->
-              new IllegalArgumentException("No service with such name in the Java runtime: "
-                  + serviceName));
-    }
-  }
-
   /**
    * Verifies that an Exonum raw transaction can be correctly converted to an executable
    * transaction of given service.
@@ -431,8 +413,7 @@ public final class ServiceRuntime {
    *     within the service
    * @param arguments the {@linkplain TransactionMessage#getPayload() serialized transaction
    *     arguments}
-   *                  Review: with such name — not name, but id
-   * @throws IllegalArgumentException if there is no service with such name in this runtime, or if
+   * @throws IllegalArgumentException if there is no service with such id in this runtime, or if
    *     the transaction is not known to the service, or the arguments are not valid: e.g., cannot
    *     be deserialized, or do not meet the preconditions
    */

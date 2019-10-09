@@ -33,7 +33,6 @@ import com.exonum.binding.core.blockchain.Block;
 import com.exonum.binding.core.blockchain.Blockchain;
 import com.exonum.binding.core.proxy.Cleaner;
 import com.exonum.binding.core.runtime.DispatcherSchema;
-import com.exonum.binding.core.runtime.ServiceArtifactId;
 import com.exonum.binding.core.service.Node;
 import com.exonum.binding.core.storage.database.Snapshot;
 import com.exonum.binding.core.storage.database.View;
@@ -56,13 +55,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-class TestKitTest extends TestKitWithTestArtifact {
-  private static final String ARTIFACT_FILENAME_2 = "test-service-2.jar";
-  private static final ServiceArtifactId ARTIFACT_ID_2 =
-      ServiceArtifactId.of("com.exonum.binding", "test-service-2", "1.0.0");
-  private static final String SERVICE_NAME_2 = "Test service 2";
-  private static final int SERVICE_ID_2 = 48;
-
+class TestKitTest extends TestKitTestWithArtifactsCreated {
   private String TIME_SERVICE_NAME = "Time service";
   private int TIME_SERVICE_ID = 10;
 
@@ -110,17 +103,6 @@ class TestKitTest extends TestKitWithTestArtifact {
         .build()) {
       checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
       checkTestServiceInitialization(testKit, SERVICE_NAME_2, SERVICE_ID_2);
-    }
-  }
-
-  @Test
-  void getServiceIdByName() {
-    try (TestKit testKit = TestKit.builder()
-        .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
-        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
-        .withArtifactsDirectory(artifactsDirectory)
-        .build()) {
-      assertThat(testKit.getServiceIdByName(SERVICE_NAME)).isEqualTo(SERVICE_ID);
     }
   }
 
@@ -174,17 +156,16 @@ class TestKitTest extends TestKitWithTestArtifact {
 
   @Test
   void createTestKitWithoutArtifactsDirectoryThrows() {
-    Class<NullPointerException> exceptionType = NullPointerException.class;
+    Class<IllegalStateException> exceptionType = IllegalStateException.class;
     TestKit.Builder testKitBuilder = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID);
-    /*
-    Review: It sounds like IllegalState, not NPE.
-     */
-    NullPointerException thrownException = assertThrows(exceptionType, testKitBuilder::build);
+    IllegalStateException thrownException = assertThrows(exceptionType, testKitBuilder::build);
     assertThat(thrownException.getMessage()).isEqualTo("Artifacts directory was not set.");
   }
 
+  // TODO: update TestService so that different configuration changes state and refactor this test
+  //  to validate that custom configuration works [ECR-3652]
   @Test
   void createTestKitWithBuilderForSingleServiceWithCustomConfiguration() {
     try (TestKit testKit = TestKit.builder()
@@ -212,15 +193,7 @@ class TestKitTest extends TestKitWithTestArtifact {
   }
 
   @Test
-  void createTestKitWithBuilderForMultipleDifferentServices() throws Exception {
-    // Create artifact for TestService2
-    /*
-    Review: Do you expect the runtime to load two artifacts with the same meta?
-    This method writes ARTIFACT_ID, but then specifies ARTIFACT_ID_2:
-     .withDeployedArtifact(ARTIFACT_ID_2, ARTIFACT_FILENAME_2)
-     */
-    createArtifact(artifactsDirectory.resolve(ARTIFACT_FILENAME_2));
-
+  void createTestKitWithBuilderForMultipleDifferentServices() {
     try (TestKit testKit = TestKit.builder()
         .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
         .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
@@ -402,16 +375,14 @@ class TestKitTest extends TestKitWithTestArtifact {
 
   @Test
   void afterCommitSubmitsTransaction(TestKit testKit) {
-    // Review: You specify the id, why this method is needed?
-    int serviceId = testKit.getServiceIdByName(SERVICE_NAME);
     // Create a block so that afterCommit transaction is submitted
     Block block = testKit.createBlock();
     List<TransactionMessage> inPoolTransactions = testKit
-        .findTransactionsInPool(tx -> tx.getServiceId() == serviceId);
+        .findTransactionsInPool(tx -> tx.getServiceId() == SERVICE_ID);
     assertThat(inPoolTransactions).hasSize(1);
     TransactionMessage inPoolTransaction = inPoolTransactions.get(0);
     RawTransaction afterCommitTransaction =
-        constructAfterCommitTransaction(serviceId, block.getHeight());
+        constructAfterCommitTransaction(SERVICE_ID, block.getHeight());
 
     assertThat(inPoolTransaction.getServiceId())
         .isEqualTo(afterCommitTransaction.getServiceId());

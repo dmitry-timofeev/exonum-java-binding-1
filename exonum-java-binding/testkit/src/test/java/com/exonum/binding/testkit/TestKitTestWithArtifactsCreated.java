@@ -56,9 +56,6 @@ class TestKitTestWithArtifactsCreated {
 
   private static void createTestService2Artifact() throws IOException {
     Path artifactLocation = artifactsDirectory.resolve(ARTIFACT_FILENAME_2);
-    /*
-    Review: Is that correct that it uses the same schema and transactions?
-     */
     createArtifact(artifactLocation, ARTIFACT_ID_2, TestServiceModule2.class, TestTransaction.class,
         TestSchema.class, TestService2.class);
   }

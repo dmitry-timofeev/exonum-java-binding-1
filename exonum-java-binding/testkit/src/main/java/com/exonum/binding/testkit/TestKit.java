@@ -132,13 +132,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
                                      EmulatedNodeType nodeType, short validatorCount,
                                      List<TimeServiceSpec> timeServiceSpecs,
                                      Path artifactsDirectory) {
-        /*
-     Review: I don't think the testkit shall depend on the app and use this method
-     made for native code.
-     Create a single injector with a framework module, and invoke
-     injector.get(ServiceRuntimeAdapter.class). From here you can also get a ServiceRuntime,
-     if needed.
-     */
     ServiceRuntimeAdapter serviceRuntimeAdapter =
         createServiceRuntimeAdapter(artifactsDirectory);
     boolean isAuditorNode = nodeType == EmulatedNodeType.AUDITOR;

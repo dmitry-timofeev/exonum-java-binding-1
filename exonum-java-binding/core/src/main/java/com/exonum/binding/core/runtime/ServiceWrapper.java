@@ -53,31 +53,6 @@ final class ServiceWrapper {
     this.instanceSpec = instanceSpec;
   }
 
-  /*
-  Review: (to self) Why are these methods public? Why ServiceWrapper is public?
-I wonder if we shall make ServiceWrapper public or keep all the operations with it in the runtime.
-As stated in the docs, the goals of this class are to represent a service implementation as a whole
-and separate the user-facing extension interface from the framework interface.
-
-Testkit uses it for three things:
-1. Provide Service instance to the client (#getService). Although it appears to violate
-the separation between extension/framework interface, this one is a necessary evil to be
-able to pass the service instance (implementing the extension, user-facing interface)
-to the end user.
-2. To check if a service instance with the given id and name started (#getId and #getName).
-Such checks might be implemented by using the schema of the dispatcher, which, as an added
-benefit, keeps track of all services, not only Java, enabling similar checks of time service.
-Also, as currently testkit tests get the wrapper by the service name, later assertions on the name
-don't make much sense.
-3. Check transaction conversion (#getTxConverter).
-I don't think the TransactionConverter, as the extension interface, shall be used by testkit,
-as that breaks the separation that this class provides. If testkit needs to check if a transaction
-message can be converted, it shall use either the runtime or the ServiceWrapper method to do that.
-
-So, does testkit really need to operate on individual services (just as the runtime), so (1)and (3)
-can be provided via public ServiceWrapper, or shall we have ServiceRuntime, providing (1) and (3)
-to the testkit via package-private ServiceWrapper?
-   */
   /**
    * Returns the service instance.
    */
@@ -114,7 +89,6 @@ to the testkit via package-private ServiceWrapper?
   /**
    * Converts an Exonum raw transaction to an executable transaction of this service.
    *
-   * Review: unresolved refs
    * @param txId the {@linkplain TransactionMessage#getTransactionId() transaction type identifier}
    *     within the service
    * @param arguments the {@linkplain TransactionMessage#getPayload() serialized transaction

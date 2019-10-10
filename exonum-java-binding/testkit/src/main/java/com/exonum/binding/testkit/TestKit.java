@@ -51,7 +51,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -62,14 +61,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
-import org.apache.logging.log4j.LogManager;
-import org.pf4j.PluginManager;
 
 /**
  * TestKit for testing blockchain services. It offers simple network configuration emulation
@@ -277,15 +272,11 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       Blockchain blockchain = Blockchain.newInstance(view);
       MapIndex<HashCode, TransactionMessage> txMessages = blockchain.getTxMessages();
       KeySetIndexProxy<HashCode> poolTxsHashes = blockchain.getTransactionPool();
-      return stream(poolTxsHashes)
+      return poolTxsHashes.stream()
           .map(txMessages::get)
           .filter(predicate)
           .collect(toList());
     });
-  }
-
-  private static <T> Stream<T> stream(KeySetIndexProxy<T> setIndex) {
-    return Streams.stream(setIndex);
   }
 
   /**

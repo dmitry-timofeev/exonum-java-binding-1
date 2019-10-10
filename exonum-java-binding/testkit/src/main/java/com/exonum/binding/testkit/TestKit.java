@@ -16,6 +16,7 @@
 
 package com.exonum.binding.testkit;
 
+import static com.exonum.binding.app.ServiceRuntimeBootstrap.DEPENDENCY_REFERENCE_CLASSES;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.Arrays.asList;
@@ -44,29 +45,24 @@ import com.exonum.binding.core.storage.indices.KeySetIndexProxy;
 import com.exonum.binding.core.storage.indices.MapIndex;
 import com.exonum.binding.core.transaction.RawTransaction;
 import com.exonum.binding.core.util.LibraryLoader;
-import com.exonum.binding.time.TimeSchema;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import com.google.gson.Gson;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.protobuf.Any;
 import com.google.protobuf.MessageLite;
-import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -108,25 +104,14 @@ public final class TestKit extends AbstractCloseableNativeProxy {
    * single emulated node submits them.
    */
   public static final short MAX_VALIDATOR_COUNT_WITH_ENABLED_TIME_SERVICE = 3;
-  private static final ImmutableMap<String, Class<?>> DEPENDENCY_REFERENCE_CLASSES =
-      ImmutableMap.<String, Class<?>>builder()
-          .put("exonum-java-binding-core", Service.class)
-          .put("exonum-java-binding-common", HashCode.class)
-          .put("exonum-time-oracle", TimeSchema.class)
-          .put("vertx", Vertx.class)
-          .put("gson", Gson.class)
-          .put("guava", ImmutableMap.class)
-          .put("guice", Guice.class)
-          .put("pf4j", PluginManager.class)
-          .put("log4j", LogManager.class)
-          .build();
-
   @VisibleForTesting
   static final short MAX_SERVICE_NUMBER = 256;
   @VisibleForTesting
   static final int MAX_SERVICE_INSTANCE_ID = 1023;
   @VisibleForTesting
   static final Any DEFAULT_CONFIGURATION = Any.getDefaultInstance();
+  // Set 0 as a server port so it will assign a random suitable port by default
+  private static final int SERVER_PORT = 0;
   private static final Serializer<Block> BLOCK_SERIALIZER = BlockSerializer.INSTANCE;
   private final ServiceRuntime serviceRuntime;
   private final Set<Integer> timeServiceIds;
@@ -146,7 +131,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
   private static TestKit newInstance(TestKitServiceInstances[] serviceInstances,
                                      EmulatedNodeType nodeType, short validatorCount,
                                      List<TimeServiceSpec> timeServiceSpecs,
-                                     Path artifactsDirectory, int serverPort) {
+                                     Path artifactsDirectory) {
         /*
      Review: I don't think the testkit shall depend on the app and use this method
      made for native code.
@@ -155,7 +140,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
      if needed.
      */
     ServiceRuntimeAdapter serviceRuntimeAdapter =
-        getServiceRuntimeAdapter(artifactsDirectory, serverPort);
+        createServiceRuntimeAdapter(artifactsDirectory);
     boolean isAuditorNode = nodeType == EmulatedNodeType.AUDITOR;
     long nativeHandle = nativeCreateTestKit(serviceInstances, isAuditorNode, validatorCount,
         timeServiceSpecs.toArray(new TimeServiceSpec[0]), serviceRuntimeAdapter);
@@ -163,22 +148,18 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     return new TestKit(nativeHandle, timeServiceSpecs, serviceRuntime);
   }
 
-  /*
-  Review: createServiceRuntime, as this method creates the whole thing with its dependencies.
-   */
-  private static ServiceRuntimeAdapter getServiceRuntimeAdapter(
-      Path artifactsDirectory, int serverPort) {
-    Module frameworkModule = new FrameworkModule(artifactsDirectory, serverPort,
+  private static ServiceRuntimeAdapter createServiceRuntimeAdapter(
+      Path artifactsDirectory) {
+    Module frameworkModule = new FrameworkModule(artifactsDirectory, SERVER_PORT,
         DEPENDENCY_REFERENCE_CLASSES);
     Injector frameworkInjector = Guice.createInjector(frameworkModule);
 
     return frameworkInjector.getInstance(ServiceRuntimeAdapter.class);
   }
 
-  // TODO: use default artifactsDir here?
   /**
-   * Deploys and creates a single service with no configuration, random suitable server port and
-   * with a single validator node in this TestKit network.
+   * Deploys and creates a single service with no configuration and with a single validator node in
+   * this TestKit network.
    *
    * @param artifactId the id of the artifact
    * @param artifactFilename a filename of the service artifact in the directory for artifacts
@@ -373,18 +354,6 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     return createSnapshot(snapshotCleaner);
   }
 
-  /*
-  Review: I wonder how it can be used. If to test APIs, then the fact that it is not possible
-  to wait until it does accept requests is not good.
-   */
-  /**
-   * Returns a server port of the corresponding runtime, or {@link OptionalInt#empty()} if it
-   * does not currently accept requests.
-   */
-  public OptionalInt getServerPort() {
-    return serviceRuntime.getServerPort();
-  }
-
   private Snapshot createSnapshot(Cleaner cleaner) {
     long snapshotHandle = nativeCreateSnapshot(nativeHandle.get());
     return Snapshot.newInstance(snapshotHandle, cleaner);
@@ -441,16 +410,8 @@ public final class TestKit extends AbstractCloseableNativeProxy {
     private short validatorCount = 1;
     private Multimap<ServiceArtifactId, ServiceSpec> services = ArrayListMultimap.create();
     private HashMap<ServiceArtifactId, String> serviceArtifactFilenames = new HashMap<>();
-    /*
-    REVIEW: Why don't we set defaults for  artifactsDirectory and serverPort here as
-    with the rest of the arguments, but pass optionals to the constructor? The default
-    port is documented in the builder setter.
-     */
-    // TODO: add default value
     private Path artifactsDirectory;
     private List<TimeServiceSpec> timeServiceSpecs = new ArrayList<>();
-    // Set 0 as a server port so it will assign a random suitable port by default
-    private Integer serverPort = 0;
 
     private Builder() {}
 
@@ -463,18 +424,7 @@ public final class TestKit extends AbstractCloseableNativeProxy {
       Builder builder = new Builder()
           .withNodeType(nodeType)
           .withValidators(validatorCount)
-          .withArtifactsDirectory(artifactsDirectory)
-          .withServerPort(serverPort);
-      /*
-      Returns a shallow copy of this TestKit builder. (in one sentence)
-
-However, I am concerned that just having this documentation is not reliable. The client code must not invoke any of the numerous methods modifying the internal data structures (timeServiceSpecs, services,  serviceArtifactFilenames).
-
-The reason it does not already perform deep copy is TimeProvider which is not copyable. The rest of the arguments — are (or are immutable). To reduce the likelihood of errors, I'd consider:
-* copying the collections (new ArrayList<>(timeServiceSpecs), etc)
-* renaming the method to shallowCopy
-* documenting that the remaining mutable state are time providers.
-       */
+          .withArtifactsDirectory(artifactsDirectory);
       builder.timeServiceSpecs = new ArrayList<>(timeServiceSpecs);
       builder.services = MultimapBuilder.hashKeys().arrayListValues().build(services);
       builder.serviceArtifactFilenames = new HashMap<>(serviceArtifactFilenames);
@@ -610,15 +560,6 @@ The reason it does not already perform deep copy is TimeProvider which is not co
     }
 
     /**
-     * Adds a port for the web server providing transport to Java services. If not specified, will
-     * set a random suitable port.
-     */
-    public Builder withServerPort(Integer serverPort) {
-      this.serverPort = serverPort;
-      return this;
-    }
-
-    /**
      * Creates the TestKit instance.
      *
      * @throws IllegalArgumentException if validator count is invalid
@@ -632,7 +573,7 @@ The reason it does not already perform deep copy is TimeProvider which is not co
       checkArtifactsDirectory();
       TestKitServiceInstances[] testKitServiceInstances = mergeServiceSpecs();
       return newInstance(testKitServiceInstances, nodeType, validatorCount,
-          timeServiceSpecs, artifactsDirectory, serverPort);
+          timeServiceSpecs, artifactsDirectory);
     }
 
     /**
@@ -684,10 +625,7 @@ The reason it does not already perform deep copy is TimeProvider which is not co
     }
 
     private void checkArtifactsDirectory() {
-      // If any services are to be created, then artifacts directory should be specified
-      if (!services.isEmpty()) {
-        checkState(artifactsDirectory != null, "Artifacts directory was not set.");
-      }
+      checkState(artifactsDirectory != null, "Artifacts directory was not set.");
     }
   }
 }

@@ -49,7 +49,6 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -103,17 +102,6 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
         .build()) {
       checkTestServiceInitialization(testKit, SERVICE_NAME, SERVICE_ID);
       checkTestServiceInitialization(testKit, SERVICE_NAME_2, SERVICE_ID_2);
-    }
-  }
-
-  @Test
-  void getServerPort() {
-    int serverPort = 25000;
-    try (TestKit testKit = TestKit.builder()
-        .withServerPort(serverPort)
-        .build()) {
-      OptionalInt expectedServerPort = OptionalInt.of(serverPort);
-      assertThat(testKit.getServerPort()).isEqualTo(expectedServerPort);
     }
   }
 
@@ -207,6 +195,7 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
     TimeProvider timeProvider = FakeTimeProvider.create(TIME);
     try (TestKit testKit = TestKit.builder()
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       checkIfServiceEnabled(testKit, TIME_SERVICE_NAME, TIME_SERVICE_ID);
     }
@@ -221,6 +210,7 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
     try (TestKit testKit = TestKit.builder()
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
         .withTimeService(timeServiceName2, timeServiceId2, timeProvider2)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       checkIfServiceEnabled(testKit, TIME_SERVICE_NAME, TIME_SERVICE_ID);
       checkIfServiceEnabled(testKit, timeServiceName2, timeServiceId2);
@@ -353,6 +343,7 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
   @Test
   void createTestKitWithoutServices() {
     try (TestKit testKit = TestKit.builder()
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       // Shouldn't throw
     }
@@ -580,6 +571,7 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
     FakeTimeProvider timeProvider = FakeTimeProvider.create(TIME);
     try (TestKit testKit = TestKit.builder()
         .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
+        .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       // Commit two blocks for time oracle to prepare consolidated time. Two blocks are needed as
       // after the first block time transactions are generated and after the second one they are

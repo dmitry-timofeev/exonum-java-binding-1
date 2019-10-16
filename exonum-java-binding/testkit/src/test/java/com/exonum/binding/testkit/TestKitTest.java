@@ -78,9 +78,6 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
     }
   }
 
-  /*
-  Review: Do we test configuration?
-   */
   @Test
   void createTestKitWithBuilderForSingleService() {
     try (TestKit testKit = TestKit.builder()
@@ -167,6 +164,9 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
 
   @Test
   void createTestKitWithInvalidArtifactThrows() throws Exception {
+    /*
+     Review: It shall be valid.
+     */
     String invalidFilename = "invalid-filename.jar";
     createInvalidArtifact(invalidFilename);
     Class<RuntimeException> exceptionType = RuntimeException.class;

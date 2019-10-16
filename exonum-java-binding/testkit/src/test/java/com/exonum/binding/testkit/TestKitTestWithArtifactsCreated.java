@@ -62,6 +62,9 @@ class TestKitTestWithArtifactsCreated {
 
   static void createInvalidArtifact(String filename) throws IOException {
     Path artifactLocation = artifactsDirectory.resolve(filename);
+    /*
+    Review: What makes it invalid?
+     */
     createArtifact(artifactLocation, ARTIFACT_ID, TestServiceModule.class, TestTransaction.class,
         TestSchema.class);
   }

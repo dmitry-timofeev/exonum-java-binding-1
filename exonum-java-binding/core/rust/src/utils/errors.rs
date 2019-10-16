@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
+use jni::objects::JObject;
+use jni::JNIEnv;
+
 use std::any::Any;
 use std::cell::Cell;
 use std::error::Error;
 use std::result;
 use std::thread;
 
-use jni::JNIEnv;
-use jni::objects::JObject;
-
-use {JniError, JniErrorKind, JniResult};
 use utils::{get_class_name, get_exception_message, jni_cache::classes_refs};
+use {JniError, JniErrorKind, JniResult};
 
 /// Unwraps the result, returning its content.
 ///
@@ -67,35 +67,6 @@ pub fn check_error_on_exception<T>(env: &JNIEnv, result: JniResult<T>) -> Result
             message
         }
         _ => unwrap_jni(Err(jni_error)),
-    })
-}
-
-/// Handles and clears any Java exceptions.
-///
-/// Any JNI errors are logged with their descriptions,  for JNI errors
-/// like `JniErrorKind::JavaException` it gets (and clears) any exception
-/// that is currently being thrown.
-///
-/// Panics:
-/// - Panics if JNI error is `JniErrorKind::JavaException` but couldn't get (and clear) exception
-///   object and describe it.
-// Review: Tests.
-pub fn log_jni_error_or_exception<T>(env: &JNIEnv, result: JniResult<T>) -> JniResult<T> {
-    result.map_err(|jni_error| match jni_error.0 {
-        JniErrorKind::JavaException => {
-            let exception = get_and_clear_java_exception(env);
-            /*
-             Review: I'd consider using log_enabled! to avoid this method invocation
-            as it involves several Rust->Java calls which are expensive.
-            */
-            let message = describe_java_exception(env, exception);
-            error!("{}", message);
-            jni_error
-        }
-        _ => {
-            error!("JNI error: {:?}", jni_error);
-            jni_error
-        },
     })
 }
 
@@ -208,12 +179,12 @@ fn throw(env: &JNIEnv, error_message: &str) {
 }
 
 /// Tries to get meaningful description from panic-error.
-pub fn any_to_string(any: &Box<Any + Send>) -> String {
+pub fn any_to_string(any: &Box<dyn Any + Send>) -> String {
     if let Some(s) = any.downcast_ref::<&str>() {
         s.to_string()
     } else if let Some(s) = any.downcast_ref::<String>() {
         s.clone()
-    } else if let Some(error) = any.downcast_ref::<Box<Error + Send>>() {
+    } else if let Some(error) = any.downcast_ref::<Box<dyn Error + Send>>() {
         error.description().to_string()
     } else {
         "Unknown error occurred".to_string()

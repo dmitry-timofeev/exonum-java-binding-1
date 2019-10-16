@@ -240,6 +240,9 @@ fn instance_configs_from_java_array(
         )?);
         let artifact_filename =
             get_field_as_string(env, artifact_spec_obj.as_obj(), "artifactFilename")?;
+        /*
+        Review: the array ref
+        */
         let service_specs_obj: jobjectArray = env
             .get_field(
                 artifact_spec_obj.as_obj(),
@@ -267,9 +270,26 @@ fn parse_service_specs(
     for i in 0..num_specs {
         let service_spec = env.auto_local(env.get_object_array_element(specs_array, i)?);
         let (spec, config) = parse_instance_spec(&env, service_spec.as_obj(), &artifact_id)?;
+        /*
+        Review: Why does the API require duplicating the deploy arguments when they must
+        be supplied only **once** for the given artifacts? The API must accommodate only one
+        instance of deploy arguments.
+        */
+        /*
+        Review:
+The Java parameters are incorrect: the Java code must pass deploy arguments serialized
+as a protobuf message, not the filename: exonum-java-binding/core/src/main/proto/service_runtime.proto:46
+
+This code produces incorrect deploy arguments.
+        */
         let cfg = InstanceConfig::new(spec, Some(artifact_filename.to_bytes()), config);
         instance_configs.push(cfg);
     }
+    /*
+    Review: (1) Why the method deletes the reference that was passed to it?
+     (2) There is no reason to use this method when there is an AutoLocal.
+     (3) Please submit a task to re-write this whole thing to protobuf.
+    */
     env.delete_local_ref(specs_array.into())?;
 
     Ok(instance_configs)

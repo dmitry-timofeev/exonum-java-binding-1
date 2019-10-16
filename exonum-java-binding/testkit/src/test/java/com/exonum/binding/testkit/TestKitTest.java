@@ -55,7 +55,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class TestKitTest extends TestKitTestWithArtifactsCreated {
-  private String TIME_SERVICE_NAME = "Time service";
+  private String TIME_SERVICE_NAME = "time-service";
   private int TIME_SERVICE_ID = 10;
 
   private static final CryptoFunction CRYPTO_FUNCTION = CryptoFunctions.ed25519();
@@ -152,6 +152,33 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
     assertThat(thrownException.getMessage()).isEqualTo("Artifacts directory was not set.");
   }
 
+  @Test
+  void createTestKitWithNoFileThrows() {
+    String invalidFilename = "invalid-filename.jar";
+    Class<RuntimeException> exceptionType = RuntimeException.class;
+    TestKit.Builder testKitBuilder = TestKit.builder()
+        .withDeployedArtifact(ARTIFACT_ID, invalidFilename)
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withArtifactsDirectory(artifactsDirectory);
+    RuntimeException thrownException = assertThrows(exceptionType, testKitBuilder::build);
+    assertThat(thrownException.getMessage())
+        .contains("Failed to load the service from ", invalidFilename);
+  }
+
+  @Test
+  void createTestKitWithInvalidArtifactThrows() throws Exception {
+    String invalidFilename = "invalid-filename.jar";
+    createInvalidArtifact(invalidFilename);
+    Class<RuntimeException> exceptionType = RuntimeException.class;
+    TestKit.Builder testKitBuilder = TestKit.builder()
+        .withDeployedArtifact(ARTIFACT_ID, invalidFilename)
+        .withService(ARTIFACT_ID, SERVICE_NAME, SERVICE_ID)
+        .withArtifactsDirectory(artifactsDirectory);
+    RuntimeException thrownException = assertThrows(exceptionType, testKitBuilder::build);
+    assertThat(thrownException.getMessage())
+        .contains("Failed to load the service from ", invalidFilename);
+  }
+
   // TODO: update TestService so that different configuration changes state and refactor this test
   //  to validate that custom configuration works [ECR-3652]
   @Test
@@ -198,22 +225,6 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
         .withArtifactsDirectory(artifactsDirectory)
         .build()) {
       checkIfServiceEnabled(testKit, TIME_SERVICE_NAME, TIME_SERVICE_ID);
-    }
-  }
-
-  @Test
-  void createTestKitWithSeveralTimeServices() {
-    String timeServiceName2 = "Time service 2";
-    int timeServiceId2 = 18;
-    TimeProvider timeProvider = FakeTimeProvider.create(TIME);
-    TimeProvider timeProvider2 = FakeTimeProvider.create(TIME.plusDays(1));
-    try (TestKit testKit = TestKit.builder()
-        .withTimeService(TIME_SERVICE_NAME, TIME_SERVICE_ID, timeProvider)
-        .withTimeService(timeServiceName2, timeServiceId2, timeProvider2)
-        .withArtifactsDirectory(artifactsDirectory)
-        .build()) {
-      checkIfServiceEnabled(testKit, TIME_SERVICE_NAME, TIME_SERVICE_ID);
-      checkIfServiceEnabled(testKit, timeServiceName2, timeServiceId2);
     }
   }
 
@@ -333,7 +344,7 @@ class TestKitTest extends TestKitTestWithArtifactsCreated {
             .withDeployedArtifact(ARTIFACT_ID, ARTIFACT_FILENAME)
             .withArtifactsDirectory(artifactsDirectory);
     for (int i = 0; i < TestKit.MAX_SERVICE_NUMBER + 1; i++) {
-      String serviceName = SERVICE_NAME + " " + i;
+      String serviceName = SERVICE_NAME + i;
       int serviceId = SERVICE_ID + i;
       testKitBuilder = testKitBuilder.withService(ARTIFACT_ID, serviceName, serviceId);
     }

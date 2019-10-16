@@ -28,13 +28,13 @@ class TestKitTestWithArtifactsCreated {
   static final String ARTIFACT_FILENAME = "test-service.jar";
   static final ServiceArtifactId ARTIFACT_ID =
       ServiceArtifactId.of("com.exonum.binding", "test-service", "1.0.0");
-  static final String SERVICE_NAME = "Test service";
+  static final String SERVICE_NAME = "test-service";
   static final int SERVICE_ID = 46;
 
   static final String ARTIFACT_FILENAME_2 = "test-service-2.jar";
   static final ServiceArtifactId ARTIFACT_ID_2 =
       ServiceArtifactId.of("com.exonum.binding", "test-service-2", "1.0.0");
-  static final String SERVICE_NAME_2 = "Test service 2";
+  static final String SERVICE_NAME_2 = "test-service2";
   static final int SERVICE_ID_2 = 48;
 
   static Path artifactsDirectory;
@@ -56,8 +56,14 @@ class TestKitTestWithArtifactsCreated {
 
   private static void createTestService2Artifact() throws IOException {
     Path artifactLocation = artifactsDirectory.resolve(ARTIFACT_FILENAME_2);
-    createArtifact(artifactLocation, ARTIFACT_ID_2, TestServiceModule2.class, TestTransaction.class,
-        TestSchema.class, TestService2.class);
+    createArtifact(artifactLocation, ARTIFACT_ID_2, TestServiceModule2.class,
+        TestTransaction.class, TestSchema.class, TestService2.class);
+  }
+
+  static void createInvalidArtifact(String filename) throws IOException {
+    Path artifactLocation = artifactsDirectory.resolve(filename);
+    createArtifact(artifactLocation, ARTIFACT_ID, TestServiceModule.class, TestTransaction.class,
+        TestSchema.class);
   }
 
   private static void createArtifact(Path artifactLocation, ServiceArtifactId serviceArtifactId,

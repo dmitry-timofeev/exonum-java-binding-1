@@ -86,6 +86,10 @@ impl NodeContext {
         let tx_hash = signed.object_hash();
         // TODO: check Core behaviour/any errors on service inactivity
         self.api_context.sender().broadcast_transaction(
+            /*
+            Review: I don't think we shall *verify* a transaction message that has been just created.
+            Can we use from_value instead?
+            */
             signed.into_verified()?
         )?;
         Ok(tx_hash)
@@ -116,16 +120,7 @@ pub extern "system" fn Java_com_exonum_binding_core_service_NodeProxy_nativeSubm
             || -> JniResult<jbyteArray> {
                 let arguments = env.convert_byte_array(arguments)?;
                 /*
-                Review:
-                (check)
-This code cannot be correct because Verified expects a *message*,
-but we pass just the payload. This method must create a transaction message and sign it with
-the key of this node, ideally, using the core functionality, if it is available.
-
-https://github.com/exonum/exonum/blob/b542dae0bc10d8d8c015a347e9ce2c56201cac08/exonum/src/messages/signed.rs#L172-L177
-
-Second, please move all the logic inside Node#submit and test it. Keep here only
-type conversion logic.
+                Review: Please move all the logic inside Node#submit and test it.
                 */
                 let tx = AnyTx {
                     call_info: CallInfo {

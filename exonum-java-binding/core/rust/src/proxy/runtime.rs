@@ -186,7 +186,6 @@ impl Runtime for JavaRuntimeProxy {
         let artifact = match self.parse_artifact(id) {
             Ok(id) => id.to_string(),
             Err(err) => {
-                // Review: panic if the core passes garbase?
                 return false;
             },
         };
@@ -216,9 +215,6 @@ impl Runtime for JavaRuntimeProxy {
         let id = spec.id;
         let artifact = self.parse_artifact(&spec.artifact)?;
 
-        /*
-        Review: Same here: exceptions must be handled.
-        */
         let result = self.exec.with_attached(|env| {
             let name = JObject::from(env.new_string(service_name)?);
             let artifact_id = JObject::from(env.new_string(artifact.to_string())?);
@@ -301,14 +297,6 @@ because this way is not intuitive.
             // TODO: caller is Blockchain (not Transaction) is not supported  yet
             return Err(Error::NotSupportedOperation.into());
         };
-        /*
-                 Review:
-                 I've requested multiple times that this method shall handle TransactionExecutionExceptions
-                 and convert to appropriate core errors (**see the present TransactionProxy**).
-                 Also, it is not appropriate to log all exceptions
-                 as errors here because some (= TransactionExecutionErrors) are used to communicate
-                 an *expected* error in tx execution.
-                 */
         let res = self.exec.with_attached(|env| {
             let service_id = call_info.instance_id as i32;
             let tx_id = call_info.method_id as i32;
@@ -340,10 +328,6 @@ because this way is not intuitive.
             Ok(checked_result)
         });
         Self::convert_jni(res)?
-        /* Review: As usual, the exception must be handled. On top of that,
-TransactionExecutionException must be converted into appropriate Errors, see the present
-TransactionProxy.
-        */
     }
 
     fn state_hashes(&self, snapshot: &dyn Snapshot) -> StateHashAggregator {
@@ -372,8 +356,7 @@ TransactionProxy.
     fn before_commit(&self, _dispatcher: &DispatcherRef, fork: &mut Fork) {
         unwrap_jni(self.exec.with_attached(|env| {
             /*
-            Review: Shan't this code be updated to the head of dynamic-services (and appropriate
-            View method) for this work?
+            Review: !from_ref_mut_fork , according to the spec.
             */
             let view_handle = to_handle(View::from_ref_fork(fork));
 
@@ -552,8 +535,15 @@ impl ExceptionHandlers {
 
     const SERVICE_LOADING: &'static ExceptionHandler = &|env, exception| {
         assert!(!exception.is_null(), "No exception thrown.");
+        /*
+        Review: Do we need to handle service loading exception specially
+        (it is converted to JavaException)?
+        */
         let msg = unwrap_jni(get_exception_message(env, exception));
         let desc = format!("ServiceLoadingException(message: {:?})", msg);
+        /*
+        Review: Is there any benefit in defining more specific runtime errors?
+        */
         (Error::JavaException, desc).into()
     };
 

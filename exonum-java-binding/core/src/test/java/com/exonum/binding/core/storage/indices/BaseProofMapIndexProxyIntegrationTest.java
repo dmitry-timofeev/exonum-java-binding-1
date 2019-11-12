@@ -736,6 +736,11 @@ abstract class BaseProofMapIndexProxyIntegrationTest
    * [(00…0PK1, V1), (00…0PK2, V2), … (00…0PKi, Vi)].
    */
   List<MapEntry<HashCode, String>> createSortedMapEntries() {
+    /*
+     Review: Nowhere the base class says that getProofKeys are expected to be sorted
+     and how. The usages of this method must be reviewed to determine if they need sorting.
+     This method/getProofKeys and documentation must be updated accordingly.
+     */
     // Use PROOF_KEYS which are already sorted.
     return createMapEntries(getProofKeys().stream());
   }
@@ -752,6 +757,11 @@ abstract class BaseProofMapIndexProxyIntegrationTest
         .collect(Collectors.toList());
   }
 
+  /*
+  Review: Tests that rely on keys being equal to proof paths make no sense in the base but
+non-hashing flavour of the ProofMap where this property holds. In hashing variant
+there is no apparent connection between a key bits and the bits in the corresponding proof path.
+   */
   /**
    * Creates 257 entries for a ProofMap that, when added to it, will make the underlying
    * Merkle-Patricia tree of the maximum height (256). Leaf nodes will be at depths

@@ -142,7 +142,10 @@ class ProofMapIndexProxyNoKeyHashingIntegrationTest
       List<MapEntry<HashCode, String>> entries = createSortedMapEntries();
 
       putAll(map, entries);
-
+/*
+Review: (keys, values, entries) have incomplete documentation of the order of the elements
+missing the default variant.
+ */
       Iterator<MapEntry<HashCode, String>> entriesIterator = map.entries();
       List<MapEntry> entriesFromIter = ImmutableList.copyOf(entriesIterator);
       // Entries must appear in a lexicographical order of keys.

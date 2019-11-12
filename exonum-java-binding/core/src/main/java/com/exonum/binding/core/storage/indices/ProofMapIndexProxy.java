@@ -52,7 +52,8 @@ import java.util.function.LongSupplier;
  * with methods {@link #newInstanceNoKeyHashing(String, View, Serializer, Serializer)} and
  * {@link #newInGroupUnsafeNoKeyHashing(String, byte[], View, Serializer, Serializer)}. In case of
  * no key hashing keys are required to be 32-byte long. Note that the former option is considered
- * a default one.
+ * a default one. Review: We discussed why it shall be the default option, and the documentation
+ * must reflect that.
  *
  * <p>The "destructive" methods of the map, i.e., the one that change the map contents,
  * are specified to throw {@link UnsupportedOperationException} if
@@ -100,6 +101,7 @@ public final class ProofMapIndexProxy<K, V> extends AbstractIndexProxy implement
 
   /**
    * Creates a ProofMapIndexProxy with no key hashing. Requires that keys are 32-byte long.
+   * Review: Would it be possible to add a short warning with link to the class-level section?
    *
    * @param name a unique alphanumeric non-empty identifier of this map in the underlying storage:
    *             [a-zA-Z0-9_]
@@ -112,7 +114,7 @@ public final class ProofMapIndexProxy<K, V> extends AbstractIndexProxy implement
    * @throws IllegalStateException if the view is not valid
    * @throws IllegalArgumentException if the name is empty
    * @see StandardSerializers
-   * @see ProofMapIndexProxy
+   * @see ProofMapIndexProxy Review: Remove, they are in this class already.
    */
   public static <K, V> ProofMapIndexProxy<K, V> newInstanceNoKeyHashing(
       String name, View view, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -217,6 +219,8 @@ public final class ProofMapIndexProxy<K, V> extends AbstractIndexProxy implement
           ProofMapKeySizeCheckingSerializerDecorator.from(keySerializer);
       return ProofMapKeyCheckingSerializerDecorator.from(sizeCheckingSerializerDecorator);
     } else {
+      // Review: Why is this needed at all if it can return just keySerializer, with no extra
+      // decorator types?
       return ProofMapKeyCheckingSerializerDecorator.from(keySerializer);
     }
   }
@@ -258,6 +262,10 @@ public final class ProofMapIndexProxy<K, V> extends AbstractIndexProxy implement
    * @param value a storage value to associate with the key
    * @throws IllegalStateException if this map is not valid
    * @throws IllegalArgumentException if the size of the key is not 32 bytes (in case of a
+   * Review: Here and elsewhere 'a no key hashing proof map' does not sound correct.
+   * ... a non-key-hashing proof map
+   * ... a proof map that does not hash keys
+   * if the size of the key is not 32 bytes *and* this map uses non-hashed keys
    *     no key hashing proof map)
    * @throws UnsupportedOperationException if this map is read-only
    */

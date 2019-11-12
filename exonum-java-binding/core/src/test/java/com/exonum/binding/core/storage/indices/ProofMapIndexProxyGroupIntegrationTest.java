@@ -27,6 +27,9 @@ import com.google.common.collect.ImmutableMap;
 
 class ProofMapIndexProxyGroupIntegrationTest extends BaseMapIndexGroupTestable<HashCode> {
 
+  /*
+  Review: Nit: may just use `String`s (Kx are already strings).
+   */
   private static final HashCode PK1 = HashCode.fromString(K1);
   private static final HashCode PK2 = HashCode.fromString(K2);
   private static final HashCode PK3 = HashCode.fromString(K3);

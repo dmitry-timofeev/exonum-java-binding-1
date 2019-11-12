@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.exonum.binding.common.serialization.Serializer;
 
 /**
+ * Review: revert the class to its past form.
  * A serializer decorator that checks proof map keys are not null.
  */
 final class ProofMapKeyCheckingSerializerDecorator<T> implements Serializer<T> {
